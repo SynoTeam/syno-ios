@@ -30,6 +30,7 @@ struct MainTabView: View {
         }
       }
     }
+    .tint(.brand100)
   }
 }
 

@@ -86,6 +86,41 @@ Do not implement these unless the user explicitly asks:
 - Automatic collection from all messengers.
 - Automatic full-file upload to a Syno server.
 
+## MVP Navigation Flow
+
+Use this flow as the product IA baseline for the current MVP work.
+
+Primary screens:
+
+- `Splash`: first launch surface. On app start, check local app state and route into `Home`.
+- `Home` / `Contact People`: primary hub for people and contact-centered memory. This is the default post-splash screen.
+- `Notes`: note and saved memory list/detail area.
+- `Room`: conversation or person/project-focused room.
+- `Global Search`: cross-app search over people, rooms, notes, and attachments.
+- `Add Contact`: contact creation flow.
+- `Settings`: app configuration and account/privacy controls.
+- `Room Archive`: optional room archive and restore flow. Do not prioritize this unless explicitly requested.
+
+Navigation rules:
+
+- `Home` owns the main contact-oriented experience and should remain the central return point.
+- The initial tab structure should start from `Home` and `Notes`. Add other tabs only when their screen behavior is clear.
+- Search should be treated as a global action that can be entered from `Home`, `Notes`, `Room`, and `Settings`.
+- Settings should be reachable from the main app shell, not buried inside a feature-specific view.
+- Selecting a person from `Home` should navigate to `Room`.
+- Creating a contact from `Add Contact` should prefer moving the user into the newly created `Room` after save.
+- Cancelling `Add Contact` should return to `Home`.
+- Back/cancel behavior from `Room`, `Notes`, `Global Search`, and `Settings` should preserve the user's expected previous context.
+- Selecting a person, note, room, or attachment result from `Global Search` should navigate to the relevant destination.
+- `Room Archive` is entered from `Room` through a secondary action such as more/archive, and can open or restore archived rooms.
+
+Current branch scope:
+
+- Implement the initial `TabView` app shell.
+- Implement the initial `ContactView` / `Home` experience.
+- Keep non-essential flows as placeholders when needed, especially search, settings, add contact, and archive.
+- Keep routing simple until the first real screens establish concrete state and data requirements.
+
 ## Branch And Commit Rules
 
 Branch naming:

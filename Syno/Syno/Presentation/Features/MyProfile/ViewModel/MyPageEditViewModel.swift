@@ -56,7 +56,10 @@ final class MyPageEditViewModel {
     selectedImageData = contact.profileImageData
     note = contact.note
 
-    let phoneParts = Self.splitPhone(contact.phone)
+    let phoneParts = ContactPhoneNumberFormatter.split(
+      contact.phone,
+      countryCodeOptions: AddContactViewModel.countryCodeOptions
+    )
     countryCode = phoneParts.countryCode
     phone = phoneParts.phone
   }
@@ -79,7 +82,7 @@ final class MyPageEditViewModel {
       role: originalContact.role,
       company: originalContact.company,
       email: trimmed(email),
-      phone: formattedPhone,
+      phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
       linkedInURL: trimmed(linkedInURL),
       group: group,
       note: trimmed(note),
@@ -91,16 +94,6 @@ final class MyPageEditViewModel {
 
   private func trimmed(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
-  }
-
-  /// 전화번호가 입력된 경우 국가번호와 전화번호를 합친 문자열입니다.
-  private var formattedPhone: String {
-    let phone = trimmed(phone)
-    guard !phone.isEmpty else {
-      return ""
-    }
-
-    return "\(countryCode) \(phone)"
   }
 
   private static func splitName(_ name: String) -> (familyName: String, givenName: String) {
@@ -119,21 +112,5 @@ final class MyPageEditViewModel {
     }
 
     return (String(firstCharacter), String(trimmedName.dropFirst()))
-  }
-
-  private static func splitPhone(_ phone: String) -> (countryCode: String, phone: String) {
-    let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedPhone.isEmpty else {
-      return ("+82", "")
-    }
-
-    for option in AddContactViewModel.countryCodeOptions where trimmedPhone.hasPrefix(option.code) {
-      let phoneNumber = trimmedPhone
-        .dropFirst(option.code.count)
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-      return (option.code, phoneNumber)
-    }
-
-    return ("+82", trimmedPhone)
   }
 }

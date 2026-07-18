@@ -9,12 +9,17 @@ import SwiftUI
 
 struct MainTabView: View {
   @State private var selectedTab: AppTab = .contacts
+  let userProfile: UserProfile?
+
+  init(userProfile: UserProfile? = nil) {
+    self.userProfile = userProfile
+  }
   
   var body: some View {
     TabView(selection: $selectedTab) {
       Tab(AppTab.contacts.title, systemImage: AppTab.contacts.systemImage, value: .contacts) {
         NavigationStack {
-          ContactsView()
+          ContactsView(userProfile: userProfile)
         }
       }
       

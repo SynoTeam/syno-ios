@@ -11,8 +11,11 @@ import Observation
 final class ContactsViewModel {
   private(set) var contacts: [Contact]
   
-  init(contacts: [Contact]? = nil) {
-    self.contacts = contacts ?? Self.mockContacts
+  init(
+    contacts: [Contact]? = nil,
+    myProfileName: String? = nil
+  ) {
+    self.contacts = contacts ?? Self.mockContacts(myProfileName: myProfileName)
   }
   
   var myContact: Contact? {
@@ -33,6 +36,10 @@ final class ContactsViewModel {
   
   func addContact(_ contact: Contact) {
     contacts.append(contact)
+  }
+
+  func replaceRegularContacts(_ regularContacts: [Contact]) {
+    contacts = contacts.filter(\.isMe) + regularContacts
   }
   
   func updateContact(_ contact: Contact) {
@@ -57,12 +64,14 @@ final class ContactsViewModel {
 }
 
 private extension ContactsViewModel {
-  static let mockContacts = [
-    Contact(
-      name: "내 프로필",
-      role: "",
-      company: "",
-      isMe: true
-    )
-  ]
+  static func mockContacts(myProfileName: String?) -> [Contact] {
+    [
+      Contact(
+        name: myProfileName ?? "내 프로필",
+        role: "",
+        company: "",
+        isMe: true
+      )
+    ]
+  }
 }

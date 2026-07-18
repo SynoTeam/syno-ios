@@ -5,12 +5,19 @@
 //  Created by 이승진 on 7/14/26.
 //
 
+import SwiftData
 import SwiftUI
 
 struct ContactsView: View {
+  @Environment(\.modelContext) private var modelContext
+  @Query(sort: \StoredContact.createdAt) private var storedContacts: [StoredContact]
   @State private var viewModel = ContactsViewModel()
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = false
+
+  init(userProfile: UserProfile? = nil) {
+    _viewModel = State(initialValue: ContactsViewModel(myProfileName: userProfile?.displayName))
+  }
   
   var body: some View {
     ScrollView {
@@ -39,16 +46,16 @@ struct ContactsView: View {
           count: viewModel.favoriteContacts.count,
           contacts: viewModel.favoriteContacts,
           isCollapsed: $isFavoriteCollapsed,
-          onToggleFavorite: viewModel.toggleFavorite,
-          onDelete: viewModel.deleteContact
+          onToggleFavorite: toggleFavorite,
+          onDelete: deleteContact
         )
         ContactsSectionView(
           title: "All",
           count: viewModel.regularContactCount,
           contacts: viewModel.regularContacts,
           isCollapsed: $isAllCollapsed,
-          onToggleFavorite: viewModel.toggleFavorite,
-          onDelete: viewModel.deleteContact
+          onToggleFavorite: toggleFavorite,
+          onDelete: deleteContact
         )
       }
       .padding(.horizontal, 16)
@@ -56,6 +63,7 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
+    .onAppear(perform: loadStoredContacts)
   }
   
   private var header: some View {
@@ -68,7 +76,7 @@ struct ContactsView: View {
       
       NavigationLink {
         AddContactView { contact in
-          viewModel.addContact(contact)
+          addContact(contact)
         }
       } label: {
         Image(systemName: "plus")
@@ -80,6 +88,43 @@ struct ContactsView: View {
       }
       .accessibilityLabel("Add Contact")
     }
+  }
+
+  private func loadStoredContacts() {
+    viewModel.replaceRegularContacts(storedContacts.map(\.contact))
+  }
+
+  private func addContact(_ contact: Contact) {
+    viewModel.addContact(contact)
+    modelContext.insert(StoredContact(contact: contact))
+    saveContext()
+  }
+
+  private func deleteContact(id: Contact.ID) {
+    viewModel.deleteContact(id: id)
+
+    if let storedContact = storedContacts.first(where: { $0.id == id }) {
+      modelContext.delete(storedContact)
+      saveContext()
+    }
+  }
+
+  private func toggleFavorite(id: Contact.ID) {
+    viewModel.toggleFavorite(id: id)
+
+    guard
+      let contact = viewModel.contacts.first(where: { $0.id == id }),
+      let storedContact = storedContacts.first(where: { $0.id == id })
+    else {
+      return
+    }
+
+    storedContact.update(with: contact)
+    saveContext()
+  }
+
+  private func saveContext() {
+    try? modelContext.save()
   }
 }
 

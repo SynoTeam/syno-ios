@@ -59,21 +59,10 @@ final class ContactsViewModel {
 private extension ContactsViewModel {
   static let mockContacts = [
     Contact(
-      name: "Ian",
-      role: "Marketing",
-      company: "@apple",
+      name: "내 프로필",
+      role: "",
+      company: "",
       isMe: true
-    ),
-    Contact(
-      name: "Hana Moon",
-      role: "Marketing Manager",
-      company: "@apple",
-      isFavorite: true
-    ),
-    Contact(name: "Ian", role: "Product Designer", company: "@syno"),
-    Contact(name: "Mina Kim", role: "iOS Developer", company: "@openai"),
-    Contact(name: "Alex Lee", role: "Founder", company: "@studio"),
-    Contact(name: "Jin Park", role: "Researcher", company: "@kaist"),
-    Contact(name: "Sora Choi", role: "Brand Lead", company: "@naver")
+    )
   ]
 }

@@ -18,12 +18,20 @@ struct ContactsView: View {
         header
         
         if let myContact = viewModel.myContact {
-          ContactsRowView(
-            name: myContact.name,
-            role: myContact.role,
-            company: myContact.company,
-            style: .me
-          )
+          NavigationLink {
+            MyPageView(contact: myContact) { contact in
+              viewModel.updateContact(contact)
+            }
+          } label: {
+            ContactsRowView(
+              name: myContact.name,
+              role: myContact.role,
+              company: myContact.company,
+              profileImageData: myContact.profileImageData,
+              style: .me
+            )
+          }
+          .buttonStyle(.plain)
         }
         
         ContactsSectionView(
@@ -47,19 +55,21 @@ struct ContactsView: View {
       .padding(.top, 20)
       .padding(.bottom, 20)
     }
-    .background(Color(.systemGroupedBackground))
+    .background(Color.gray50)
   }
   
   private var header: some View {
     HStack {
       Text("Contacts")
-        .typeStyle(.screenTitle)
+        .typeStyle(.header)
         .foregroundStyle(.gray950)
       
       Spacer()
       
       NavigationLink {
-        AddContactView()
+        AddContactView { contact in
+          viewModel.addContact(contact)
+        }
       } label: {
         Image(systemName: "plus")
           .font(.system(size: 18, weight: .medium))

@@ -22,11 +22,17 @@ struct ContactsSectionView: View {
       if !isCollapsed {
         LazyVStack(spacing: 16) {
           ForEach(contacts) { contact in
-            ContactsRowView(
-              name: contact.name,
-              role: contact.role,
-              company: contact.company
-            )
+            NavigationLink {
+              ContactDetailView(contact: contact)
+            } label: {
+              ContactsRowView(
+                name: contact.name,
+                role: contact.role,
+                company: contact.company,
+                profileImageData: contact.profileImageData
+              )
+            }
+            .buttonStyle(.plain)
             .contextMenu {
               Button {
                 onToggleFavorite(contact.id)
@@ -60,15 +66,15 @@ struct ContactsSectionView: View {
     } label: {
       HStack(spacing: 8) {
         Text(title)
-          .typeStyle(.sectionTitle)
+          .typeStyle(.headline)
           .foregroundStyle(.gray500)
         
         Text("\(count)")
-          .typeStyle(.countBadge)
-          .foregroundStyle(.brand100)
+          .typeStyle(.caption1)
+          .foregroundStyle(.violet500)
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
-          .background(.brand200)
+          .background(.violet100)
           .clipShape(Capsule())
         
         Spacer()
@@ -90,13 +96,13 @@ struct ContactsSectionView: View {
     title: "All",
     count: 2,
     contacts: [
-      Contact(name: "Hana Moon", role: "Marketing Manager", company: "@apple"),
-      Contact(name: "Ian", role: "Product Designer", company: "@syno")
+      Contact(name: "Sample User", role: "Product Designer", company: "@syno"),
+      Contact(name: "Demo Contact", role: "iOS Developer", company: "@syno")
     ],
     isCollapsed: .constant(false),
     onToggleFavorite: { _ in },
     onDelete: { _ in }
   )
   .padding()
-  .background(Color(.systemGroupedBackground))
+  .background(Color.gray50)
 }

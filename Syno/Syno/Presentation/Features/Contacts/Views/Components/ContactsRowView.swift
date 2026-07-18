@@ -6,25 +6,29 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ContactsRowView: View {
   let name: String
   let role: String
   let company: String
+  let profileImageData: Data?
   let style: Style
-  
+
   init(
-    name: String = "Ian",
-    role: String = "Marketing Manager",
-    company: String = "@apple",
+    name: String = "Sample User",
+    role: String = "Product Designer",
+    company: String = "@syno",
+    profileImageData: Data? = nil,
     style: Style = .contact
   ) {
     self.name = name
     self.role = role
     self.company = company
+    self.profileImageData = profileImageData
     self.style = style
   }
-  
+
   var body: some View {
     HStack(spacing: 12) {
       profileImage
@@ -37,39 +41,51 @@ struct ContactsRowView: View {
     .background(style.backgroundColor)
     .clipShape(RoundedRectangle(cornerRadius: style.cornerRadius))
   }
-  
+
   private var profileImage: some View {
-    Image(.logo)
-      .resizable()
-      .aspectRatio(contentMode: .fill)
-      .frame(width: 44, height: 44)
-      .background(
+    Group {
+      if
+        let profileImageData,
+        let uiImage = UIImage(data: profileImageData)
+      {
+        Image(uiImage: uiImage)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .frame(width: 44, height: 44)
+      } else {
         RoundedRectangle(cornerRadius: 12)
-          .fill(.gray.opacity(0.1))
-      )
-      .clipShape(RoundedRectangle(cornerRadius: 12))
+          .fill(.gray100)
+          .frame(width: 44, height: 44)
+      }
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 12))
   }
-  
+
   private var infoText: some View {
     VStack(alignment: .leading, spacing: 0) {
       Text(name)
-        .typeStyle(.contactName)
+        .typeStyle(.headline)
         .foregroundStyle(style.nameColor)
       HStack(spacing: 6) {
-        Text(role)
-          .typeStyle(.contactMeta)
-          .foregroundStyle(style.metaColor)
-        Text(company)
-          .typeStyle(.contactMeta)
-          .foregroundStyle(style.metaColor)
+        if !role.isEmpty {
+          Text(role)
+            .typeStyle(.footnote)
+            .foregroundStyle(style.metaColor)
+        }
+
+        if !company.isEmpty {
+          Text(company)
+            .typeStyle(.footnote)
+            .foregroundStyle(style.metaColor)
+        }
       }
     }
   }
-  
+
   enum Style {
     case me
     case contact
-    
+
     var backgroundColor: Color {
       switch self {
       case .me:
@@ -78,7 +94,7 @@ struct ContactsRowView: View {
           .white
       }
     }
-    
+
     var nameColor: Color {
       switch self {
       case .me:
@@ -87,7 +103,7 @@ struct ContactsRowView: View {
           .gray950
       }
     }
-    
+
     var metaColor: Color {
       switch self {
       case .me:
@@ -96,7 +112,7 @@ struct ContactsRowView: View {
           .gray400
       }
     }
-    
+
     var cornerRadius: CGFloat {
       switch self {
       case .me:
@@ -105,7 +121,7 @@ struct ContactsRowView: View {
         0
       }
     }
-    
+
     var horizontalPadding: CGFloat {
       switch self {
       case .me:
@@ -114,7 +130,7 @@ struct ContactsRowView: View {
         8
       }
     }
-    
+
     var verticalPadding: CGFloat {
       switch self {
       case .me:
@@ -129,4 +145,3 @@ struct ContactsRowView: View {
 #Preview {
   ContactsRowView()
 }
-

@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct SynoApp: App {
-    var body: some Scene {
-        WindowGroup {
-            MainTabView()
-        }
+  var body: some Scene {
+    WindowGroup {
+      RootView()
     }
+    .modelContainer(for: [UserProfile.self, StoredContact.self])
+  }
 }

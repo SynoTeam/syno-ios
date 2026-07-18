@@ -13,7 +13,7 @@ struct ContactsView: View {
   @Query(sort: \StoredContact.createdAt) private var storedContacts: [StoredContact]
   @State private var viewModel = ContactsViewModel()
   @State private var isFavoriteCollapsed = false
-  @State private var isAllCollapsed = false
+  @State private var isAllCollapsed = true
 
   init(userProfile: UserProfile? = nil) {
     _viewModel = State(initialValue: ContactsViewModel(myProfileName: userProfile?.displayName))
@@ -32,7 +32,7 @@ struct ContactsView: View {
           } label: {
             ContactsRowView(
               name: myContact.name,
-              role: myContact.role,
+              role: "My Profile",
               company: myContact.company,
               profileImageData: myContact.profileImageData,
               style: .me
@@ -41,14 +41,17 @@ struct ContactsView: View {
           .buttonStyle(.plain)
         }
         
-        ContactsSectionView(
-          title: "Favorite",
-          count: viewModel.favoriteContacts.count,
-          contacts: viewModel.favoriteContacts,
-          isCollapsed: $isFavoriteCollapsed,
-          onToggleFavorite: toggleFavorite,
-          onDelete: deleteContact
-        )
+        if !viewModel.favoriteContacts.isEmpty {
+          ContactsSectionView(
+            title: "Favorite",
+            count: viewModel.favoriteContacts.count,
+            contacts: viewModel.favoriteContacts,
+            isCollapsed: $isFavoriteCollapsed,
+            onToggleFavorite: toggleFavorite,
+            onDelete: deleteContact
+          )
+        }
+
         ContactsSectionView(
           title: "All",
           count: viewModel.regularContactCount,
@@ -57,6 +60,10 @@ struct ContactsView: View {
           onToggleFavorite: toggleFavorite,
           onDelete: deleteContact
         )
+
+        if viewModel.regularContacts.isEmpty {
+          emptyState
+        }
       }
       .padding(.horizontal, 16)
       .padding(.top, 20)
@@ -90,18 +97,38 @@ struct ContactsView: View {
     }
   }
 
+  private var emptyState: some View {
+    VStack(spacing: 28) {
+      Image(.logo)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 148, height: 148)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+
+      Text("환영합니다!\n연락처를 추가해보세요.")
+        .typeStyle(.headline)
+        .foregroundStyle(.gray500)
+        .multilineTextAlignment(.center)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.top, 116)
+  }
+
   private func loadStoredContacts() {
     viewModel.replaceRegularContacts(storedContacts.map(\.contact))
+    isAllCollapsed = viewModel.regularContacts.isEmpty
   }
 
   private func addContact(_ contact: Contact) {
     viewModel.addContact(contact)
+    isAllCollapsed = false
     modelContext.insert(StoredContact(contact: contact))
     saveContext()
   }
 
   private func deleteContact(id: Contact.ID) {
     viewModel.deleteContact(id: id)
+    isAllCollapsed = viewModel.regularContacts.isEmpty
 
     if let storedContact = storedContacts.first(where: { $0.id == id }) {
       modelContext.delete(storedContact)

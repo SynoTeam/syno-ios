@@ -42,7 +42,7 @@ struct ContactsSectionView: View {
                   systemImage: contact.isFavorite ? "star.slash" : "star"
                 )
               }
-              
+
               Button(role: .destructive) {
                 onDelete(contact.id)
               } label: {

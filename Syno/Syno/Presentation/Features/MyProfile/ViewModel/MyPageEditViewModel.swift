@@ -1,0 +1,139 @@
+//
+//  MyPageEditViewModel.swift
+//  Syno
+//
+//  Created by 이승진 on 7/18/26.
+//
+
+import Foundation
+import Observation
+
+/// 내 프로필 편집 화면의 입력 상태와 수정된 `Contact` 생성을 담당하는 ViewModel입니다.
+@MainActor
+@Observable
+final class MyPageEditViewModel {
+  /// 한 줄 기록에 허용되는 최대 글자 수입니다.
+  static let noteLimit = AddContactViewModel.noteLimit
+
+  private let originalContact: Contact
+
+  var familyName = ""
+  var givenName = ""
+  var email = ""
+  var countryCode = "+82"
+  var phone = ""
+  var linkedInURL = ""
+  var group = ""
+  var selectedImageData: Data?
+  var note = "" {
+    didSet {
+      if note.count > Self.noteLimit {
+        note = String(note.prefix(Self.noteLimit))
+      }
+    }
+  }
+
+  /// 성 또는 이름 중 하나 이상 입력됐을 때 저장할 수 있는지 여부입니다.
+  var canSave: Bool {
+    !contactName.isEmpty
+  }
+
+  /// 성과 이름을 합쳐 만든 내 프로필 이름입니다.
+  var contactName: String {
+    "\(trimmed(familyName))\(trimmed(givenName))"
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  init(contact: Contact) {
+    originalContact = contact
+
+    let nameParts = Self.splitName(contact.name)
+    familyName = nameParts.familyName
+    givenName = nameParts.givenName
+    email = contact.email
+    linkedInURL = contact.linkedInURL
+    group = contact.group
+    selectedImageData = contact.profileImageData
+    note = contact.note
+
+    let phoneParts = Self.splitPhone(contact.phone)
+    countryCode = phoneParts.countryCode
+    phone = phoneParts.phone
+  }
+
+  /// 선택된 그룹 값을 폼 상태에 반영합니다.
+  func selectGroup(_ group: String) {
+    self.group = group
+  }
+
+  /// 선택된 국가번호 값을 폼 상태에 반영합니다.
+  func selectCountryCode(_ countryCode: String) {
+    self.countryCode = countryCode
+  }
+
+  /// 현재 편집 상태를 기존 Contact 식별자를 유지한 새 `Contact`로 변환합니다.
+  func makeContact() -> Contact {
+    Contact(
+      id: originalContact.id,
+      name: contactName,
+      role: originalContact.role,
+      company: originalContact.company,
+      email: trimmed(email),
+      phone: formattedPhone,
+      linkedInURL: trimmed(linkedInURL),
+      group: group,
+      note: trimmed(note),
+      profileImageData: selectedImageData,
+      isFavorite: originalContact.isFavorite,
+      isMe: originalContact.isMe
+    )
+  }
+
+  private func trimmed(_ value: String) -> String {
+    value.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  /// 전화번호가 입력된 경우 국가번호와 전화번호를 합친 문자열입니다.
+  private var formattedPhone: String {
+    let phone = trimmed(phone)
+    guard !phone.isEmpty else {
+      return ""
+    }
+
+    return "\(countryCode) \(phone)"
+  }
+
+  private static func splitName(_ name: String) -> (familyName: String, givenName: String) {
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else {
+      return ("", "")
+    }
+
+    let parts = trimmedName.split(separator: " ", maxSplits: 1).map(String.init)
+    if parts.count == 2 {
+      return (parts[0], parts[1])
+    }
+
+    guard let firstCharacter = trimmedName.first, trimmedName.count > 1 else {
+      return (trimmedName, "")
+    }
+
+    return (String(firstCharacter), String(trimmedName.dropFirst()))
+  }
+
+  private static func splitPhone(_ phone: String) -> (countryCode: String, phone: String) {
+    let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedPhone.isEmpty else {
+      return ("+82", "")
+    }
+
+    for option in AddContactViewModel.countryCodeOptions where trimmedPhone.hasPrefix(option.code) {
+      let phoneNumber = trimmedPhone
+        .dropFirst(option.code.count)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      return (option.code, phoneNumber)
+    }
+
+    return ("+82", trimmedPhone)
+  }
+}

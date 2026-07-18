@@ -1,24 +1,31 @@
 //
-//  AddContactView.swift
+//  MyPageEditView.swift
 //  Syno
 //
-//  Created by 이승진 on 7/14/26.
+//  Created by 이승진 on 7/18/26.
 //
 
 import SwiftUI
 
-/// 연락처 추가 화면입니다.
+/// 내 프로필 정보를 수정하는 화면입니다.
 ///
-/// 입력 폼 상태는 `AddContactViewModel`이 소유하고, 화면은 사진 선택, 입력 필드,
-/// 선택 시트 컴포넌트를 조립하는 역할만 담당합니다.
-struct AddContactView: View {
+/// 연락처 추가 화면과 같은 사진 선택, 국가번호 선택, 그룹 선택, 입력 필드 컴포넌트를 재사용합니다.
+struct MyPageEditView: View {
   @Environment(\.dismiss) private var dismiss
   @FocusState private var focusedField: AddContactField?
-  @State private var viewModel = AddContactViewModel()
+  @State private var viewModel: MyPageEditViewModel
   @State private var isShowingGroupSheet = false
   @State private var isShowingCountryCodeSheet = false
 
   let onSave: (Contact) -> Void
+
+  init(
+    contact: Contact,
+    onSave: @escaping (Contact) -> Void
+  ) {
+    _viewModel = State(initialValue: MyPageEditViewModel(contact: contact))
+    self.onSave = onSave
+  }
 
   var body: some View {
     ScrollView {
@@ -33,7 +40,7 @@ struct AddContactView: View {
     .background(Color.gray50)
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
-    .navigationTitle("연락처 추가")
+    .navigationTitle("프로필 편집")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
@@ -92,8 +99,8 @@ struct AddContactView: View {
           ) {
             focusedField = .phone
           }
-            .keyboardType(.emailAddress)
-            .textInputAutocapitalization(.never)
+          .keyboardType(.emailAddress)
+          .textInputAutocapitalization(.never)
           Divider()
             .background(.gray50)
           AddContactPhoneNumberField(
@@ -117,8 +124,8 @@ struct AddContactView: View {
           ) {
             focusedField = nil
           }
-            .keyboardType(.URL)
-            .textInputAutocapitalization(.never)
+          .keyboardType(.URL)
+          .textInputAutocapitalization(.never)
         }
       }
 
@@ -134,7 +141,7 @@ struct AddContactView: View {
       AddContactFormSection(title: "한 줄 기록") {
         AddContactNoteField(
           note: binding(\.note),
-          noteLimit: AddContactViewModel.noteLimit,
+          noteLimit: MyPageEditViewModel.noteLimit,
           focusedField: $focusedField
         )
       }
@@ -142,7 +149,7 @@ struct AddContactView: View {
   }
 
   private func binding<Value>(
-    _ keyPath: ReferenceWritableKeyPath<AddContactViewModel, Value>
+    _ keyPath: ReferenceWritableKeyPath<MyPageEditViewModel, Value>
   ) -> Binding<Value> {
     Binding(
       get: { viewModel[keyPath: keyPath] },
@@ -158,6 +165,16 @@ struct AddContactView: View {
 
 #Preview {
   NavigationStack {
-    AddContactView { _ in }
+    MyPageEditView(
+      contact: Contact(
+        name: "정지우",
+        role: "Apple",
+        company: "",
+        email: "dknwflosn@gmail.com",
+        phone: "+82 010-1234-5678",
+        linkedInURL: "https://www.linkedin.com/in/syno",
+        note: "프로필 편집 예시"
+      )
+    ) { _ in }
   }
 }

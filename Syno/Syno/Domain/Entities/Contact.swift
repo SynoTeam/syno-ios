@@ -12,6 +12,12 @@ struct Contact: Identifiable, Equatable {
   var name: String
   var role: String
   var company: String
+  var email: String
+  var phone: String
+  var linkedInURL: String
+  var group: String
+  var note: String
+  var profileImageData: Data?
   var isFavorite: Bool
   var isMe: Bool
   
@@ -20,6 +26,12 @@ struct Contact: Identifiable, Equatable {
     name: String,
     role: String,
     company: String,
+    email: String = "",
+    phone: String = "",
+    linkedInURL: String = "",
+    group: String = "",
+    note: String = "",
+    profileImageData: Data? = nil,
     isFavorite: Bool = false,
     isMe: Bool = false
   ) {
@@ -27,6 +39,12 @@ struct Contact: Identifiable, Equatable {
     self.name = name
     self.role = role
     self.company = company
+    self.email = email
+    self.phone = phone
+    self.linkedInURL = linkedInURL
+    self.group = group
+    self.note = note
+    self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isMe = isMe
   }

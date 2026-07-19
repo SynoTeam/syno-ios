@@ -5,27 +5,9 @@
 //  Created by 이승진 on 7/18/26.
 //
 
+import Contacts
 import Foundation
 import Observation
-
-/// 연락처 추가 화면에서 선택할 수 있는 국가번호 옵션입니다.
-struct CountryCodeOption: Identifiable, Hashable {
-  /// 실제 전화번호에 붙는 국가번호입니다.
-  let code: String
-
-  /// 국가번호 목록에 표시할 국가 이름입니다.
-  let countryName: String
-
-  /// 국가번호 옵션의 고유 식별자입니다.
-  var id: String {
-    code
-  }
-
-  /// 국가 이름과 국가번호를 함께 보여주는 표시 문자열입니다.
-  var displayTitle: String {
-    "\(countryName) \(code)"
-  }
-}
 
 /// 연락처 추가 폼의 입력 상태와 저장용 `Contact` 생성을 담당하는 ViewModel입니다.
 @MainActor
@@ -82,6 +64,24 @@ final class AddContactViewModel {
   func selectCountryCode(_ countryCode: String) {
     self.countryCode = countryCode
   }
+
+  /// 휴대폰 연락처 선택 결과를 연락처 추가 폼에 반영합니다.
+  func applyDeviceContact(_ contact: CNContact) {
+    familyName = contact.familyName
+    givenName = contact.givenName
+    email = contact.emailAddresses.first?.value as String? ?? ""
+    linkedInURL = contact.urlAddresses.first?.value as String? ?? ""
+    selectedImageData = contact.imageData
+
+    if let phoneNumber = contact.phoneNumbers.first?.value.stringValue {
+      let phoneParts = ContactPhoneNumberFormatter.split(
+        phoneNumber,
+        countryCodeOptions: Self.countryCodeOptions
+      )
+      countryCode = phoneParts.countryCode
+      phone = phoneParts.phone
+    }
+  }
   
   /// 현재 폼 상태를 저장 가능한 `Contact` 엔티티로 변환합니다.
   func makeContact() -> Contact {
@@ -90,7 +90,7 @@ final class AddContactViewModel {
       role: trimmed(email),
       company: "",
       email: trimmed(email),
-      phone: formattedPhone,
+      phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
       linkedInURL: trimmed(linkedInURL),
       group: group,
       note: trimmed(note),
@@ -100,15 +100,5 @@ final class AddContactViewModel {
   
   private func trimmed(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
-  }
-
-  /// 전화번호가 입력된 경우 국가번호와 전화번호를 합친 문자열입니다.
-  private var formattedPhone: String {
-    let phone = trimmed(phone)
-    guard !phone.isEmpty else {
-      return ""
-    }
-
-    return "\(countryCode) \(phone)"
   }
 }

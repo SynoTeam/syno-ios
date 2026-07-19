@@ -17,6 +17,7 @@ struct AddContactView: View {
   @State private var viewModel = AddContactViewModel()
   @State private var isShowingGroupSheet = false
   @State private var isShowingCountryCodeSheet = false
+  @State private var isShowingDeviceContactPicker = false
 
   let onSave: (Contact) -> Void
 
@@ -24,7 +25,8 @@ struct AddContactView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 24) {
         AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
-        formContent
+        importDeviceContactButton
+        contactForm
       }
       .padding(.horizontal, 16)
       .padding(.top, 32)
@@ -55,89 +57,51 @@ struct AddContactView: View {
       .presentationDetents([.height(380)])
       .presentationDragIndicator(.visible)
     }
+    .sheet(isPresented: $isShowingDeviceContactPicker) {
+      DeviceContactPickerView { contact in
+        viewModel.applyDeviceContact(contact)
+      }
+    }
   }
 
-  private var formContent: some View {
-    VStack(alignment: .leading, spacing: 28) {
-      AddContactFormSection(title: "이름") {
-        AddContactStackedFields {
-          AddContactTextField(
-            "성",
-            text: binding(\.familyName),
-            field: .familyName,
-            focusedField: $focusedField
-          ) {
-            focusedField = .givenName
-          }
-          Divider()
-            .background(.gray50)
-          AddContactTextField(
-            "이름",
-            text: binding(\.givenName),
-            field: .givenName,
-            focusedField: $focusedField
-          ) {
-            focusedField = .email
-          }
-        }
-      }
+  private var importDeviceContactButton: some View {
+    Button {
+      focusedField = nil
+      isShowingDeviceContactPicker = true
+    } label: {
+      HStack(spacing: 8) {
+        Image(systemName: "person.crop.circle.badge.plus")
+          .font(.system(size: 18, weight: .semibold))
 
-      AddContactFormSection(title: "연락처") {
-        AddContactStackedFields {
-          AddContactTextField(
-            "이메일",
-            text: binding(\.email),
-            field: .email,
-            focusedField: $focusedField
-          ) {
-            focusedField = .phone
-          }
-            .keyboardType(.emailAddress)
-            .textInputAutocapitalization(.never)
-          Divider()
-            .background(.gray50)
-          AddContactPhoneNumberField(
-            countryCode: viewModel.countryCode,
-            phone: binding(\.phone),
-            focusedField: $focusedField
-          ) {
-            focusedField = nil
-            isShowingCountryCodeSheet = true
-          } onSubmit: {
-            focusedField = .linkedInURL
-          }
-          Divider()
-            .background(.gray50)
-          AddContactTextField(
-            "링크드인 URL",
-            text: binding(\.linkedInURL),
-            field: .linkedInURL,
-            submitLabel: .done,
-            focusedField: $focusedField
-          ) {
-            focusedField = nil
-          }
-            .keyboardType(.URL)
-            .textInputAutocapitalization(.never)
-        }
+        Text("휴대폰 연락처에서 불러오기")
+          .typeStyle(.subheadline)
       }
+      .foregroundStyle(.gray700)
+      .frame(maxWidth: .infinity, minHeight: 48)
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 16))
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
 
-      AddContactFormSection(title: "그룹 정보") {
-        AddContactSelectionRow(
-          title: viewModel.group.isEmpty ? "그룹 선택하기" : viewModel.group
-        ) {
-          focusedField = nil
-          isShowingGroupSheet = true
-        }
-      }
-
-      AddContactFormSection(title: "한 줄 기록") {
-        AddContactNoteField(
-          note: binding(\.note),
-          noteLimit: AddContactViewModel.noteLimit,
-          focusedField: $focusedField
-        )
-      }
+  private var contactForm: some View {
+    ContactFormContentView(
+      familyName: binding(\.familyName),
+      givenName: binding(\.givenName),
+      email: binding(\.email),
+      countryCode: binding(\.countryCode),
+      phone: binding(\.phone),
+      linkedInURL: binding(\.linkedInURL),
+      group: binding(\.group),
+      note: binding(\.note),
+      noteLimit: AddContactViewModel.noteLimit,
+      focusedField: $focusedField
+    ) {
+      focusedField = nil
+      isShowingCountryCodeSheet = true
+    } onGroupTap: {
+      isShowingGroupSheet = true
     }
   }
 

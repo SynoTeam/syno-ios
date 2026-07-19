@@ -31,7 +31,7 @@ struct MyPageEditView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 24) {
         AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
-        formContent
+        contactForm
       }
       .padding(.horizontal, 16)
       .padding(.top, 32)
@@ -64,87 +64,23 @@ struct MyPageEditView: View {
     }
   }
 
-  private var formContent: some View {
-    VStack(alignment: .leading, spacing: 28) {
-      AddContactFormSection(title: "이름") {
-        AddContactStackedFields {
-          AddContactTextField(
-            "성",
-            text: binding(\.familyName),
-            field: .familyName,
-            focusedField: $focusedField
-          ) {
-            focusedField = .givenName
-          }
-          Divider()
-            .background(.gray50)
-          AddContactTextField(
-            "이름",
-            text: binding(\.givenName),
-            field: .givenName,
-            focusedField: $focusedField
-          ) {
-            focusedField = .email
-          }
-        }
-      }
-
-      AddContactFormSection(title: "연락처") {
-        AddContactStackedFields {
-          AddContactTextField(
-            "이메일",
-            text: binding(\.email),
-            field: .email,
-            focusedField: $focusedField
-          ) {
-            focusedField = .phone
-          }
-          .keyboardType(.emailAddress)
-          .textInputAutocapitalization(.never)
-          Divider()
-            .background(.gray50)
-          AddContactPhoneNumberField(
-            countryCode: viewModel.countryCode,
-            phone: binding(\.phone),
-            focusedField: $focusedField
-          ) {
-            focusedField = nil
-            isShowingCountryCodeSheet = true
-          } onSubmit: {
-            focusedField = .linkedInURL
-          }
-          Divider()
-            .background(.gray50)
-          AddContactTextField(
-            "링크드인 URL",
-            text: binding(\.linkedInURL),
-            field: .linkedInURL,
-            submitLabel: .done,
-            focusedField: $focusedField
-          ) {
-            focusedField = nil
-          }
-          .keyboardType(.URL)
-          .textInputAutocapitalization(.never)
-        }
-      }
-
-      AddContactFormSection(title: "그룹 정보") {
-        AddContactSelectionRow(
-          title: viewModel.group.isEmpty ? "그룹 선택하기" : viewModel.group
-        ) {
-          focusedField = nil
-          isShowingGroupSheet = true
-        }
-      }
-
-      AddContactFormSection(title: "한 줄 기록") {
-        AddContactNoteField(
-          note: binding(\.note),
-          noteLimit: MyPageEditViewModel.noteLimit,
-          focusedField: $focusedField
-        )
-      }
+  private var contactForm: some View {
+    ContactFormContentView(
+      familyName: binding(\.familyName),
+      givenName: binding(\.givenName),
+      email: binding(\.email),
+      countryCode: binding(\.countryCode),
+      phone: binding(\.phone),
+      linkedInURL: binding(\.linkedInURL),
+      group: binding(\.group),
+      note: binding(\.note),
+      noteLimit: MyPageEditViewModel.noteLimit,
+      focusedField: $focusedField
+    ) {
+      focusedField = nil
+      isShowingCountryCodeSheet = true
+    } onGroupTap: {
+      isShowingGroupSheet = true
     }
   }
 

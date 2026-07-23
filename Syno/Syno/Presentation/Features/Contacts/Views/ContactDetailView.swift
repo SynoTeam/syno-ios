@@ -21,6 +21,10 @@ struct ContactDetailView: View {
         .padding(.top, 28)
         .padding(.bottom, 40)
       }
+
+      chatButton
+        .padding(.horizontal, 22)
+        .padding(.bottom, 28)
     }
     .background(Color.gray50)
     .navigationTitle(contact.name)
@@ -82,6 +86,19 @@ struct ContactDetailView: View {
         .foregroundStyle(.gray950)
         .lineLimit(lineLimit)
         .truncationMode(.tail)
+    }
+  }
+
+  private var chatButton: some View {
+    NavigationLink {
+      ChatView(contact: contact)
+    } label: {
+      Text("메모하기")
+        .typeStyle(.headline)
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, minHeight: 58)
+        .background(.violet500)
+        .clipShape(Capsule())
     }
   }
 

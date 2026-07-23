@@ -5,14 +5,92 @@
 //  Created by 이승진 on 7/14/26.
 //
 
+import SwiftData
 import SwiftUI
 
 struct NotesView: View {
+  @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
+  @State private var viewModel = NotesViewModel()
+
   var body: some View {
-    Text("NotesView 입니다.")
+    ScrollView {
+      VStack(alignment: .leading, spacing: 16) {
+        header
+        filterChips
+
+        if viewModel.isEmpty {
+          NotesEmptyStateView()
+        } else {
+          notesList
+        }
+      }
+      .padding(.horizontal, 16)
+      .padding(.top, 20)
+      .padding(.bottom, 120)
+    }
+    .background(Color.gray50)
+    .onAppear(perform: loadStoredNotes)
+    .onChange(of: storedNotes.map(\.note)) {
+      loadStoredNotes()
+    }
+  }
+
+  private var header: some View {
+    HStack {
+      Text("Notes")
+        .typeStyle(.header)
+        .foregroundStyle(.gray950)
+
+      Spacer()
+
+      Button {} label: {
+        Image(systemName: "ellipsis")
+          .font(.system(size: 18, weight: .bold))
+          .foregroundStyle(.gray700)
+          .frame(width: 44, height: 44)
+          .background(.white)
+          .clipShape(Circle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("More")
+    }
+  }
+
+  private var filterChips: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 12) {
+        ForEach(viewModel.availableFilters, id: \.self) { filter in
+          NoteFilterChip(
+            title: filter.title,
+            isSelected: viewModel.selectedFilter == filter
+          ) {
+            viewModel.selectedFilter = filter
+          }
+        }
+      }
+    }
+    .scrollClipDisabled()
+  }
+
+  private var notesList: some View {
+    LazyVStack(spacing: 14) {
+      ForEach(viewModel.filteredNotes) { note in
+        NavigationLink {
+          ChatView(contact: note.contact)
+        } label: {
+          NoteRowView(note: note)
+        }
+        .buttonStyle(.plain)
+      }
+    }
+  }
+
+  private func loadStoredNotes() {
+    viewModel.replaceNotes(storedNotes.map(\.note))
   }
 }
 
 #Preview {
   NotesView()
+    .modelContainer(for: StoredNote.self, inMemory: true)
 }

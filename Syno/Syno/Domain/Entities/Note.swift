@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 노트 목록 화면에서 표시하는 메모 데이터입니다.
+/// 연락처에 남긴 메모를 나타내는 도메인 모델입니다.
 struct Note: Identifiable, Equatable {
   let id: UUID
   var contactId: UUID?

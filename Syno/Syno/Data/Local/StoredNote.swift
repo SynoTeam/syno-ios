@@ -70,6 +70,16 @@ final class StoredNote {
 }
 
 extension StoredNote {
+  func update(with note: Note) {
+    contactId = note.contactId
+    contactName = note.contactName
+    content = note.content
+    imageData = note.imageData
+    profileImageData = note.profileImageData
+    isFavorite = note.isFavorite
+    createdAt = note.createdAt
+  }
+
   /// 저장된 노트를 화면에서 사용하는 `Note` 엔티티로 변환합니다.
   var note: Note {
     Note(

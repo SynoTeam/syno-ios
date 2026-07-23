@@ -11,8 +11,10 @@ import SwiftUI
 struct SearchView: View {
   @State private var viewModel: SearchViewModel
   @FocusState private var isSearchFocused: Bool
+  private let noteRepository: any NoteRepository
 
-  init(modelContext: ModelContext) {
+  init(modelContext: ModelContext, noteRepository: any NoteRepository) {
+    self.noteRepository = noteRepository
     _viewModel = State(initialValue: SearchViewModel(modelContext: modelContext))
   }
 
@@ -146,9 +148,9 @@ struct SearchView: View {
   private func destination(for result: SearchResult) -> some View {
     switch result {
     case .contact(let contact, _):
-      ContactDetailView(contact: contact)
+      ContactDetailView(contact: contact, noteRepository: noteRepository)
     case .note(_, let contact):
-      ChatView(contact: contact)
+      ChatView(contact: contact, repository: noteRepository)
     }
   }
 }
@@ -161,6 +163,9 @@ struct SearchView: View {
   )
 
   NavigationStack {
-    SearchView(modelContext: container.mainContext)
+    SearchView(
+      modelContext: container.mainContext,
+      noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext)
+    )
   }
 }

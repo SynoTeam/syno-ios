@@ -6,50 +6,20 @@
 //
 
 import PhotosUI
-import SwiftData
 import SwiftUI
-import UIKit
 
 /// 연락처별로 나에게 보내는 형식의 기록을 남기는 채팅 화면입니다.
 struct ChatView: View {
-  @Environment(\.modelContext) private var modelContext
-  @Query private var storedNotes: [StoredNote]
-  @State private var messageText = ""
+  @State private var viewModel: ChatViewModel
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var isMessageSearchPresented = false
-  @State private var messageSearchText = ""
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
 
-  let contact: Contact
-
-  init(contact: Contact) {
-    self.contact = contact
-
-    let contactId: UUID? = contact.id
-    _storedNotes = Query(
-      filter: #Predicate<StoredNote> { $0.contactId == contactId },
-      sort: \StoredNote.createdAt
+  init(contact: Contact, repository: any NoteRepository) {
+    _viewModel = State(
+      initialValue: ChatViewModel(contact: contact, repository: repository)
     )
-  }
-
-  private var messages: [Note] {
-    storedNotes.map(\.note)
-  }
-
-  private var canSend: Bool {
-    !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-  }
-
-  private var messageSearchResults: [Note] {
-    let searchText = messageSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !searchText.isEmpty else {
-      return []
-    }
-
-    return messages.filter {
-      $0.content.localizedStandardContains(searchText)
-    }
   }
 
   var body: some View {
@@ -58,7 +28,7 @@ struct ChatView: View {
       messageInputBar
     }
     .background(Color.gray50)
-    .navigationTitle(contact.name)
+    .navigationTitle(viewModel.contact.name)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
@@ -75,8 +45,18 @@ struct ChatView: View {
     .scrollDismissesKeyboard(.interactively)
     .onChange(of: selectedPhotoItem) { _, selectedPhotoItem in
       Task {
-        await sendImage(from: selectedPhotoItem)
+        await viewModel.sendImage(from: selectedPhotoItem)
+        self.selectedPhotoItem = nil
       }
+    }
+    .onAppear(perform: viewModel.loadMessages)
+    .alert(
+      "오류",
+      isPresented: persistenceErrorBinding
+    ) {
+      Button("확인", action: viewModel.clearPersistenceError)
+    } message: {
+      Text(viewModel.persistenceError ?? "")
     }
   }
 
@@ -90,11 +70,11 @@ struct ChatView: View {
         }
 
         ScrollView {
-          if messages.isEmpty {
+          if viewModel.messages.isEmpty {
             ChatEmptyStateView()
           } else {
             LazyVStack(alignment: .trailing, spacing: 12) {
-              ForEach(messages) { message in
+              ForEach(viewModel.messages) { message in
                 ChatMessageBubble(note: message)
                   .id(message.id)
               }
@@ -109,7 +89,7 @@ struct ChatView: View {
         .onAppear {
           scrollToLatestMessage(with: proxy, animated: false)
         }
-        .onChange(of: messages.last?.id) { _, messageId in
+        .onChange(of: viewModel.messages.last?.id) { _, messageId in
           scrollToMessage(messageId, with: proxy)
         }
         .onChange(of: isInputFocused) { _, isFocused in
@@ -129,15 +109,15 @@ struct ChatView: View {
         Image(systemName: "magnifyingglass")
           .foregroundStyle(.gray400)
 
-        TextField("이 채팅에서 검색", text: $messageSearchText)
+        TextField("이 채팅에서 검색", text: binding(\.messageSearchText))
           .typeStyle(.body)
           .textInputAutocapitalization(.never)
           .autocorrectionDisabled()
           .focused($isSearchFocused)
 
-        if !messageSearchText.isEmpty {
+        if !viewModel.messageSearchText.isEmpty {
           Button {
-            messageSearchText = ""
+            viewModel.messageSearchText = ""
           } label: {
             Image(systemName: "xmark.circle.fill")
               .foregroundStyle(.gray400)
@@ -151,8 +131,8 @@ struct ChatView: View {
       .background(.gray100)
       .clipShape(RoundedRectangle(cornerRadius: 14))
 
-      if !messageSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-        if messageSearchResults.isEmpty {
+      if !viewModel.messageSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if viewModel.messageSearchResults.isEmpty {
           Text("일치하는 메시지가 없습니다.")
             .typeStyle(.footnote)
             .foregroundStyle(.gray500)
@@ -161,7 +141,7 @@ struct ChatView: View {
         } else {
           ScrollView {
             LazyVStack(spacing: 0) {
-              ForEach(messageSearchResults) { message in
+              ForEach(viewModel.messageSearchResults) { message in
                 Button {
                   onSelect(message.id)
                   isSearchFocused = false
@@ -207,88 +187,32 @@ struct ChatView: View {
       }
       .accessibilityLabel("Add Photo")
 
-      TextField("메모 입력", text: $messageText, axis: .vertical)
+      TextField("메모 입력", text: binding(\.messageText), axis: .vertical)
         .typeStyle(.body)
         .lineLimit(1...4)
         .focused($isInputFocused)
         .submitLabel(.send)
-        .onSubmit(sendMessage)
+        .onSubmit(viewModel.sendMessage)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.gray100)
         .clipShape(Capsule())
 
-      Button(action: sendMessage) {
+      Button(action: viewModel.sendMessage) {
         Image(systemName: "arrow.up")
           .font(.system(size: 20, weight: .bold))
           .foregroundStyle(.white)
           .frame(width: 44, height: 44)
-          .background(canSend ? .violet500 : .gray300)
+          .background(viewModel.canSend ? .violet500 : .gray300)
           .clipShape(Circle())
       }
-      .disabled(!canSend)
+      .disabled(!viewModel.canSend)
       .accessibilityLabel("Send Note")
     }
     .padding(.horizontal, 14)
     .padding(.top, 10)
     .padding(.bottom, 10)
     .background(Color.gray50)
-  }
-
-  private func sendMessage() {
-    let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    guard !trimmedText.isEmpty else {
-      return
-    }
-
-    let note = Note(
-      contactId: contact.id,
-      contactName: contact.name,
-      content: trimmedText,
-      profileImageData: contact.profileImageData
-    )
-
-    modelContext.insert(StoredNote(note: note))
-    try? modelContext.save()
-    messageText = ""
-  }
-
-  private func sendImage(from item: PhotosPickerItem?) async {
-    guard
-      let item,
-      let rawImageData = try? await item.loadTransferable(type: Data.self),
-      let imageData = Self.compressedImageData(from: rawImageData)
-    else {
-      return
-    }
-
-    let note = Note(
-      contactId: contact.id,
-      contactName: contact.name,
-      content: "사진",
-      imageData: imageData,
-      profileImageData: contact.profileImageData
-    )
-
-    modelContext.insert(StoredNote(note: note))
-    try? modelContext.save()
-    selectedPhotoItem = nil
-  }
-
-  private static func compressedImageData(from data: Data, maxDimension: CGFloat = 1600) -> Data? {
-    guard let image = UIImage(data: data) else {
-      return nil
-    }
-
-    let scale = min(1, maxDimension / max(image.size.width, image.size.height))
-    let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-
-    let resizedImage = UIGraphicsImageRenderer(size: targetSize).image { _ in
-      image.draw(in: CGRect(origin: .zero, size: targetSize))
-    }
-
-    return resizedImage.jpegData(compressionQuality: 0.8)
   }
 
   private func scrollToMessage(_ messageId: Note.ID?, with proxy: ScrollViewProxy) {
@@ -302,7 +226,7 @@ struct ChatView: View {
   }
 
   private func scrollToLatestMessage(with proxy: ScrollViewProxy, animated: Bool) {
-    guard let messageId = messages.last?.id else {
+    guard let messageId = viewModel.messages.last?.id else {
       return
     }
 
@@ -324,7 +248,7 @@ struct ChatView: View {
 
   private func toggleMessageSearch() {
     isMessageSearchPresented.toggle()
-    messageSearchText = ""
+    viewModel.messageSearchText = ""
     isInputFocused = false
 
     if isMessageSearchPresented {
@@ -332,6 +256,26 @@ struct ChatView: View {
     } else {
       isSearchFocused = false
     }
+  }
+
+  private func binding<Value>(
+    _ keyPath: ReferenceWritableKeyPath<ChatViewModel, Value>
+  ) -> Binding<Value> {
+    Binding(
+      get: { viewModel[keyPath: keyPath] },
+      set: { viewModel[keyPath: keyPath] = $0 }
+    )
+  }
+
+  private var persistenceErrorBinding: Binding<Bool> {
+    Binding(
+      get: { viewModel.persistenceError != nil },
+      set: { isPresented in
+        if !isPresented {
+          viewModel.clearPersistenceError()
+        }
+      }
+    )
   }
 }
 
@@ -342,8 +286,8 @@ struct ChatView: View {
         name: "Sample User",
         role: "Product Designer",
         company: "@syno"
-      )
+      ),
+      repository: PreviewRepositories.note
     )
   }
-  .modelContainer(for: StoredNote.self, inMemory: true)
 }

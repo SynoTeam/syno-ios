@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContactDetailView: View {
   let contact: Contact
+  let noteRepository: any NoteRepository
 
   var body: some View {
     VStack(spacing: 0) {
@@ -91,7 +92,7 @@ struct ContactDetailView: View {
 
   private var chatButton: some View {
     NavigationLink {
-      ChatView(contact: contact)
+      ChatView(contact: contact, repository: noteRepository)
     } label: {
       Text("메모하기")
         .typeStyle(.headline)
@@ -134,7 +135,8 @@ struct ContactDetailView: View {
         phone: "010-0000-0000",
         linkedInURL: "https://www.linkedin.com/in/syno",
         note: "샘플 연락처 메모"
-      )
+      ),
+      noteRepository: PreviewRepositories.note
     )
   }
 }

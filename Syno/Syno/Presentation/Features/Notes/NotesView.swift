@@ -12,6 +12,7 @@ struct NotesView: View {
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
   @Query private var storedContacts: [StoredContact]
   @State private var viewModel = NotesViewModel()
+  let noteRepository: any NoteRepository
 
   var body: some View {
     ScrollView {
@@ -86,7 +87,7 @@ struct NotesView: View {
     LazyVStack(spacing: 14) {
       ForEach(viewModel.filteredNotes) { note in
         NavigationLink {
-          ChatView(contact: note.contact)
+          ChatView(contact: note.contact, repository: noteRepository)
         } label: {
           NoteRowView(note: note)
         }
@@ -109,6 +110,6 @@ struct NotesView: View {
 }
 
 #Preview {
-  NotesView()
+  NotesView(noteRepository: PreviewRepositories.note)
     .modelContainer(for: [StoredNote.self, StoredContact.self], inMemory: true)
 }

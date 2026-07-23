@@ -12,28 +12,40 @@ struct MainTabView: View {
   @Environment(\.modelContext) private var modelContext
   @State private var selectedTab: AppTab = .contacts
   let userProfile: UserProfile?
+  private let contactRepository: any ContactRepository
+  private let noteRepository: any NoteRepository
 
-  init(userProfile: UserProfile? = nil) {
+  init(
+    userProfile: UserProfile? = nil,
+    contactRepository: any ContactRepository,
+    noteRepository: any NoteRepository
+  ) {
     self.userProfile = userProfile
+    self.contactRepository = contactRepository
+    self.noteRepository = noteRepository
   }
   
   var body: some View {
     TabView(selection: $selectedTab) {
       Tab(AppTab.contacts.title, systemImage: AppTab.contacts.systemImage, value: .contacts) {
         NavigationStack {
-          ContactsView(userProfile: userProfile)
+          ContactsView(
+            userProfile: userProfile,
+            contactRepository: contactRepository,
+            noteRepository: noteRepository
+          )
         }
       }
       
       Tab(AppTab.notes.title, systemImage: AppTab.notes.systemImage, value: .notes) {
         NavigationStack {
-          NotesView()
+          NotesView(noteRepository: noteRepository)
         }
       }
       
       Tab(AppTab.search.title, systemImage: AppTab.search.systemImage, value: .search, role: .search) {
         NavigationStack {
-          SearchView(modelContext: modelContext)
+          SearchView(modelContext: modelContext, noteRepository: noteRepository)
         }
       }
     }
@@ -70,5 +82,8 @@ private enum AppTab: Hashable {
 }
 
 #Preview {
-  MainTabView()
+  MainTabView(
+    contactRepository: PreviewRepositories.contact,
+    noteRepository: PreviewRepositories.note
+  )
 }

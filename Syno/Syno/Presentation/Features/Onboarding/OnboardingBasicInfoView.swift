@@ -5,14 +5,18 @@
 //  Created by 이승진 on 7/18/26.
 //
 
-import SwiftData
 import SwiftUI
 
 /// 온보딩에서 사용자 이름의 기본 정보를 입력받는 화면입니다.
 struct OnboardingBasicInfoView: View {
-  @Environment(\.modelContext) private var modelContext
   @FocusState private var focusedField: Field?
-  @State private var viewModel = OnboardingBasicInfoViewModel()
+  @State private var viewModel: OnboardingBasicInfoViewModel
+
+  init(repository: any UserProfileRepository) {
+    _viewModel = State(
+      initialValue: OnboardingBasicInfoViewModel(repository: repository)
+    )
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -45,7 +49,7 @@ struct OnboardingBasicInfoView: View {
 
       Spacer()
 
-      Button(action: saveUserProfile) {
+      Button(action: viewModel.saveUserProfile) {
         Text("확인")
           .typeStyle(.headline)
           .foregroundStyle(.white)
@@ -63,6 +67,11 @@ struct OnboardingBasicInfoView: View {
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
     .navigationBarTitleDisplayMode(.inline)
+    .alert("오류", isPresented: persistenceErrorBinding) {
+      Button("확인", action: viewModel.clearPersistenceError)
+    } message: {
+      Text(viewModel.persistenceError ?? "")
+    }
   }
 
   private func onboardingTextField(
@@ -100,9 +109,15 @@ struct OnboardingBasicInfoView: View {
     )
   }
 
-  private func saveUserProfile() {
-    modelContext.insert(viewModel.makeUserProfile())
-    try? modelContext.save()
+  private var persistenceErrorBinding: Binding<Bool> {
+    Binding(
+      get: { viewModel.persistenceError != nil },
+      set: { isPresented in
+        if !isPresented {
+          viewModel.clearPersistenceError()
+        }
+      }
+    )
   }
 
   private enum Field: Hashable {
@@ -113,6 +128,6 @@ struct OnboardingBasicInfoView: View {
 
 #Preview {
   NavigationStack {
-    OnboardingBasicInfoView()
+    OnboardingBasicInfoView(repository: PreviewRepositories.userProfile)
   }
 }

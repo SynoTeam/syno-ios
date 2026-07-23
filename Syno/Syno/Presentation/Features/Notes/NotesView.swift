@@ -10,6 +10,7 @@ import SwiftUI
 
 struct NotesView: View {
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
+  @Query private var storedContacts: [StoredContact]
   @State private var viewModel = NotesViewModel()
 
   var body: some View {
@@ -33,6 +34,9 @@ struct NotesView: View {
     .onChange(of: storedNotes.map(\.note)) {
       loadStoredNotes()
     }
+    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite)" }) {
+      loadStoredNotes()
+    }
   }
 
   private var header: some View {
@@ -43,7 +47,14 @@ struct NotesView: View {
 
       Spacer()
 
-      Button {} label: {
+      Menu {
+        Picker("정렬 기준", selection: $viewModel.sortOrder) {
+          ForEach(NoteSortOrder.allCases) { sortOrder in
+            Label(sortOrder.title, systemImage: sortOrder.systemImage)
+              .tag(sortOrder)
+          }
+        }
+      } label: {
         Image(systemName: "ellipsis")
           .font(.system(size: 18, weight: .bold))
           .foregroundStyle(.gray700)
@@ -51,8 +62,7 @@ struct NotesView: View {
           .background(.white)
           .clipShape(Circle())
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("More")
+      .accessibilityLabel("노트 정렬")
     }
   }
 
@@ -86,11 +96,19 @@ struct NotesView: View {
   }
 
   private func loadStoredNotes() {
-    viewModel.replaceNotes(storedNotes.map(\.note))
+    let favoriteContactIds = Set(
+      storedContacts
+        .filter(\.isFavorite)
+        .map(\.id)
+    )
+    viewModel.replaceNotes(
+      storedNotes.map(\.note),
+      favoriteContactIds: favoriteContactIds
+    )
   }
 }
 
 #Preview {
   NotesView()
-    .modelContainer(for: StoredNote.self, inMemory: true)
+    .modelContainer(for: [StoredNote.self, StoredContact.self], inMemory: true)
 }

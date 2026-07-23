@@ -16,7 +16,10 @@ struct ChatView: View {
   @Query private var storedNotes: [StoredNote]
   @State private var messageText = ""
   @State private var selectedPhotoItem: PhotosPickerItem?
+  @State private var isMessageSearchPresented = false
+  @State private var messageSearchText = ""
   @FocusState private var isInputFocused: Bool
+  @FocusState private var isSearchFocused: Bool
 
   let contact: Contact
 
@@ -38,6 +41,17 @@ struct ChatView: View {
     !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
 
+  private var messageSearchResults: [Note] {
+    let searchText = messageSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !searchText.isEmpty else {
+      return []
+    }
+
+    return messages.filter {
+      $0.content.localizedStandardContains(searchText)
+    }
+  }
+
   var body: some View {
     VStack(spacing: 0) {
       messagesScrollView
@@ -49,10 +63,12 @@ struct ChatView: View {
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        Button {} label: {
-          Image(systemName: "magnifyingglass")
+        Button {
+          toggleMessageSearch()
+        } label: {
+          Image(systemName: isMessageSearchPresented ? "xmark" : "magnifyingglass")
         }
-        .accessibilityLabel("Search Notes")
+        .accessibilityLabel(isMessageSearchPresented ? "메시지 검색 닫기" : "메시지 검색")
       }
     }
     .tint(.gray950)
@@ -66,35 +82,117 @@ struct ChatView: View {
 
   private var messagesScrollView: some View {
     ScrollViewReader { proxy in
-      ScrollView {
-        if messages.isEmpty {
-          ChatEmptyStateView()
-        } else {
-          LazyVStack(alignment: .trailing, spacing: 12) {
-            ForEach(messages) { message in
-              ChatMessageBubble(note: message)
-                .id(message.id)
-            }
+      VStack(spacing: 0) {
+        if isMessageSearchPresented {
+          messageSearchPanel { messageId in
+            scrollToMessage(messageId, with: proxy)
           }
-          .frame(maxWidth: .infinity, alignment: .trailing)
-          .padding(.horizontal, 16)
-          .padding(.top, 16)
-          .padding(.bottom, 24)
         }
-      }
-      .scrollDismissesKeyboard(.interactively)
-      .onAppear {
-        scrollToLatestMessage(with: proxy, animated: false)
-      }
-      .onChange(of: messages.last?.id) { _, messageId in
-        scrollToMessage(messageId, with: proxy)
-      }
-      .onChange(of: isInputFocused) { _, isFocused in
-        if isFocused {
-          scrollToLatestMessageAfterKeyboardAppears(with: proxy)
+
+        ScrollView {
+          if messages.isEmpty {
+            ChatEmptyStateView()
+          } else {
+            LazyVStack(alignment: .trailing, spacing: 12) {
+              ForEach(messages) { message in
+                ChatMessageBubble(note: message)
+                  .id(message.id)
+              }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+          }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onAppear {
+          scrollToLatestMessage(with: proxy, animated: false)
+        }
+        .onChange(of: messages.last?.id) { _, messageId in
+          scrollToMessage(messageId, with: proxy)
+        }
+        .onChange(of: isInputFocused) { _, isFocused in
+          if isFocused {
+            scrollToLatestMessageAfterKeyboardAppears(with: proxy)
+          }
         }
       }
     }
+  }
+
+  private func messageSearchPanel(
+    onSelect: @escaping (Note.ID) -> Void
+  ) -> some View {
+    VStack(spacing: 8) {
+      HStack(spacing: 10) {
+        Image(systemName: "magnifyingglass")
+          .foregroundStyle(.gray400)
+
+        TextField("이 채팅에서 검색", text: $messageSearchText)
+          .typeStyle(.body)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+          .focused($isSearchFocused)
+
+        if !messageSearchText.isEmpty {
+          Button {
+            messageSearchText = ""
+          } label: {
+            Image(systemName: "xmark.circle.fill")
+              .foregroundStyle(.gray400)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("검색어 지우기")
+        }
+      }
+      .padding(.horizontal, 14)
+      .frame(height: 44)
+      .background(.gray100)
+      .clipShape(RoundedRectangle(cornerRadius: 14))
+
+      if !messageSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if messageSearchResults.isEmpty {
+          Text("일치하는 메시지가 없습니다.")
+            .typeStyle(.footnote)
+            .foregroundStyle(.gray500)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        } else {
+          ScrollView {
+            LazyVStack(spacing: 0) {
+              ForEach(messageSearchResults) { message in
+                Button {
+                  onSelect(message.id)
+                  isSearchFocused = false
+                } label: {
+                  HStack {
+                    Text(message.content)
+                      .typeStyle(.footnote)
+                      .foregroundStyle(.gray900)
+                      .lineLimit(1)
+
+                    Spacer()
+
+                    Text(message.timeText)
+                      .typeStyle(.caption1)
+                      .foregroundStyle(.gray400)
+                  }
+                  .padding(.horizontal, 12)
+                  .frame(minHeight: 42)
+                  .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+              }
+            }
+          }
+          .frame(maxHeight: 168)
+        }
+      }
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 10)
+    .background(.white)
   }
 
   private var messageInputBar: some View {
@@ -221,6 +319,18 @@ struct ChatView: View {
     Task { @MainActor in
       try? await Task.sleep(for: .milliseconds(250))
       scrollToLatestMessage(with: proxy, animated: true)
+    }
+  }
+
+  private func toggleMessageSearch() {
+    isMessageSearchPresented.toggle()
+    messageSearchText = ""
+    isInputFocused = false
+
+    if isMessageSearchPresented {
+      isSearchFocused = true
+    } else {
+      isSearchFocused = false
     }
   }
 }

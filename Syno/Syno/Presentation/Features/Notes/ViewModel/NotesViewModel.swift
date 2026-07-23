@@ -12,6 +12,7 @@ import Observation
 @Observable
 final class NotesViewModel {
   var selectedFilter: NoteFilter = .all
+  var sortOrder: NoteSortOrder = .newest
   private(set) var notes: [Note]
 
   init(notes: [Note] = []) {
@@ -27,11 +28,22 @@ final class NotesViewModel {
   }
 
   var filteredNotes: [Note] {
+    let filteredNotes: [Note]
+
     switch selectedFilter {
     case .all:
-      notes
+      filteredNotes = notes
     case .favorite:
-      notes.filter(\.isFavorite)
+      filteredNotes = notes.filter(\.isFavorite)
+    }
+
+    switch sortOrder {
+    case .newest:
+      return filteredNotes.sorted { $0.createdAt > $1.createdAt }
+    case .name:
+      return filteredNotes.sorted {
+        $0.contactName.localizedStandardCompare($1.contactName) == .orderedAscending
+      }
     }
   }
 
@@ -39,8 +51,14 @@ final class NotesViewModel {
     notes.isEmpty
   }
 
-  func replaceNotes(_ notes: [Note]) {
-    self.notes = Self.latestNotesByContact(from: notes)
+  func replaceNotes(
+    _ notes: [Note],
+    favoriteContactIds: Set<UUID> = []
+  ) {
+    self.notes = Self.latestNotesByContact(
+      from: notes,
+      favoriteContactIds: favoriteContactIds
+    )
 
     if selectedFilter == .favorite && !self.notes.contains(where: \.isFavorite) {
       selectedFilter = .all
@@ -49,10 +67,14 @@ final class NotesViewModel {
 }
 
 private extension NotesViewModel {
-  static func latestNotesByContact(from notes: [Note]) -> [Note] {
+  static func latestNotesByContact(
+    from notes: [Note],
+    favoriteContactIds: Set<UUID>
+  ) -> [Note] {
     var latestNotes: [String: Note] = [:]
 
-    for note in notes {
+    for var note in notes {
+      note.isFavorite = note.contactId.map(favoriteContactIds.contains) ?? false
       let key = note.contactId?.uuidString ?? note.contactName
 
       if let currentNote = latestNotes[key], currentNote.createdAt >= note.createdAt {

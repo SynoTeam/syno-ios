@@ -44,6 +44,9 @@ final class StoredContact {
   /// 즐겨찾기 여부입니다.
   var isFavorite: Bool
 
+  /// 사용자 본인의 프로필인지 여부입니다.
+  var isMe: Bool = false
+
   /// 저장 생성 시각입니다.
   var createdAt: Date
 
@@ -59,6 +62,7 @@ final class StoredContact {
     note: String,
     profileImageData: Data?,
     isFavorite: Bool,
+    isMe: Bool,
     createdAt: Date = Date()
   ) {
     self.id = id
@@ -72,6 +76,7 @@ final class StoredContact {
     self.note = note
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
+    self.isMe = isMe
     self.createdAt = createdAt
   }
 
@@ -87,7 +92,8 @@ final class StoredContact {
       group: contact.group,
       note: contact.note,
       profileImageData: contact.profileImageData,
-      isFavorite: contact.isFavorite
+      isFavorite: contact.isFavorite,
+      isMe: contact.isMe
     )
   }
 }
@@ -106,7 +112,8 @@ extension StoredContact {
       group: group,
       note: note,
       profileImageData: profileImageData,
-      isFavorite: isFavorite
+      isFavorite: isFavorite,
+      isMe: isMe
     )
   }
 
@@ -122,5 +129,6 @@ extension StoredContact {
     note = contact.note
     profileImageData = contact.profileImageData
     isFavorite = contact.isFavorite
+    isMe = contact.isMe
   }
 }

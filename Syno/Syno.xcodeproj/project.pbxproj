@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		3C15409A2FEFC4CE00E89F11 /* Syno.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Syno.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A0000013000000000000001 /* SynoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +30,22 @@
 			path = Syno;
 			sourceTree = "<group>";
 		};
+		7A0000023000000000000002 /* SynoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SynoTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		3C1540972FEFC4CE00E89F11 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A0000033000000000000003 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
+				7A0000023000000000000002 /* SynoTests */,
 				3C15409B2FEFC4CE00E89F11 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,11 +68,22 @@
 			isa = PBXGroup;
 			children = (
 				3C15409A2FEFC4CE00E89F11 /* Syno.app */,
+				7A0000013000000000000001 /* SynoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		7A0000043000000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3C1540992FEFC4CE00E89F11;
+			remoteInfo = Syno;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXNativeTarget section */
 		3C1540992FEFC4CE00E89F11 /* Syno */ = {
@@ -83,6 +108,29 @@
 			productReference = 3C15409A2FEFC4CE00E89F11 /* Syno.app */;
 			productType = "com.apple.product-type.application";
 		};
+		7A0000053000000000000005 /* SynoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A0000063000000000000006 /* Build configuration list for PBXNativeTarget "SynoTests" */;
+			buildPhases = (
+				7A0000073000000000000007 /* Sources */,
+				7A0000033000000000000003 /* Frameworks */,
+				7A0000083000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7A0000093000000000000009 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7A0000023000000000000002 /* SynoTests */,
+			);
+			name = SynoTests;
+			packageProductDependencies = (
+			);
+			productName = SynoTests;
+			productReference = 7A0000013000000000000001 /* SynoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +143,10 @@
 				TargetAttributes = {
 					3C1540992FEFC4CE00E89F11 = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					7A0000053000000000000005 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 3C1540992FEFC4CE00E89F11;
 					};
 				};
 			};
@@ -113,12 +165,20 @@
 			projectRoot = "";
 			targets = (
 				3C1540992FEFC4CE00E89F11 /* Syno */,
+				7A0000053000000000000005 /* SynoTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		3C1540982FEFC4CE00E89F11 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A0000083000000000000008 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +195,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A0000073000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7A0000093000000000000009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3C1540992FEFC4CE00E89F11 /* Syno */;
+			targetProxy = 7A0000043000000000000004 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3C1540A32FEFC4D000E89F11 /* Debug */ = {
@@ -327,6 +402,52 @@
 			};
 			name = Release;
 		};
+		7A00000A300000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = D8KHM6Q8SA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.SynoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Syno.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Syno";
+			};
+			name = Debug;
+		};
+		7A00000B300000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = D8KHM6Q8SA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.SynoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Syno.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Syno";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -344,6 +465,15 @@
 			buildConfigurations = (
 				3C1540A62FEFC4D000E89F11 /* Debug */,
 				3C1540A72FEFC4D000E89F11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A0000063000000000000006 /* Build configuration list for PBXNativeTarget "SynoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A00000A300000000000000A /* Debug */,
+				7A00000B300000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

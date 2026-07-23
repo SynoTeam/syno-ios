@@ -32,11 +32,22 @@ struct NotesView: View {
     }
     .background(Color.gray50)
     .onAppear(perform: loadStoredNotes)
-    .onChange(of: storedNotes.map(StoredNoteChangeToken.init)) {
+    .onChange(of: storedNoteChangeTokens) {
       loadStoredNotes()
     }
     .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite)" }) {
       loadStoredNotes()
+    }
+  }
+
+  private var storedNoteChangeTokens: [StoredNoteChangeToken] {
+    storedNotes.map { storedNote in
+      StoredNoteChangeToken(
+        id: storedNote.id,
+        contactId: storedNote.contactId,
+        content: storedNote.content,
+        createdAt: storedNote.createdAt
+      )
     }
   }
 
@@ -114,13 +125,6 @@ private struct StoredNoteChangeToken: Equatable {
   let contactId: UUID?
   let content: String
   let createdAt: Date
-
-  init(storedNote: StoredNote) {
-    id = storedNote.id
-    contactId = storedNote.contactId
-    content = storedNote.content
-    createdAt = storedNote.createdAt
-  }
 }
 
 #Preview {

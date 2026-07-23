@@ -11,6 +11,7 @@ struct ContactsSectionView: View {
   let title: String
   let count: Int
   let contacts: [Contact]
+  let noteRepository: any NoteRepository
   @Binding var isCollapsed: Bool
   let onToggleFavorite: (Contact.ID) -> Void
   let onDelete: (Contact.ID) -> Void
@@ -23,7 +24,7 @@ struct ContactsSectionView: View {
         LazyVStack(spacing: 16) {
           ForEach(contacts) { contact in
             NavigationLink {
-              ContactDetailView(contact: contact)
+              ContactDetailView(contact: contact, noteRepository: noteRepository)
             } label: {
               ContactsRowView(
                 name: contact.name,
@@ -99,6 +100,7 @@ struct ContactsSectionView: View {
       Contact(name: "Sample User", role: "Product Designer", company: "@syno"),
       Contact(name: "Demo Contact", role: "iOS Developer", company: "@syno")
     ],
+    noteRepository: PreviewRepositories.note,
     isCollapsed: .constant(false),
     onToggleFavorite: { _ in },
     onDelete: { _ in }

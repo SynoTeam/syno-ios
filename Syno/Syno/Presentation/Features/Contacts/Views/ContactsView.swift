@@ -5,22 +5,29 @@
 //  Created by 이승진 on 7/14/26.
 //
 
-import SwiftData
 import SwiftUI
 
 struct ContactsView: View {
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \StoredContact.createdAt) private var storedContacts: [StoredContact]
   @State private var viewModel: ContactsViewModel
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
 
-  private let myProfileId: UUID
+  private let noteRepository: any NoteRepository
 
-  init(userProfile: UserProfile? = nil) {
+  init(
+    userProfile: UserProfile? = nil,
+    contactRepository: any ContactRepository,
+    noteRepository: any NoteRepository
+  ) {
     let myProfileId = userProfile?.id ?? UUID()
-    self.myProfileId = myProfileId
-    _viewModel = State(initialValue: ContactsViewModel(myProfileId: myProfileId, myProfileName: userProfile?.displayName))
+    self.noteRepository = noteRepository
+    _viewModel = State(
+      initialValue: ContactsViewModel(
+        repository: contactRepository,
+        myProfileId: myProfileId,
+        myProfileName: userProfile?.displayName
+      )
+    )
   }
   
   var body: some View {
@@ -30,9 +37,11 @@ struct ContactsView: View {
         
         if let myContact = viewModel.myContact {
           NavigationLink {
-            MyPageView(contact: myContact) { contact in
-              saveMyContact(contact)
-            }
+            MyPageView(
+              contact: myContact,
+              noteRepository: noteRepository,
+              onSave: viewModel.saveMyContact
+            )
           } label: {
             ContactsRowView(
               name: myContact.name,
@@ -50,6 +59,7 @@ struct ContactsView: View {
             title: "Favorite",
             count: viewModel.favoriteContacts.count,
             contacts: viewModel.favoriteContacts,
+            noteRepository: noteRepository,
             isCollapsed: $isFavoriteCollapsed,
             onToggleFavorite: toggleFavorite,
             onDelete: deleteContact
@@ -60,6 +70,7 @@ struct ContactsView: View {
           title: "All",
           count: viewModel.regularContactCount,
           contacts: viewModel.regularContacts,
+          noteRepository: noteRepository,
           isCollapsed: $isAllCollapsed,
           onToggleFavorite: toggleFavorite,
           onDelete: deleteContact
@@ -74,7 +85,12 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
-    .onAppear(perform: loadStoredContacts)
+    .onAppear(perform: viewModel.loadContacts)
+    .alert("오류", isPresented: persistenceErrorBinding) {
+      Button("확인", action: viewModel.clearPersistenceError)
+    } message: {
+      Text(viewModel.persistenceError ?? "")
+    }
   }
   
   private var header: some View {
@@ -87,7 +103,8 @@ struct ContactsView: View {
       
       NavigationLink {
         AddContactView { contact in
-          addContact(contact)
+          viewModel.addContact(contact)
+          isAllCollapsed = false
         }
       } label: {
         Image(systemName: "plus")
@@ -118,68 +135,32 @@ struct ContactsView: View {
     .padding(.top, 116)
   }
 
-  private func loadStoredContacts() {
-    let regularStoredContacts = storedContacts.filter { $0.id != myProfileId }
-    viewModel.replaceRegularContacts(regularStoredContacts.map(\.contact))
-    isAllCollapsed = viewModel.regularContacts.isEmpty
-
-    if let storedMe = storedContacts.first(where: { $0.id == myProfileId }) {
-      var meContact = storedMe.contact
-      meContact.isMe = true
-      viewModel.updateContact(meContact)
-    }
-  }
-
-  private func saveMyContact(_ contact: Contact) {
-    viewModel.updateContact(contact)
-
-    if let storedContact = storedContacts.first(where: { $0.id == contact.id }) {
-      storedContact.update(with: contact)
-    } else {
-      modelContext.insert(StoredContact(contact: contact))
-    }
-
-    saveContext()
-  }
-
-  private func addContact(_ contact: Contact) {
-    viewModel.addContact(contact)
-    isAllCollapsed = false
-    modelContext.insert(StoredContact(contact: contact))
-    saveContext()
-  }
-
   private func deleteContact(id: Contact.ID) {
     viewModel.deleteContact(id: id)
     isAllCollapsed = viewModel.regularContacts.isEmpty
-
-    if let storedContact = storedContacts.first(where: { $0.id == id }) {
-      modelContext.delete(storedContact)
-      saveContext()
-    }
   }
 
   private func toggleFavorite(id: Contact.ID) {
     viewModel.toggleFavorite(id: id)
-
-    guard
-      let contact = viewModel.contacts.first(where: { $0.id == id }),
-      let storedContact = storedContacts.first(where: { $0.id == id })
-    else {
-      return
-    }
-
-    storedContact.update(with: contact)
-    saveContext()
   }
 
-  private func saveContext() {
-    try? modelContext.save()
+  private var persistenceErrorBinding: Binding<Bool> {
+    Binding(
+      get: { viewModel.persistenceError != nil },
+      set: { isPresented in
+        if !isPresented {
+          viewModel.clearPersistenceError()
+        }
+      }
+    )
   }
 }
 
 #Preview {
   NavigationStack {
-    ContactsView()
+    ContactsView(
+      contactRepository: PreviewRepositories.contact,
+      noteRepository: PreviewRepositories.note
+    )
   }
 }

@@ -11,12 +11,19 @@ import Observation
 @Observable
 final class ContactsViewModel {
   private(set) var contacts: [Contact]
+  private(set) var persistenceError: String?
+
+  private let repository: any ContactRepository
+  private let myProfileId: UUID
   
   init(
+    repository: any ContactRepository,
     contacts: [Contact]? = nil,
     myProfileId: UUID,
     myProfileName: String? = nil
   ) {
+    self.repository = repository
+    self.myProfileId = myProfileId
     self.contacts = contacts ?? Self.mockContacts(myProfileId: myProfileId, myProfileName: myProfileName)
   }
   
@@ -36,32 +43,80 @@ final class ContactsViewModel {
     regularContacts.count
   }
   
-  func addContact(_ contact: Contact) {
-    contacts.append(contact)
+  func loadContacts() {
+    do {
+      let storedContacts = try repository.fetchAll()
+      let regularContacts = storedContacts.filter { $0.id != myProfileId }
+      contacts = contacts.filter(\.isMe) + regularContacts
+
+      if var myContact = storedContacts.first(where: { $0.id == myProfileId }) {
+        myContact.isMe = true
+        updateLocalContact(myContact)
+      }
+      persistenceError = nil
+    } catch {
+      handle(error)
+    }
   }
 
-  func replaceRegularContacts(_ regularContacts: [Contact]) {
-    contacts = contacts.filter(\.isMe) + regularContacts
-  }
-  
-  func updateContact(_ contact: Contact) {
-    guard let index = contacts.firstIndex(where: { $0.id == contact.id }) else {
-      return
+  func saveMyContact(_ contact: Contact) {
+    persist(contact) {
+      updateLocalContact(contact)
     }
-    
-    contacts[index] = contact
+  }
+
+  func addContact(_ contact: Contact) {
+    persist(contact) {
+      contacts.append(contact)
+    }
   }
   
   func deleteContact(id: Contact.ID) {
-    contacts.removeAll { $0.id == id && !$0.isMe }
+    do {
+      try repository.delete(id: id)
+      contacts.removeAll { $0.id == id && !$0.isMe }
+      persistenceError = nil
+    } catch {
+      handle(error)
+    }
   }
   
   func toggleFavorite(id: Contact.ID) {
     guard let index = contacts.firstIndex(where: { $0.id == id && !$0.isMe }) else {
       return
     }
-    
-    contacts[index].isFavorite.toggle()
+
+    var updatedContact = contacts[index]
+    updatedContact.isFavorite.toggle()
+    persist(updatedContact) {
+      contacts[index] = updatedContact
+    }
+  }
+
+  func clearPersistenceError() {
+    persistenceError = nil
+  }
+
+  private func persist(_ contact: Contact, updateLocalState: () -> Void) {
+    do {
+      try repository.save(contact)
+      updateLocalState()
+      persistenceError = nil
+    } catch {
+      handle(error)
+    }
+  }
+
+  private func updateLocalContact(_ contact: Contact) {
+    guard let index = contacts.firstIndex(where: { $0.id == contact.id }) else {
+      contacts.append(contact)
+      return
+    }
+    contacts[index] = contact
+  }
+
+  private func handle(_ error: Error) {
+    persistenceError = "연락처를 저장하지 못했습니다. 다시 시도해주세요."
   }
 }
 

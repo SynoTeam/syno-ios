@@ -12,6 +12,7 @@ struct NotesView: View {
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
   @Query private var storedContacts: [StoredContact]
   @State private var viewModel = NotesViewModel()
+  let noteRepository: any NoteRepository
 
   var body: some View {
     ScrollView {
@@ -31,11 +32,22 @@ struct NotesView: View {
     }
     .background(Color.gray50)
     .onAppear(perform: loadStoredNotes)
-    .onChange(of: storedNotes.map(\.note)) {
+    .onChange(of: storedNoteChangeTokens) {
       loadStoredNotes()
     }
     .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite)" }) {
       loadStoredNotes()
+    }
+  }
+
+  private var storedNoteChangeTokens: [StoredNoteChangeToken] {
+    storedNotes.map { storedNote in
+      StoredNoteChangeToken(
+        id: storedNote.id,
+        contactId: storedNote.contactId,
+        content: storedNote.content,
+        createdAt: storedNote.createdAt
+      )
     }
   }
 
@@ -86,7 +98,7 @@ struct NotesView: View {
     LazyVStack(spacing: 14) {
       ForEach(viewModel.filteredNotes) { note in
         NavigationLink {
-          ChatView(contact: note.contact)
+          ChatView(contact: note.contact, repository: noteRepository)
         } label: {
           NoteRowView(note: note)
         }
@@ -108,7 +120,14 @@ struct NotesView: View {
   }
 }
 
+private struct StoredNoteChangeToken: Equatable {
+  let id: UUID
+  let contactId: UUID?
+  let content: String
+  let createdAt: Date
+}
+
 #Preview {
-  NotesView()
+  NotesView(noteRepository: PreviewRepositories.note)
     .modelContainer(for: [StoredNote.self, StoredContact.self], inMemory: true)
 }

@@ -16,6 +16,13 @@ final class OnboardingBasicInfoViewModel {
 
   /// 사용자가 입력한 이름입니다.
   var givenName = ""
+  private(set) var persistenceError: String?
+
+  private let repository: any UserProfileRepository
+
+  init(repository: any UserProfileRepository) {
+    self.repository = repository
+  }
 
   /// 성 또는 이름 중 하나 이상 입력됐을 때 확인할 수 있는지 여부입니다.
   var canSubmit: Bool {
@@ -28,12 +35,20 @@ final class OnboardingBasicInfoViewModel {
       .trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  /// 현재 입력값을 SwiftData에 저장할 `UserProfile`로 변환합니다.
-  func makeUserProfile() -> UserProfile {
-    UserProfile(
-      familyName: trimmed(familyName),
-      givenName: trimmed(givenName)
-    )
+  func saveUserProfile() {
+    do {
+      try repository.save(
+        familyName: trimmed(familyName),
+        givenName: trimmed(givenName)
+      )
+      persistenceError = nil
+    } catch {
+      persistenceError = "프로필을 저장하지 못했습니다. 다시 시도해주세요."
+    }
+  }
+
+  func clearPersistenceError() {
+    persistenceError = nil
   }
 
   private func trimmed(_ value: String) -> String {

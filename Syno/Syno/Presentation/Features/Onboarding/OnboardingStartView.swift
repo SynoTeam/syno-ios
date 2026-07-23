@@ -9,6 +9,8 @@ import SwiftUI
 
 /// 앱을 처음 실행한 사용자가 게스트 온보딩을 시작하는 화면입니다.
 struct OnboardingStartView: View {
+  let userProfileRepository: any UserProfileRepository
+
   var body: some View {
     VStack(spacing: 0) {
       Spacer()
@@ -27,7 +29,7 @@ struct OnboardingStartView: View {
       Spacer()
 
       NavigationLink {
-        OnboardingBasicInfoView()
+        OnboardingBasicInfoView(repository: userProfileRepository)
       } label: {
         Text("게스트로 시작하기")
           .typeStyle(.headline)
@@ -48,6 +50,6 @@ struct OnboardingStartView: View {
 
 #Preview {
   NavigationStack {
-    OnboardingStartView()
+    OnboardingStartView(userProfileRepository: PreviewRepositories.userProfile)
   }
 }

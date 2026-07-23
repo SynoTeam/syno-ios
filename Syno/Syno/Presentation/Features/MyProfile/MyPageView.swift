@@ -135,7 +135,9 @@ struct MyPageView: View {
   }
 
   private var memoButton: some View {
-    Button {} label: {
+    NavigationLink {
+      ChatView(contact: contact)
+    } label: {
       Text("메모하기")
         .typeStyle(.headline)
         .foregroundStyle(.white)

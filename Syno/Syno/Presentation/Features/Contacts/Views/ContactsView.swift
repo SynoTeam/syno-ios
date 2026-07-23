@@ -11,12 +11,16 @@ import SwiftUI
 struct ContactsView: View {
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \StoredContact.createdAt) private var storedContacts: [StoredContact]
-  @State private var viewModel = ContactsViewModel()
+  @State private var viewModel: ContactsViewModel
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
 
+  private let myProfileId: UUID
+
   init(userProfile: UserProfile? = nil) {
-    _viewModel = State(initialValue: ContactsViewModel(myProfileName: userProfile?.displayName))
+    let myProfileId = userProfile?.id ?? UUID()
+    self.myProfileId = myProfileId
+    _viewModel = State(initialValue: ContactsViewModel(myProfileId: myProfileId, myProfileName: userProfile?.displayName))
   }
   
   var body: some View {
@@ -27,7 +31,7 @@ struct ContactsView: View {
         if let myContact = viewModel.myContact {
           NavigationLink {
             MyPageView(contact: myContact) { contact in
-              viewModel.updateContact(contact)
+              saveMyContact(contact)
             }
           } label: {
             ContactsRowView(
@@ -115,8 +119,27 @@ struct ContactsView: View {
   }
 
   private func loadStoredContacts() {
-    viewModel.replaceRegularContacts(storedContacts.map(\.contact))
+    let regularStoredContacts = storedContacts.filter { $0.id != myProfileId }
+    viewModel.replaceRegularContacts(regularStoredContacts.map(\.contact))
     isAllCollapsed = viewModel.regularContacts.isEmpty
+
+    if let storedMe = storedContacts.first(where: { $0.id == myProfileId }) {
+      var meContact = storedMe.contact
+      meContact.isMe = true
+      viewModel.updateContact(meContact)
+    }
+  }
+
+  private func saveMyContact(_ contact: Contact) {
+    viewModel.updateContact(contact)
+
+    if let storedContact = storedContacts.first(where: { $0.id == contact.id }) {
+      storedContact.update(with: contact)
+    } else {
+      modelContext.insert(StoredContact(contact: contact))
+    }
+
+    saveContext()
   }
 
   private func addContact(_ contact: Contact) {

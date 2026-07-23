@@ -14,6 +14,6 @@ struct SynoApp: App {
     WindowGroup {
       RootView()
     }
-    .modelContainer(for: [UserProfile.self, StoredContact.self])
+    .modelContainer(for: [UserProfile.self, StoredContact.self, StoredNote.self])
   }
 }

@@ -5,6 +5,7 @@
 //  Created by 이승진 on 7/16/26.
 //
 
+import Foundation
 import Observation
 
 @Observable
@@ -13,9 +14,10 @@ final class ContactsViewModel {
   
   init(
     contacts: [Contact]? = nil,
+    myProfileId: UUID,
     myProfileName: String? = nil
   ) {
-    self.contacts = contacts ?? Self.mockContacts(myProfileName: myProfileName)
+    self.contacts = contacts ?? Self.mockContacts(myProfileId: myProfileId, myProfileName: myProfileName)
   }
   
   var myContact: Contact? {
@@ -64,9 +66,10 @@ final class ContactsViewModel {
 }
 
 private extension ContactsViewModel {
-  static func mockContacts(myProfileName: String?) -> [Contact] {
+  static func mockContacts(myProfileId: UUID, myProfileName: String?) -> [Contact] {
     [
       Contact(
+        id: myProfileId,
         name: myProfileName ?? "내 프로필",
         role: "",
         company: "",

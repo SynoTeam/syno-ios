@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		7A0000043000000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3C1540992FEFC4CE00E89F11;
+			remoteInfo = Syno;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		3C15409A2FEFC4CE00E89F11 /* Syno.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Syno.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A0000013000000000000001 /* SynoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -74,16 +84,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
-
-/* Begin PBXContainerItemProxy section */
-		7A0000043000000000000004 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 3C1540992FEFC4CE00E89F11;
-			remoteInfo = Syno;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXNativeTarget section */
 		3C1540992FEFC4CE00E89F11 /* Syno */ = {

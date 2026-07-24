@@ -39,12 +39,14 @@ struct SynoApp: App {
       )
       searchIndex = index
       noteImageAnalyzer = VisionNoteImageAnalyzer()
-      noteImageAnalysisRepository = SwiftDataNoteImageAnalysisRepository(
+      let imageAnalysisRepository = SwiftDataNoteImageAnalysisRepository(
         modelContainer: container
       )
+      noteImageAnalysisRepository = imageAnalysisRepository
       searchIndexBackfillService = SearchIndexBackfillService(
         modelContext: container.mainContext,
-        searchIndex: index
+        searchIndex: index,
+        noteImageAnalysisRepository: imageAnalysisRepository
       )
       contactRepository = SwiftDataContactRepository(
         modelContext: container.mainContext,

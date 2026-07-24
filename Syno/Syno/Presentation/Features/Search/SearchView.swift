@@ -28,7 +28,8 @@ struct SearchView: View {
     _viewModel = State(
       initialValue: SearchViewModel(
         modelContext: modelContext,
-        searchIndex: searchIndex
+        searchIndex: searchIndex,
+        noteImageAnalysisRepository: noteImageAnalysisRepository
       )
     )
   }

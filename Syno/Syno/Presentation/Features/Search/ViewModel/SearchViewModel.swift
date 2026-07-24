@@ -18,6 +18,8 @@ final class SearchViewModel {
 
   @ObservationIgnored private let modelContext: ModelContext
   @ObservationIgnored private let searchIndex: any SearchIndexing
+  @ObservationIgnored private let noteImageAnalysisRepository:
+    any NoteImageAnalysisRepository
   @ObservationIgnored private let userDefaults: UserDefaults
   @ObservationIgnored private var searchTask: Task<Void, Never>?
 
@@ -27,10 +29,12 @@ final class SearchViewModel {
   init(
     modelContext: ModelContext,
     searchIndex: any SearchIndexing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     userDefaults: UserDefaults = .standard
   ) {
     self.modelContext = modelContext
     self.searchIndex = searchIndex
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.userDefaults = userDefaults
     recentSearches = userDefaults.stringArray(forKey: Self.recentSearchesKey) ?? []
   }
@@ -148,13 +152,21 @@ final class SearchViewModel {
       }
       let keywordContactIds = Set(keywordContacts.map(\.id))
       let keywordNoteIds = Set(keywordNotes.map(\.id))
+      let imageAnalyses =
+        (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
       let semanticContactDocuments = storedContacts.compactMap { storedContact in
         keywordContactIds.contains(storedContact.id) ? nil :
           SearchDocument.contact(id: storedContact.id, text: semanticText(for: storedContact))
       }
       let semanticNoteDocuments = storedNotes.compactMap { storedNote in
         keywordNoteIds.contains(storedNote.id) ? nil :
-          SearchDocument.note(id: storedNote.id, text: storedNote.content)
+          SearchDocument.note(
+            id: storedNote.id,
+            text: semanticText(
+              for: storedNote,
+              analysis: imageAnalyses[storedNote.id]
+            )
+          )
       }
       let scores = await searchIndex.scores(
         for: searchTerm,
@@ -240,6 +252,18 @@ final class SearchViewModel {
       contact.group,
       contact.note
     ].joined(separator: "\n")
+  }
+
+  private func semanticText(
+    for note: StoredNote,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    guard note.imageData != nil, let analysis else {
+      return note.content
+    }
+    return ([note.content] + analysis.labels + [analysis.ocrText])
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
   }
 
   private func commit(_ search: String) {

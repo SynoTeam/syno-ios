@@ -60,6 +60,14 @@ private struct FailingImageAnalyzer: NoteImageAnalyzing {
 private actor ImageAnalysisRepositorySpy: NoteImageAnalysisRepository {
   private(set) var saveCount = 0
 
+  func fetch(noteId: Note.ID) -> NoteImageAnalysisResult? {
+    nil
+  }
+
+  func fetchAll() -> [Note.ID: NoteImageAnalysisResult] {
+    [:]
+  }
+
   func save(
     noteId: Note.ID,
     result: NoteImageAnalysisResult,

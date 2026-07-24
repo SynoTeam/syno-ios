@@ -9,6 +9,33 @@ actor SwiftDataNoteImageAnalysisRepository: NoteImageAnalysisRepository {
     category: "NoteImageAnalysisRepository"
   )
 
+  func fetch(noteId: Note.ID) throws -> NoteImageAnalysisResult? {
+    let descriptor = FetchDescriptor<StoredNoteImageAnalysis>(
+      predicate: #Predicate { $0.noteId == noteId }
+    )
+    guard let stored = try modelContext.fetch(descriptor).first else {
+      return nil
+    }
+    return NoteImageAnalysisResult(
+      labels: stored.labels,
+      ocrText: stored.ocrText
+    )
+  }
+
+  func fetchAll() throws -> [Note.ID: NoteImageAnalysisResult] {
+    let storedAnalyses = try modelContext.fetch(
+      FetchDescriptor<StoredNoteImageAnalysis>()
+    )
+    var results: [Note.ID: NoteImageAnalysisResult] = [:]
+    for stored in storedAnalyses {
+      results[stored.noteId] = NoteImageAnalysisResult(
+        labels: stored.labels,
+        ocrText: stored.ocrText
+      )
+    }
+    return results
+  }
+
   func save(
     noteId: Note.ID,
     result: NoteImageAnalysisResult,

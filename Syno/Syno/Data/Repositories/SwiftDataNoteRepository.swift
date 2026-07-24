@@ -5,13 +5,18 @@ import SwiftData
 @MainActor
 final class SwiftDataNoteRepository: NoteRepository {
   private let modelContext: ModelContext
+  private let searchIndex: (any SearchIndexing)?
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "NoteRepository"
   )
 
-  init(modelContext: ModelContext) {
+  init(
+    modelContext: ModelContext,
+    searchIndex: (any SearchIndexing)? = nil
+  ) {
     self.modelContext = modelContext
+    self.searchIndex = searchIndex
   }
 
   func fetch(contactId: UUID?) throws -> [Note] {
@@ -41,6 +46,13 @@ final class SwiftDataNoteRepository: NoteRepository {
       }
 
       try modelContext.save()
+      if let searchIndex {
+        let document = SearchDocument.note(
+          id: note.id,
+          text: [note.contactName, note.content].joined(separator: "\n")
+        )
+        Task { await searchIndex.index(document) }
+      }
     } catch {
       modelContext.rollback()
       logger.error("Failed to save note \(note.id): \(error.localizedDescription, privacy: .public)")
@@ -56,6 +68,10 @@ final class SwiftDataNoteRepository: NoteRepository {
       if let storedNote = try modelContext.fetch(descriptor).first {
         modelContext.delete(storedNote)
         try modelContext.save()
+        if let searchIndex {
+          let key = SearchDocumentKey(kind: .note, sourceId: id)
+          Task { await searchIndex.remove(key) }
+        }
       }
     } catch {
       modelContext.rollback()

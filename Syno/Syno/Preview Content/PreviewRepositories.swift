@@ -8,6 +8,8 @@ enum PreviewRepositories {
         for: UserProfile.self,
         StoredContact.self,
         StoredNote.self,
+        StoredContactEmbedding.self,
+        StoredNoteEmbedding.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
       )
     } catch {
@@ -15,11 +17,22 @@ enum PreviewRepositories {
     }
   }()
 
+  static let searchIndex: any SearchIndexing = LocalSearchIndex(
+    repository: SwiftDataSearchEmbeddingRepository(modelContainer: container),
+    embeddingProvider: NLContextualTextEmbeddingProvider()
+  )
+
   static let contact: any ContactRepository =
-    SwiftDataContactRepository(modelContext: container.mainContext)
+    SwiftDataContactRepository(
+      modelContext: container.mainContext,
+      searchIndex: searchIndex
+    )
 
   static let note: any NoteRepository =
-    SwiftDataNoteRepository(modelContext: container.mainContext)
+    SwiftDataNoteRepository(
+      modelContext: container.mainContext,
+      searchIndex: searchIndex
+    )
 
   static let userProfile: any UserProfileRepository =
     SwiftDataUserProfileRepository(modelContext: container.mainContext)

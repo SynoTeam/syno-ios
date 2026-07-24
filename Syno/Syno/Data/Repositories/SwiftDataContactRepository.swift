@@ -5,13 +5,18 @@ import SwiftData
 @MainActor
 final class SwiftDataContactRepository: ContactRepository {
   private let modelContext: ModelContext
+  private let searchIndex: (any SearchIndexing)?
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "ContactRepository"
   )
 
-  init(modelContext: ModelContext) {
+  init(
+    modelContext: ModelContext,
+    searchIndex: (any SearchIndexing)? = nil
+  ) {
     self.modelContext = modelContext
+    self.searchIndex = searchIndex
   }
 
   func fetchAll() throws -> [Contact] {
@@ -40,6 +45,21 @@ final class SwiftDataContactRepository: ContactRepository {
       }
 
       try modelContext.save()
+      if let searchIndex {
+        let document = SearchDocument.contact(
+          id: contact.id,
+          text: [
+            contact.name,
+            contact.role,
+            contact.company,
+            contact.email,
+            contact.phone,
+            contact.group,
+            contact.note
+          ].joined(separator: "\n")
+        )
+        Task { await searchIndex.index(document) }
+      }
     } catch {
       modelContext.rollback()
       logger.error("Failed to save contact \(contact.id): \(error.localizedDescription, privacy: .public)")
@@ -55,6 +75,10 @@ final class SwiftDataContactRepository: ContactRepository {
       if let storedContact = try modelContext.fetch(descriptor).first {
         modelContext.delete(storedContact)
         try modelContext.save()
+        if let searchIndex {
+          let key = SearchDocumentKey(kind: .contact, sourceId: id)
+          Task { await searchIndex.remove(key) }
+        }
       }
     } catch {
       modelContext.rollback()

@@ -17,6 +17,7 @@ final class SearchViewModel {
   private(set) var recentSearches: [String] = []
 
   @ObservationIgnored private let modelContext: ModelContext
+  @ObservationIgnored private let searchIndex: any SearchIndexing
   @ObservationIgnored private let userDefaults: UserDefaults
   @ObservationIgnored private var searchTask: Task<Void, Never>?
 
@@ -25,9 +26,11 @@ final class SearchViewModel {
 
   init(
     modelContext: ModelContext,
+    searchIndex: any SearchIndexing,
     userDefaults: UserDefaults = .standard
   ) {
     self.modelContext = modelContext
+    self.searchIndex = searchIndex
     self.userDefaults = userDefaults
     recentSearches = userDefaults.stringArray(forKey: Self.recentSearchesKey) ?? []
   }
@@ -64,7 +67,7 @@ final class SearchViewModel {
         guard !Task.isCancelled else {
           return
         }
-        self?.performSearch(for: searchTerm)
+        await self?.performSearch(for: searchTerm)
       } catch is CancellationError {
         return
       } catch {
@@ -85,7 +88,11 @@ final class SearchViewModel {
   func selectRecentSearch(_ search: String) {
     query = search
     commit(search)
-    performSearch(for: normalizedQuery)
+    isSearching = true
+    let searchTerm = normalizedQuery
+    searchTask = Task { [weak self] in
+      await self?.performSearch(for: searchTerm)
+    }
   }
 
   func commitCurrentQuery() {
@@ -114,7 +121,7 @@ final class SearchViewModel {
     query.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  private func performSearch(for searchTerm: String) {
+  private func performSearch(for searchTerm: String) async {
     guard !searchTerm.isEmpty else {
       results = []
       isSearching = false
@@ -122,36 +129,59 @@ final class SearchViewModel {
     }
 
     do {
-      let contactPredicate = #Predicate<StoredContact> { contact in
-        contact.name.localizedStandardContains(searchTerm)
-          || contact.role.localizedStandardContains(searchTerm)
-          || contact.company.localizedStandardContains(searchTerm)
-          || contact.email.localizedStandardContains(searchTerm)
-          || contact.phone.localizedStandardContains(searchTerm)
-          || contact.group.localizedStandardContains(searchTerm)
-      }
-      let notePredicate = #Predicate<StoredNote> { note in
-        note.contactName.localizedStandardContains(searchTerm)
-          || note.content.localizedStandardContains(searchTerm)
-      }
-
       let storedContacts = try modelContext.fetch(
         FetchDescriptor<StoredContact>(
-          predicate: contactPredicate,
           sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
       )
       let storedNotes = try modelContext.fetch(
         FetchDescriptor<StoredNote>(
-          predicate: notePredicate,
           sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
       )
 
-      var contactsById = Dictionary(
-        uniqueKeysWithValues: storedContacts.map { ($0.id, $0.contact) }
+      let keywordContacts = storedContacts.filter {
+        searchableText(for: $0).localizedStandardContains(searchTerm)
+      }
+      let keywordNotes = storedNotes.filter {
+        searchableText(for: $0).localizedStandardContains(searchTerm)
+      }
+      let keywordContactIds = Set(keywordContacts.map(\.id))
+      let keywordNoteIds = Set(keywordNotes.map(\.id))
+      let semanticContactDocuments = storedContacts.compactMap { storedContact in
+        keywordContactIds.contains(storedContact.id) ? nil :
+          SearchDocument.contact(id: storedContact.id, text: searchableText(for: storedContact))
+      }
+      let semanticNoteDocuments = storedNotes.compactMap { storedNote in
+        keywordNoteIds.contains(storedNote.id) ? nil :
+          SearchDocument.note(id: storedNote.id, text: searchableText(for: storedNote))
+      }
+      let scores = await searchIndex.scores(
+        for: searchTerm,
+        documents: semanticContactDocuments + semanticNoteDocuments
       )
-      let missingContactIds = Set(storedNotes.compactMap(\.contactId))
+      guard !Task.isCancelled, searchTerm == normalizedQuery else { return }
+      let minimumDerivedScore = searchTerm.count > 1 ? 0.15 : 1
+
+      let matchedContacts = storedContacts.filter { storedContact in
+        keywordContactIds.contains(storedContact.id)
+          || scores[
+            SearchDocumentKey(kind: .contact, sourceId: storedContact.id),
+            default: 0
+          ] >= minimumDerivedScore
+      }
+      let matchedNotes = storedNotes.filter { storedNote in
+        keywordNoteIds.contains(storedNote.id)
+          || scores[
+            SearchDocumentKey(kind: .note, sourceId: storedNote.id),
+            default: 0
+          ] >= minimumDerivedScore
+      }
+
+      var contactsById = Dictionary(
+        uniqueKeysWithValues: matchedContacts.map { ($0.id, $0.contact) }
+      )
+      let missingContactIds = Set(matchedNotes.compactMap(\.contactId))
         .subtracting(contactsById.keys)
 
       if !missingContactIds.isEmpty {
@@ -166,10 +196,10 @@ final class SearchViewModel {
         }
       }
 
-      let contactResults = storedContacts.map {
+      let contactResults = matchedContacts.map {
         SearchResult.contact($0.contact, createdAt: $0.createdAt)
       }
-      let noteResults = storedNotes.map { storedNote in
+      let noteResults = matchedNotes.map { storedNote in
         let note = storedNote.note
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
         return SearchResult.note(note, contact: contact)
@@ -183,6 +213,22 @@ final class SearchViewModel {
       results = []
       isSearching = false
     }
+  }
+
+  private func searchableText(for contact: StoredContact) -> String {
+    [
+      contact.name,
+      contact.role,
+      contact.company,
+      contact.email,
+      contact.phone,
+      contact.group,
+      contact.note
+    ].joined(separator: "\n")
+  }
+
+  private func searchableText(for note: StoredNote) -> String {
+    [note.contactName, note.content].joined(separator: "\n")
   }
 
   private func commit(_ search: String) {

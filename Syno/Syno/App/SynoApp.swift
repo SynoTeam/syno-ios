@@ -14,17 +14,39 @@ struct SynoApp: App {
   private let contactRepository: any ContactRepository
   private let noteRepository: any NoteRepository
   private let userProfileRepository: any UserProfileRepository
+  private let searchIndex: any SearchIndexing
+  private let searchIndexBackfillService: SearchIndexBackfillService
 
   init() {
     do {
       let container = try ModelContainer(
         for: UserProfile.self,
         StoredContact.self,
-        StoredNote.self
+        StoredNote.self,
+        StoredContactEmbedding.self,
+        StoredNoteEmbedding.self
       )
       modelContainer = container
-      contactRepository = SwiftDataContactRepository(modelContext: container.mainContext)
-      noteRepository = SwiftDataNoteRepository(modelContext: container.mainContext)
+      let embeddingRepository = SwiftDataSearchEmbeddingRepository(
+        modelContainer: container
+      )
+      let index = LocalSearchIndex(
+        repository: embeddingRepository,
+        embeddingProvider: NLContextualTextEmbeddingProvider()
+      )
+      searchIndex = index
+      searchIndexBackfillService = SearchIndexBackfillService(
+        modelContext: container.mainContext,
+        searchIndex: index
+      )
+      contactRepository = SwiftDataContactRepository(
+        modelContext: container.mainContext,
+        searchIndex: index
+      )
+      noteRepository = SwiftDataNoteRepository(
+        modelContext: container.mainContext,
+        searchIndex: index
+      )
       userProfileRepository = SwiftDataUserProfileRepository(modelContext: container.mainContext)
     } catch {
       fatalError("Failed to create model container: \(error)")
@@ -36,8 +58,12 @@ struct SynoApp: App {
       RootView(
         contactRepository: contactRepository,
         noteRepository: noteRepository,
-        userProfileRepository: userProfileRepository
+        userProfileRepository: userProfileRepository,
+        searchIndex: searchIndex
       )
+      .task {
+        await searchIndexBackfillService.start()
+      }
     }
     .modelContainer(modelContainer)
   }

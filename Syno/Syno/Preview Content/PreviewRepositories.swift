@@ -10,6 +10,7 @@ enum PreviewRepositories {
         StoredNote.self,
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
+        StoredNoteImageAnalysis.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
       )
     } catch {

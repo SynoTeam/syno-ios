@@ -24,7 +24,8 @@ struct SynoApp: App {
         StoredContact.self,
         StoredNote.self,
         StoredContactEmbedding.self,
-        StoredNoteEmbedding.self
+        StoredNoteEmbedding.self,
+        StoredNoteImageAnalysis.self
       )
       modelContainer = container
       let embeddingRepository = SwiftDataSearchEmbeddingRepository(

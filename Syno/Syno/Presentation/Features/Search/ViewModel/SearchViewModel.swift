@@ -143,17 +143,20 @@ final class SearchViewModel {
           sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
       )
+      let imageAnalyses =
+        (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
 
       let keywordContacts = storedContacts.filter {
         searchableText(for: $0).localizedStandardContains(searchTerm)
       }
       let keywordNotes = storedNotes.filter {
-        searchableText(for: $0).localizedStandardContains(searchTerm)
+        searchableText(
+          for: $0,
+          analysis: imageAnalyses[$0.id]
+        ).localizedStandardContains(searchTerm)
       }
       let keywordContactIds = Set(keywordContacts.map(\.id))
       let keywordNoteIds = Set(keywordNotes.map(\.id))
-      let imageAnalyses =
-        (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
       let semanticContactDocuments = storedContacts.compactMap { storedContact in
         keywordContactIds.contains(storedContact.id) ? nil :
           SearchDocument.contact(id: storedContact.id, text: semanticText(for: storedContact))
@@ -239,8 +242,18 @@ final class SearchViewModel {
     ].joined(separator: "\n")
   }
 
-  private func searchableText(for note: StoredNote) -> String {
-    [note.contactName, note.content].joined(separator: "\n")
+  private func searchableText(
+    for note: StoredNote,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    var components = [note.contactName, note.content]
+    if note.imageData != nil, let analysis {
+      components.append(contentsOf: analysis.labels)
+      components.append(analysis.ocrText)
+    }
+    return components
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
   }
 
   private func semanticText(for contact: StoredContact) -> String {

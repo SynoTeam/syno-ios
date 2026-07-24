@@ -15,6 +15,8 @@ struct RootView: View {
   let noteRepository: any NoteRepository
   let userProfileRepository: any UserProfileRepository
   let searchIndex: any SearchIndexing
+  let noteImageAnalyzer: any NoteImageAnalyzing
+  let noteImageAnalysisRepository: any NoteImageAnalysisRepository
 
   var body: some View {
     if let userProfile = userProfiles.first {
@@ -22,7 +24,9 @@ struct RootView: View {
         userProfile: userProfile,
         contactRepository: contactRepository,
         noteRepository: noteRepository,
-        searchIndex: searchIndex
+        searchIndex: searchIndex,
+        noteImageAnalyzer: noteImageAnalyzer,
+        noteImageAnalysisRepository: noteImageAnalysisRepository
       )
     } else {
       NavigationStack {
@@ -37,6 +41,8 @@ struct RootView: View {
     contactRepository: PreviewRepositories.contact,
     noteRepository: PreviewRepositories.note,
     userProfileRepository: PreviewRepositories.userProfile,
-    searchIndex: PreviewRepositories.searchIndex
+    searchIndex: PreviewRepositories.searchIndex,
+    noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
+    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
   )
 }

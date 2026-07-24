@@ -11,6 +11,8 @@ import SwiftUI
 struct MyPageView: View {
   let contact: Contact
   let noteRepository: any NoteRepository
+  let noteImageAnalyzer: any NoteImageAnalyzing
+  let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let onSave: (Contact) -> Void
 
   init(
@@ -20,10 +22,14 @@ struct MyPageView: View {
       company: ""
     ),
     noteRepository: any NoteRepository,
+    noteImageAnalyzer: any NoteImageAnalyzing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
     self.contact = contact
     self.noteRepository = noteRepository
+    self.noteImageAnalyzer = noteImageAnalyzer
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.onSave = onSave
   }
 
@@ -139,7 +145,12 @@ struct MyPageView: View {
 
   private var memoButton: some View {
     NavigationLink {
-      ChatView(contact: contact, repository: noteRepository)
+      ChatView(
+        contact: contact,
+        repository: noteRepository,
+        imageAnalyzer: noteImageAnalyzer,
+        imageAnalysisRepository: noteImageAnalysisRepository
+      )
     } label: {
       Text("메모하기")
         .typeStyle(.headline)
@@ -194,5 +205,9 @@ private extension View {
 }
 
 #Preview {
-  MyPageView(noteRepository: PreviewRepositories.note)
+  MyPageView(
+    noteRepository: PreviewRepositories.note,
+    noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
+    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+  )
 }

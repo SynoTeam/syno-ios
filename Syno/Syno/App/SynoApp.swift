@@ -16,6 +16,8 @@ struct SynoApp: App {
   private let userProfileRepository: any UserProfileRepository
   private let searchIndex: any SearchIndexing
   private let searchIndexBackfillService: SearchIndexBackfillService
+  private let noteImageAnalyzer: any NoteImageAnalyzing
+  private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
 
   init() {
     do {
@@ -36,6 +38,10 @@ struct SynoApp: App {
         embeddingProvider: NLContextualTextEmbeddingProvider()
       )
       searchIndex = index
+      noteImageAnalyzer = VisionNoteImageAnalyzer()
+      noteImageAnalysisRepository = SwiftDataNoteImageAnalysisRepository(
+        modelContainer: container
+      )
       searchIndexBackfillService = SearchIndexBackfillService(
         modelContext: container.mainContext,
         searchIndex: index
@@ -60,7 +66,9 @@ struct SynoApp: App {
         contactRepository: contactRepository,
         noteRepository: noteRepository,
         userProfileRepository: userProfileRepository,
-        searchIndex: searchIndex
+        searchIndex: searchIndex,
+        noteImageAnalyzer: noteImageAnalyzer,
+        noteImageAnalysisRepository: noteImageAnalysisRepository
       )
       .task {
         await searchIndexBackfillService.start()

@@ -13,14 +13,20 @@ struct ContactsView: View {
   @State private var isAllCollapsed = true
 
   private let noteRepository: any NoteRepository
+  private let noteImageAnalyzer: any NoteImageAnalyzing
+  private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
 
   init(
     userProfile: UserProfile? = nil,
     contactRepository: any ContactRepository,
-    noteRepository: any NoteRepository
+    noteRepository: any NoteRepository,
+    noteImageAnalyzer: any NoteImageAnalyzing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository
   ) {
     let myProfileId = userProfile?.id ?? UUID()
     self.noteRepository = noteRepository
+    self.noteImageAnalyzer = noteImageAnalyzer
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
     _viewModel = State(
       initialValue: ContactsViewModel(
         repository: contactRepository,
@@ -40,6 +46,8 @@ struct ContactsView: View {
             MyPageView(
               contact: myContact,
               noteRepository: noteRepository,
+              noteImageAnalyzer: noteImageAnalyzer,
+              noteImageAnalysisRepository: noteImageAnalysisRepository,
               onSave: viewModel.saveMyContact
             )
           } label: {
@@ -60,6 +68,8 @@ struct ContactsView: View {
             count: viewModel.favoriteContacts.count,
             contacts: viewModel.favoriteContacts,
             noteRepository: noteRepository,
+            noteImageAnalyzer: noteImageAnalyzer,
+            noteImageAnalysisRepository: noteImageAnalysisRepository,
             isCollapsed: $isFavoriteCollapsed,
             onToggleFavorite: toggleFavorite,
             onDelete: deleteContact
@@ -71,6 +81,8 @@ struct ContactsView: View {
           count: viewModel.regularContactCount,
           contacts: viewModel.regularContacts,
           noteRepository: noteRepository,
+          noteImageAnalyzer: noteImageAnalyzer,
+          noteImageAnalysisRepository: noteImageAnalysisRepository,
           isCollapsed: $isAllCollapsed,
           onToggleFavorite: toggleFavorite,
           onDelete: deleteContact
@@ -160,7 +172,9 @@ struct ContactsView: View {
   NavigationStack {
     ContactsView(
       contactRepository: PreviewRepositories.contact,
-      noteRepository: PreviewRepositories.note
+      noteRepository: PreviewRepositories.note,
+      noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
+      noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
     )
   }
 }

@@ -12,13 +12,19 @@ struct SearchView: View {
   @State private var viewModel: SearchViewModel
   @FocusState private var isSearchFocused: Bool
   private let noteRepository: any NoteRepository
+  private let noteImageAnalyzer: any NoteImageAnalyzing
+  private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
 
   init(
     modelContext: ModelContext,
     noteRepository: any NoteRepository,
-    searchIndex: any SearchIndexing
+    searchIndex: any SearchIndexing,
+    noteImageAnalyzer: any NoteImageAnalyzing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository
   ) {
     self.noteRepository = noteRepository
+    self.noteImageAnalyzer = noteImageAnalyzer
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
     _viewModel = State(
       initialValue: SearchViewModel(
         modelContext: modelContext,
@@ -157,9 +163,19 @@ struct SearchView: View {
   private func destination(for result: SearchResult) -> some View {
     switch result {
     case .contact(let contact, _):
-      ContactDetailView(contact: contact, noteRepository: noteRepository)
+      ContactDetailView(
+        contact: contact,
+        noteRepository: noteRepository,
+        noteImageAnalyzer: noteImageAnalyzer,
+        noteImageAnalysisRepository: noteImageAnalysisRepository
+      )
     case .note(_, let contact):
-      ChatView(contact: contact, repository: noteRepository)
+      ChatView(
+        contact: contact,
+        repository: noteRepository,
+        imageAnalyzer: noteImageAnalyzer,
+        imageAnalysisRepository: noteImageAnalysisRepository
+      )
     }
   }
 }
@@ -175,7 +191,9 @@ struct SearchView: View {
     SearchView(
       modelContext: container.mainContext,
       noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext),
-      searchIndex: PreviewRepositories.searchIndex
+      searchIndex: PreviewRepositories.searchIndex,
+      noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
+      noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
     )
   }
 }

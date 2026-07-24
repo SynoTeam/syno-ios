@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -14,10 +15,23 @@ final class ChatViewModel {
 
   let contact: Contact
   private let repository: any NoteRepository
+  private let imageAnalyzer: any NoteImageAnalyzing
+  private let imageAnalysisRepository: any NoteImageAnalysisRepository
+  private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "Syno",
+    category: "ChatViewModel"
+  )
 
-  init(contact: Contact, repository: any NoteRepository) {
+  init(
+    contact: Contact,
+    repository: any NoteRepository,
+    imageAnalyzer: any NoteImageAnalyzing,
+    imageAnalysisRepository: any NoteImageAnalysisRepository
+  ) {
     self.contact = contact
     self.repository = repository
+    self.imageAnalyzer = imageAnalyzer
+    self.imageAnalysisRepository = imageAnalysisRepository
   }
 
   var canSend: Bool {
@@ -60,16 +74,35 @@ final class ChatViewModel {
 
     do {
       let rawImageData = try await item.loadTransferable(type: Data.self)
-      guard
-        let rawImageData,
-        let imageData = Self.compressedImageData(from: rawImageData)
-      else {
+      guard let rawImageData else {
         return
       }
-
-      save(makeNote(content: "사진", imageData: imageData))
+      await sendImageData(rawImageData)
     } catch {
       handle(error)
+    }
+  }
+
+  func sendImageData(_ rawImageData: Data) async {
+    guard let imageData = Self.compressedImageData(from: rawImageData) else {
+      return
+    }
+    let note = makeNote(content: "사진", imageData: imageData)
+    guard save(note) else {
+      return
+    }
+
+    do {
+      let result = try await imageAnalyzer.analyze(imageData: imageData)
+      try await imageAnalysisRepository.save(
+        noteId: note.id,
+        result: result,
+        analyzedAt: Date()
+      )
+    } catch {
+      logger.debug(
+        "Image analysis skipped for note \(note.id): \(error.localizedDescription, privacy: .public)"
+      )
     }
   }
 
@@ -87,14 +120,17 @@ final class ChatViewModel {
     )
   }
 
-  private func save(_ note: Note, onSuccess: () -> Void = {}) {
+  @discardableResult
+  private func save(_ note: Note, onSuccess: () -> Void = {}) -> Bool {
     do {
       try repository.save(note)
       messages.append(note)
       onSuccess()
       persistenceError = nil
+      return true
     } catch {
       handle(error)
+      return false
     }
   }
 

@@ -23,6 +23,11 @@ enum PreviewRepositories {
     embeddingProvider: NLContextualTextEmbeddingProvider()
   )
 
+  static let noteImageAnalyzer: any NoteImageAnalyzing = VisionNoteImageAnalyzer()
+
+  static let noteImageAnalysis: any NoteImageAnalysisRepository =
+    SwiftDataNoteImageAnalysisRepository(modelContainer: container)
+
   static let contact: any ContactRepository =
     SwiftDataContactRepository(
       modelContext: container.mainContext,

@@ -15,17 +15,23 @@ struct MainTabView: View {
   private let contactRepository: any ContactRepository
   private let noteRepository: any NoteRepository
   private let searchIndex: any SearchIndexing
+  private let noteImageAnalyzer: any NoteImageAnalyzing
+  private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
 
   init(
     userProfile: UserProfile? = nil,
     contactRepository: any ContactRepository,
     noteRepository: any NoteRepository,
-    searchIndex: any SearchIndexing
+    searchIndex: any SearchIndexing,
+    noteImageAnalyzer: any NoteImageAnalyzing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository
   ) {
     self.userProfile = userProfile
     self.contactRepository = contactRepository
     self.noteRepository = noteRepository
     self.searchIndex = searchIndex
+    self.noteImageAnalyzer = noteImageAnalyzer
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
   }
   
   var body: some View {
@@ -35,14 +41,20 @@ struct MainTabView: View {
           ContactsView(
             userProfile: userProfile,
             contactRepository: contactRepository,
-            noteRepository: noteRepository
+            noteRepository: noteRepository,
+            noteImageAnalyzer: noteImageAnalyzer,
+            noteImageAnalysisRepository: noteImageAnalysisRepository
           )
         }
       }
       
       Tab(AppTab.notes.title, systemImage: AppTab.notes.systemImage, value: .notes) {
         NavigationStack {
-          NotesView(noteRepository: noteRepository)
+          NotesView(
+            noteRepository: noteRepository,
+            noteImageAnalyzer: noteImageAnalyzer,
+            noteImageAnalysisRepository: noteImageAnalysisRepository
+          )
         }
       }
       
@@ -51,7 +63,9 @@ struct MainTabView: View {
           SearchView(
             modelContext: modelContext,
             noteRepository: noteRepository,
-            searchIndex: searchIndex
+            searchIndex: searchIndex,
+            noteImageAnalyzer: noteImageAnalyzer,
+            noteImageAnalysisRepository: noteImageAnalysisRepository
           )
         }
       }
@@ -92,6 +106,8 @@ private enum AppTab: Hashable {
   MainTabView(
     contactRepository: PreviewRepositories.contact,
     noteRepository: PreviewRepositories.note,
-    searchIndex: PreviewRepositories.searchIndex
+    searchIndex: PreviewRepositories.searchIndex,
+    noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
+    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
   )
 }

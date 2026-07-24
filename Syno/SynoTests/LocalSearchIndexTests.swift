@@ -39,8 +39,8 @@ final class LocalSearchIndexTests: XCTestCase {
     )
     let noteId = UUID()
 
-    await index.index(.note(id: noteId, text: "기존 내용"))
-    await index.index(.note(id: noteId, text: "변경된 내용"))
+    await index.index(.note(id: noteId, text: "기존 내용입니다"))
+    await index.index(.note(id: noteId, text: "변경된 내용입니다"))
 
     let callCount = await provider.callCount
     XCTAssertEqual(callCount, 2)
@@ -67,6 +67,46 @@ final class LocalSearchIndexTests: XCTestCase {
     XCTAssertGreaterThan(scores[related.key, default: 0], scores[unrelated.key, default: 0])
     let embeddings = try await repository.noteEmbeddings()
     XCTAssertNil(embeddings[related.key.sourceId])
+  }
+
+  @MainActor
+  func testShortNoteSkipsSemanticEmbeddingAndUsesBiGram() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataSearchEmbeddingRepository(modelContainer: container)
+    let provider = CountingEmbeddingProvider()
+    let index = LocalSearchIndex(
+      repository: repository,
+      embeddingProvider: provider
+    )
+    let note = SearchDocument.note(id: UUID(), text: "회의")
+
+    let scores = await index.scores(for: "미팅", documents: [note])
+
+    let callCount = await provider.callCount
+    let embeddings = try await repository.noteEmbeddings()
+    XCTAssertEqual(callCount, 0)
+    XCTAssertEqual(scores[note.key], 0)
+    XCTAssertNil(embeddings[note.key.sourceId])
+  }
+
+  @MainActor
+  func testContactWithNoMetadataSkipsSemanticEmbedding() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataSearchEmbeddingRepository(modelContainer: container)
+    let provider = CountingEmbeddingProvider()
+    let index = LocalSearchIndex(
+      repository: repository,
+      embeddingProvider: provider
+    )
+    let contact = SearchDocument.contact(id: UUID(), text: "\n\n\n\n\n")
+
+    let scores = await index.scores(for: "회의", documents: [contact])
+
+    let callCount = await provider.callCount
+    let embeddings = try await repository.contactEmbeddings()
+    XCTAssertEqual(callCount, 0)
+    XCTAssertEqual(scores[contact.key], 0)
+    XCTAssertNil(embeddings[contact.key.sourceId])
   }
 
   @MainActor

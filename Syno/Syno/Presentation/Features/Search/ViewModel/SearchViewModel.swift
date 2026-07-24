@@ -150,11 +150,11 @@ final class SearchViewModel {
       let keywordNoteIds = Set(keywordNotes.map(\.id))
       let semanticContactDocuments = storedContacts.compactMap { storedContact in
         keywordContactIds.contains(storedContact.id) ? nil :
-          SearchDocument.contact(id: storedContact.id, text: searchableText(for: storedContact))
+          SearchDocument.contact(id: storedContact.id, text: semanticText(for: storedContact))
       }
       let semanticNoteDocuments = storedNotes.compactMap { storedNote in
         keywordNoteIds.contains(storedNote.id) ? nil :
-          SearchDocument.note(id: storedNote.id, text: searchableText(for: storedNote))
+          SearchDocument.note(id: storedNote.id, text: storedNote.content)
       }
       let scores = await searchIndex.scores(
         for: searchTerm,
@@ -229,6 +229,17 @@ final class SearchViewModel {
 
   private func searchableText(for note: StoredNote) -> String {
     [note.contactName, note.content].joined(separator: "\n")
+  }
+
+  private func semanticText(for contact: StoredContact) -> String {
+    [
+      contact.role,
+      contact.company,
+      contact.email,
+      contact.phone,
+      contact.group,
+      contact.note
+    ].joined(separator: "\n")
   }
 
   private func commit(_ search: String) {

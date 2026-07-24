@@ -24,17 +24,18 @@ final class LocalSearchIndex: SearchIndexing {
   }
 
   func backfill(_ documents: [SearchDocument], batchSize: Int = 20) async {
-    guard !documents.isEmpty else { return }
+    let eligibleDocuments = documents.filter(\.isSemanticEligible)
+    guard !eligibleDocuments.isEmpty else { return }
     do {
       var noteCache = try await repository.noteEmbeddings()
       var contactCache = try await repository.contactEmbeddings()
       let size = max(1, batchSize)
 
-      for start in stride(from: 0, to: documents.count, by: size) {
+      for start in stride(from: 0, to: eligibleDocuments.count, by: size) {
         guard !Task.isCancelled else { return }
-        let end = min(start + size, documents.count)
+        let end = min(start + size, eligibleDocuments.count)
         let additions = await createMissingEmbeddings(
-          for: Array(documents[start..<end]),
+          for: Array(eligibleDocuments[start..<end]),
           noteCache: noteCache,
           contactCache: contactCache
         )
@@ -71,13 +72,32 @@ final class LocalSearchIndex: SearchIndexing {
     documents: [SearchDocument]
   ) async -> [SearchDocumentKey: Double] {
     guard !documents.isEmpty else { return [:] }
+    let eligibleDocuments = documents.filter(\.isSemanticEligible)
+    guard !eligibleDocuments.isEmpty else {
+      logger.debug(
+        "Query embedding skipped; all documents use short-text bi-gram fallback query=\(query, privacy: .public)"
+      )
+      return fallbackScores(for: query, documents: documents)
+    }
+
+    let queryEmbedding: [Double]
+    do {
+      queryEmbedding = try await embeddingProvider.embedding(for: query)
+      logger.debug(
+        "Query embedding succeeded query=\(query, privacy: .public) dimensions=\(queryEmbedding.count)"
+      )
+    } catch {
+      logger.debug(
+        "Query embedding failed; using bi-gram fallback query=\(query, privacy: .public) error=\(String(describing: error), privacy: .public)"
+      )
+      return fallbackScores(for: query, documents: documents)
+    }
 
     do {
-      let queryEmbedding = try await embeddingProvider.embedding(for: query)
       let noteCache = try await repository.noteEmbeddings()
       let contactCache = try await repository.contactEmbeddings()
       let additions = await createMissingEmbeddings(
-        for: documents,
+        for: eligibleDocuments,
         noteCache: noteCache,
         contactCache: contactCache
       )
@@ -92,24 +112,49 @@ final class LocalSearchIndex: SearchIndexing {
       }
       return Dictionary(uniqueKeysWithValues: documents.map { document in
         let vector: [Double]?
-        switch document.key.kind {
-        case .note:
-          let cached = noteCache[document.key.sourceId]
-          vector = addedNoteVectors[document.key.sourceId]
-            ?? (cached?.contentFingerprint == contentFingerprint(document.text)
-              ? cached?.vector : nil)
-        case .contact:
-          let cached = contactCache[document.key.sourceId]
-          vector = addedContactVectors[document.key.sourceId]
-            ?? (cached?.contentFingerprint == contentFingerprint(document.text)
-              ? cached?.vector : nil)
+        if !document.isSemanticEligible {
+          vector = nil
+        } else {
+          switch document.key.kind {
+          case .note:
+            let cached = noteCache[document.key.sourceId]
+            vector = addedNoteVectors[document.key.sourceId]
+              ?? (cached?.contentFingerprint == contentFingerprint(document.text)
+                ? cached?.vector : nil)
+          case .contact:
+            let cached = contactCache[document.key.sourceId]
+            vector = addedContactVectors[document.key.sourceId]
+              ?? (cached?.contentFingerprint == contentFingerprint(document.text)
+                ? cached?.vector : nil)
+          }
         }
-        let score = vector.map {
-          normalizedSemanticScore(cosineSimilarity(queryEmbedding, $0))
-        } ?? characterNGramSimilarity(query, document.text)
+        let score: Double
+        if let vector {
+          let rawCosine = cosineSimilarity(queryEmbedding, vector)
+          score = normalizedSemanticScore(rawCosine)
+          logScore(
+            document: document,
+            rawCosine: rawCosine,
+            normalizedScore: score,
+            fallbackScore: nil,
+            path: "semantic"
+          )
+        } else {
+          score = characterNGramSimilarity(query, document.text)
+          logScore(
+            document: document,
+            rawCosine: nil,
+            normalizedScore: nil,
+            fallbackScore: score,
+            path: "bi-gram"
+          )
+        }
         return (document.key, score)
       })
     } catch {
+      logger.debug(
+        "Semantic scoring pipeline failed; using bi-gram fallback query=\(query, privacy: .public) error=\(String(describing: error), privacy: .public)"
+      )
       return fallbackScores(for: query, documents: documents)
     }
   }
@@ -124,6 +169,7 @@ final class LocalSearchIndex: SearchIndexing {
 
     for document in documents {
       guard !Task.isCancelled else { break }
+      guard document.isSemanticEligible else { continue }
       let fingerprint = contentFingerprint(document.text)
       let isCurrent: Bool
       switch document.key.kind {
@@ -170,9 +216,32 @@ final class LocalSearchIndex: SearchIndexing {
     documents: [SearchDocument]
   ) -> [SearchDocumentKey: Double] {
     Dictionary(
-      uniqueKeysWithValues: documents.map {
-        ($0.key, characterNGramSimilarity(query, $0.text))
+      uniqueKeysWithValues: documents.map { document in
+        let score = characterNGramSimilarity(query, document.text)
+        logScore(
+          document: document,
+          rawCosine: nil,
+          normalizedScore: nil,
+          fallbackScore: score,
+          path: "bi-gram"
+        )
+        return (document.key, score)
       }
+    )
+  }
+
+  private func logScore(
+    document: SearchDocument,
+    rawCosine: Double?,
+    normalizedScore: Double?,
+    fallbackScore: Double?,
+    path: String
+  ) {
+    let rawCosineText = rawCosine.map { String(format: "%.6f", $0) } ?? "n/a"
+    let normalizedText = normalizedScore.map { String(format: "%.6f", $0) } ?? "n/a"
+    let fallbackText = fallbackScore.map { String(format: "%.6f", $0) } ?? "n/a"
+    logger.debug(
+      "Search score sourceId=\(document.key.sourceId.uuidString, privacy: .public) text=\(document.text, privacy: .public) rawCosine=\(rawCosineText, privacy: .public) normalizedSemanticScore=\(normalizedText, privacy: .public) biGramScore=\(fallbackText, privacy: .public) path=\(path, privacy: .public)"
     )
   }
 

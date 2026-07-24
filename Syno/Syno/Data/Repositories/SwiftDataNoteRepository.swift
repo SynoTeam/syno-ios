@@ -49,7 +49,7 @@ final class SwiftDataNoteRepository: NoteRepository {
       if let searchIndex {
         let document = SearchDocument.note(
           id: note.id,
-          text: [note.contactName, note.content].joined(separator: "\n")
+          text: note.content
         )
         Task { await searchIndex.index(document) }
       }

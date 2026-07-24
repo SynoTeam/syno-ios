@@ -27,14 +27,14 @@ final class SearchIndexBackfillService {
         SearchDocument.contact(
           id: $0.id,
           text: [
-            $0.name, $0.role, $0.company, $0.email,
+            $0.role, $0.company, $0.email,
             $0.phone, $0.group, $0.note
           ].joined(separator: "\n")
         )
       } + notes.map {
         SearchDocument.note(
           id: $0.id,
-          text: [$0.contactName, $0.content].joined(separator: "\n")
+          text: $0.content
         )
       }
       await searchIndex.backfill(documents, batchSize: 20)

@@ -49,7 +49,6 @@ final class SwiftDataContactRepository: ContactRepository {
         let document = SearchDocument.contact(
           id: contact.id,
           text: [
-            contact.name,
             contact.role,
             contact.company,
             contact.email,

@@ -14,15 +14,18 @@ struct MainTabView: View {
   let userProfile: UserProfile?
   private let contactRepository: any ContactRepository
   private let noteRepository: any NoteRepository
+  private let searchIndex: any SearchIndexing
 
   init(
     userProfile: UserProfile? = nil,
     contactRepository: any ContactRepository,
-    noteRepository: any NoteRepository
+    noteRepository: any NoteRepository,
+    searchIndex: any SearchIndexing
   ) {
     self.userProfile = userProfile
     self.contactRepository = contactRepository
     self.noteRepository = noteRepository
+    self.searchIndex = searchIndex
   }
   
   var body: some View {
@@ -45,7 +48,11 @@ struct MainTabView: View {
       
       Tab(AppTab.search.title, systemImage: AppTab.search.systemImage, value: .search, role: .search) {
         NavigationStack {
-          SearchView(modelContext: modelContext, noteRepository: noteRepository)
+          SearchView(
+            modelContext: modelContext,
+            noteRepository: noteRepository,
+            searchIndex: searchIndex
+          )
         }
       }
     }
@@ -84,6 +91,7 @@ private enum AppTab: Hashable {
 #Preview {
   MainTabView(
     contactRepository: PreviewRepositories.contact,
-    noteRepository: PreviewRepositories.note
+    noteRepository: PreviewRepositories.note,
+    searchIndex: PreviewRepositories.searchIndex
   )
 }

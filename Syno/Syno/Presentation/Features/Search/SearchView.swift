@@ -13,9 +13,18 @@ struct SearchView: View {
   @FocusState private var isSearchFocused: Bool
   private let noteRepository: any NoteRepository
 
-  init(modelContext: ModelContext, noteRepository: any NoteRepository) {
+  init(
+    modelContext: ModelContext,
+    noteRepository: any NoteRepository,
+    searchIndex: any SearchIndexing
+  ) {
     self.noteRepository = noteRepository
-    _viewModel = State(initialValue: SearchViewModel(modelContext: modelContext))
+    _viewModel = State(
+      initialValue: SearchViewModel(
+        modelContext: modelContext,
+        searchIndex: searchIndex
+      )
+    )
   }
 
   var body: some View {
@@ -165,7 +174,8 @@ struct SearchView: View {
   NavigationStack {
     SearchView(
       modelContext: container.mainContext,
-      noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext)
+      noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext),
+      searchIndex: PreviewRepositories.searchIndex
     )
   }
 }

@@ -14,13 +14,15 @@ struct RootView: View {
   let contactRepository: any ContactRepository
   let noteRepository: any NoteRepository
   let userProfileRepository: any UserProfileRepository
+  let searchIndex: any SearchIndexing
 
   var body: some View {
     if let userProfile = userProfiles.first {
       MainTabView(
         userProfile: userProfile,
         contactRepository: contactRepository,
-        noteRepository: noteRepository
+        noteRepository: noteRepository,
+        searchIndex: searchIndex
       )
     } else {
       NavigationStack {
@@ -34,6 +36,7 @@ struct RootView: View {
   RootView(
     contactRepository: PreviewRepositories.contact,
     noteRepository: PreviewRepositories.note,
-    userProfileRepository: PreviewRepositories.userProfile
+    userProfileRepository: PreviewRepositories.userProfile,
+    searchIndex: PreviewRepositories.searchIndex
   )
 }

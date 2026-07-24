@@ -32,6 +32,42 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
     let analysisSaveCount = await analysisRepository.saveCount
     XCTAssertEqual(analysisSaveCount, 0)
   }
+
+  @MainActor
+  func testMessageSearchIncludesCachedImageLabelsAndOCR() async throws {
+    let contact = Contact(name: "홍길동", role: "", company: "")
+    let note = Note(
+      contactId: contact.id,
+      contactName: contact.name,
+      content: "사진",
+      imageData: Data([0x01])
+    )
+    let noteRepository = NoteRepositorySpy()
+    try noteRepository.save(note)
+    let analysisRepository = ImageAnalysisRepositorySpy(
+      analyses: [
+        note.id: NoteImageAnalysisResult(
+          labels: ["animal", "cat", "feline"],
+          ocrText: "INVOICE 2026"
+        )
+      ]
+    )
+    let viewModel = ChatViewModel(
+      contact: contact,
+      repository: noteRepository,
+      imageAnalyzer: FailingImageAnalyzer(),
+      imageAnalysisRepository: analysisRepository
+    )
+
+    await viewModel.loadMessages()
+    viewModel.messageSearchText = "cat"
+
+    XCTAssertEqual(viewModel.messageSearchResults.map(\.id), [note.id])
+    viewModel.messageSearchText = "invoice"
+    XCTAssertEqual(viewModel.messageSearchResults.map(\.id), [note.id])
+    viewModel.messageSearchText = "냉장고"
+    XCTAssertTrue(viewModel.messageSearchResults.isEmpty)
+  }
 }
 
 @MainActor
@@ -59,13 +95,18 @@ private struct FailingImageAnalyzer: NoteImageAnalyzing {
 
 private actor ImageAnalysisRepositorySpy: NoteImageAnalysisRepository {
   private(set) var saveCount = 0
+  private var analyses: [Note.ID: NoteImageAnalysisResult]
+
+  init(analyses: [Note.ID: NoteImageAnalysisResult] = [:]) {
+    self.analyses = analyses
+  }
 
   func fetch(noteId: Note.ID) -> NoteImageAnalysisResult? {
-    nil
+    analyses[noteId]
   }
 
   func fetchAll() -> [Note.ID: NoteImageAnalysisResult] {
-    [:]
+    analyses
   }
 
   func save(
@@ -74,6 +115,7 @@ private actor ImageAnalysisRepositorySpy: NoteImageAnalysisRepository {
     analyzedAt: Date
   ) {
     saveCount += 1
+    analyses[noteId] = result
   }
 }
 

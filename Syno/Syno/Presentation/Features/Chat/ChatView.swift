@@ -59,7 +59,9 @@ struct ChatView: View {
         self.selectedPhotoItem = nil
       }
     }
-    .onAppear(perform: viewModel.loadMessages)
+    .task {
+      await viewModel.loadMessages()
+    }
     .alert(
       "오류",
       isPresented: persistenceErrorBinding

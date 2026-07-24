@@ -12,6 +12,7 @@ final class ChatViewModel {
   var messageText = ""
   var messageSearchText = ""
   private(set) var persistenceError: String?
+  private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
@@ -43,15 +44,32 @@ final class ChatViewModel {
     guard !searchText.isEmpty else {
       return []
     }
-    return messages.filter { $0.content.localizedStandardContains(searchText) }
+    return messages.filter {
+      searchableText(
+        for: $0,
+        analysis: imageAnalyses[$0.id]
+      ).localizedStandardContains(searchText)
+    }
   }
 
-  func loadMessages() {
+  func loadMessages() async {
     do {
       messages = try repository.fetch(contactId: contact.id)
       persistenceError = nil
     } catch {
       handle(error)
+      return
+    }
+
+    do {
+      let messageIds = Set(messages.map(\.id))
+      imageAnalyses = try await imageAnalysisRepository.fetchAll()
+        .filter { messageIds.contains($0.key) }
+    } catch {
+      imageAnalyses = [:]
+      logger.debug(
+        "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
+      )
     }
   }
 
@@ -99,6 +117,7 @@ final class ChatViewModel {
         result: result,
         analyzedAt: Date()
       )
+      imageAnalyses[note.id] = result
     } catch {
       logger.debug(
         "Image analysis skipped for note \(note.id): \(error.localizedDescription, privacy: .public)"
@@ -118,6 +137,20 @@ final class ChatViewModel {
       imageData: imageData,
       profileImageData: contact.profileImageData
     )
+  }
+
+  private func searchableText(
+    for note: Note,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    var components = [note.content]
+    if note.imageData != nil, let analysis {
+      components.append(contentsOf: analysis.labels)
+      components.append(analysis.ocrText)
+    }
+    return components
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
   }
 
   @discardableResult

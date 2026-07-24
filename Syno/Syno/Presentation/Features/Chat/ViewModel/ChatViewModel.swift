@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -11,13 +12,27 @@ final class ChatViewModel {
   var messageText = ""
   var messageSearchText = ""
   private(set) var persistenceError: String?
+  private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
+  private let imageAnalyzer: any NoteImageAnalyzing
+  private let imageAnalysisRepository: any NoteImageAnalysisRepository
+  private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "Syno",
+    category: "ChatViewModel"
+  )
 
-  init(contact: Contact, repository: any NoteRepository) {
+  init(
+    contact: Contact,
+    repository: any NoteRepository,
+    imageAnalyzer: any NoteImageAnalyzing,
+    imageAnalysisRepository: any NoteImageAnalysisRepository
+  ) {
     self.contact = contact
     self.repository = repository
+    self.imageAnalyzer = imageAnalyzer
+    self.imageAnalysisRepository = imageAnalysisRepository
   }
 
   var canSend: Bool {
@@ -29,15 +44,32 @@ final class ChatViewModel {
     guard !searchText.isEmpty else {
       return []
     }
-    return messages.filter { $0.content.localizedStandardContains(searchText) }
+    return messages.filter {
+      searchableText(
+        for: $0,
+        analysis: imageAnalyses[$0.id]
+      ).localizedStandardContains(searchText)
+    }
   }
 
-  func loadMessages() {
+  func loadMessages() async {
     do {
       messages = try repository.fetch(contactId: contact.id)
       persistenceError = nil
     } catch {
       handle(error)
+      return
+    }
+
+    do {
+      let messageIds = Set(messages.map(\.id))
+      imageAnalyses = try await imageAnalysisRepository.fetchAll()
+        .filter { messageIds.contains($0.key) }
+    } catch {
+      imageAnalyses = [:]
+      logger.debug(
+        "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
+      )
     }
   }
 
@@ -60,16 +92,36 @@ final class ChatViewModel {
 
     do {
       let rawImageData = try await item.loadTransferable(type: Data.self)
-      guard
-        let rawImageData,
-        let imageData = Self.compressedImageData(from: rawImageData)
-      else {
+      guard let rawImageData else {
         return
       }
-
-      save(makeNote(content: "사진", imageData: imageData))
+      await sendImageData(rawImageData)
     } catch {
       handle(error)
+    }
+  }
+
+  func sendImageData(_ rawImageData: Data) async {
+    guard let imageData = Self.compressedImageData(from: rawImageData) else {
+      return
+    }
+    let note = makeNote(content: "사진", imageData: imageData)
+    guard save(note) else {
+      return
+    }
+
+    do {
+      let result = try await imageAnalyzer.analyze(imageData: imageData)
+      try await imageAnalysisRepository.save(
+        noteId: note.id,
+        result: result,
+        analyzedAt: Date()
+      )
+      imageAnalyses[note.id] = result
+    } catch {
+      logger.debug(
+        "Image analysis skipped for note \(note.id): \(error.localizedDescription, privacy: .public)"
+      )
     }
   }
 
@@ -87,14 +139,31 @@ final class ChatViewModel {
     )
   }
 
-  private func save(_ note: Note, onSuccess: () -> Void = {}) {
+  private func searchableText(
+    for note: Note,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    var components = [note.content]
+    if note.imageData != nil, let analysis {
+      components.append(contentsOf: analysis.labels)
+      components.append(analysis.ocrText)
+    }
+    return components
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
+  }
+
+  @discardableResult
+  private func save(_ note: Note, onSuccess: () -> Void = {}) -> Bool {
     do {
       try repository.save(note)
       messages.append(note)
       onSuccess()
       persistenceError = nil
+      return true
     } catch {
       handle(error)
+      return false
     }
   }
 

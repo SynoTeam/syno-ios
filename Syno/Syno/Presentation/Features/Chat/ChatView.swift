@@ -16,9 +16,19 @@ struct ChatView: View {
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
 
-  init(contact: Contact, repository: any NoteRepository) {
+  init(
+    contact: Contact,
+    repository: any NoteRepository,
+    imageAnalyzer: any NoteImageAnalyzing,
+    imageAnalysisRepository: any NoteImageAnalysisRepository
+  ) {
     _viewModel = State(
-      initialValue: ChatViewModel(contact: contact, repository: repository)
+      initialValue: ChatViewModel(
+        contact: contact,
+        repository: repository,
+        imageAnalyzer: imageAnalyzer,
+        imageAnalysisRepository: imageAnalysisRepository
+      )
     )
   }
 
@@ -49,7 +59,9 @@ struct ChatView: View {
         self.selectedPhotoItem = nil
       }
     }
-    .onAppear(perform: viewModel.loadMessages)
+    .task {
+      await viewModel.loadMessages()
+    }
     .alert(
       "오류",
       isPresented: persistenceErrorBinding
@@ -287,7 +299,9 @@ struct ChatView: View {
         role: "Product Designer",
         company: "@syno"
       ),
-      repository: PreviewRepositories.note
+      repository: PreviewRepositories.note,
+      imageAnalyzer: PreviewRepositories.noteImageAnalyzer,
+      imageAnalysisRepository: PreviewRepositories.noteImageAnalysis
     )
   }
 }

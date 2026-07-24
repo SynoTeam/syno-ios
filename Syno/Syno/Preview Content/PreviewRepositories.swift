@@ -10,6 +10,7 @@ enum PreviewRepositories {
         StoredNote.self,
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
+        StoredNoteImageAnalysis.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
       )
     } catch {
@@ -21,6 +22,11 @@ enum PreviewRepositories {
     repository: SwiftDataSearchEmbeddingRepository(modelContainer: container),
     embeddingProvider: NLContextualTextEmbeddingProvider()
   )
+
+  static let noteImageAnalyzer: any NoteImageAnalyzing = VisionNoteImageAnalyzer()
+
+  static let noteImageAnalysis: any NoteImageAnalysisRepository =
+    SwiftDataNoteImageAnalysisRepository(modelContainer: container)
 
   static let contact: any ContactRepository =
     SwiftDataContactRepository(

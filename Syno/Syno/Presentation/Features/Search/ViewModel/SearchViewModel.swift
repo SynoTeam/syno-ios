@@ -18,6 +18,8 @@ final class SearchViewModel {
 
   @ObservationIgnored private let modelContext: ModelContext
   @ObservationIgnored private let searchIndex: any SearchIndexing
+  @ObservationIgnored private let noteImageAnalysisRepository:
+    any NoteImageAnalysisRepository
   @ObservationIgnored private let userDefaults: UserDefaults
   @ObservationIgnored private var searchTask: Task<Void, Never>?
 
@@ -27,10 +29,12 @@ final class SearchViewModel {
   init(
     modelContext: ModelContext,
     searchIndex: any SearchIndexing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     userDefaults: UserDefaults = .standard
   ) {
     self.modelContext = modelContext
     self.searchIndex = searchIndex
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.userDefaults = userDefaults
     recentSearches = userDefaults.stringArray(forKey: Self.recentSearchesKey) ?? []
   }
@@ -139,12 +143,17 @@ final class SearchViewModel {
           sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
       )
+      let imageAnalyses =
+        (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
 
       let keywordContacts = storedContacts.filter {
         searchableText(for: $0).localizedStandardContains(searchTerm)
       }
       let keywordNotes = storedNotes.filter {
-        searchableText(for: $0).localizedStandardContains(searchTerm)
+        searchableText(
+          for: $0,
+          analysis: imageAnalyses[$0.id]
+        ).localizedStandardContains(searchTerm)
       }
       let keywordContactIds = Set(keywordContacts.map(\.id))
       let keywordNoteIds = Set(keywordNotes.map(\.id))
@@ -154,7 +163,13 @@ final class SearchViewModel {
       }
       let semanticNoteDocuments = storedNotes.compactMap { storedNote in
         keywordNoteIds.contains(storedNote.id) ? nil :
-          SearchDocument.note(id: storedNote.id, text: storedNote.content)
+          SearchDocument.note(
+            id: storedNote.id,
+            text: semanticText(
+              for: storedNote,
+              analysis: imageAnalyses[storedNote.id]
+            )
+          )
       }
       let scores = await searchIndex.scores(
         for: searchTerm,
@@ -227,8 +242,18 @@ final class SearchViewModel {
     ].joined(separator: "\n")
   }
 
-  private func searchableText(for note: StoredNote) -> String {
-    [note.contactName, note.content].joined(separator: "\n")
+  private func searchableText(
+    for note: StoredNote,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    var components = [note.contactName, note.content]
+    if note.imageData != nil, let analysis {
+      components.append(contentsOf: analysis.labels)
+      components.append(analysis.ocrText)
+    }
+    return components
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
   }
 
   private func semanticText(for contact: StoredContact) -> String {
@@ -240,6 +265,18 @@ final class SearchViewModel {
       contact.group,
       contact.note
     ].joined(separator: "\n")
+  }
+
+  private func semanticText(
+    for note: StoredNote,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    guard note.imageData != nil, let analysis else {
+      return note.content
+    }
+    return ([note.content] + analysis.labels + [analysis.ocrText])
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
   }
 
   private func commit(_ search: String) {

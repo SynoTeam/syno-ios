@@ -5,15 +5,21 @@ import SwiftData
 final class SearchIndexBackfillService {
   private let modelContext: ModelContext
   private let searchIndex: any SearchIndexing
+  private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "SearchIndexBackfill"
   )
   private var hasStarted = false
 
-  init(modelContext: ModelContext, searchIndex: any SearchIndexing) {
+  init(
+    modelContext: ModelContext,
+    searchIndex: any SearchIndexing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  ) {
     self.modelContext = modelContext
     self.searchIndex = searchIndex
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
   }
 
   func start() async {
@@ -23,6 +29,8 @@ final class SearchIndexBackfillService {
     do {
       let contacts = try modelContext.fetch(FetchDescriptor<StoredContact>())
       let notes = try modelContext.fetch(FetchDescriptor<StoredNote>())
+      let imageAnalyses =
+        (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
       let documents = contacts.map {
         SearchDocument.contact(
           id: $0.id,
@@ -34,7 +42,10 @@ final class SearchIndexBackfillService {
       } + notes.map {
         SearchDocument.note(
           id: $0.id,
-          text: $0.content
+          text: semanticText(
+            for: $0,
+            analysis: imageAnalyses[$0.id]
+          )
         )
       }
       await searchIndex.backfill(documents, batchSize: 20)
@@ -43,5 +54,17 @@ final class SearchIndexBackfillService {
         "Failed to prepare search index backfill: \(error.localizedDescription, privacy: .public)"
       )
     }
+  }
+
+  private func semanticText(
+    for note: StoredNote,
+    analysis: NoteImageAnalysisResult?
+  ) -> String {
+    guard note.imageData != nil, let analysis else {
+      return note.content
+    }
+    return ([note.content] + analysis.labels + [analysis.ocrText])
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
   }
 }

@@ -24,6 +24,7 @@ enum PreviewRepositories {
   )
 
   static let noteImageAnalyzer: any NoteImageAnalyzing = VisionNoteImageAnalyzer()
+  static let labelTranslator: any LabelTranslating = StaticLabelDictionary()
 
   static let noteImageAnalysis: any NoteImageAnalysisRepository =
     SwiftDataNoteImageAnalysisRepository(modelContainer: container)

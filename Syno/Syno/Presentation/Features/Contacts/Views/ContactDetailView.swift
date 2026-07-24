@@ -12,6 +12,7 @@ struct ContactDetailView: View {
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let labelTranslator: any LabelTranslating
 
   var body: some View {
     VStack(spacing: 0) {
@@ -98,7 +99,8 @@ struct ContactDetailView: View {
         contact: contact,
         repository: noteRepository,
         imageAnalyzer: noteImageAnalyzer,
-        imageAnalysisRepository: noteImageAnalysisRepository
+        imageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
     } label: {
       Text("메모하기")
@@ -145,7 +147,8 @@ struct ContactDetailView: View {
       ),
       noteRepository: PreviewRepositories.note,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-      noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+      noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      labelTranslator: PreviewRepositories.labelTranslator
     )
   }
 }

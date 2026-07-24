@@ -15,6 +15,7 @@ struct NotesView: View {
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let labelTranslator: any LabelTranslating
 
   var body: some View {
     ScrollView {
@@ -104,7 +105,8 @@ struct NotesView: View {
             contact: note.contact,
             repository: noteRepository,
             imageAnalyzer: noteImageAnalyzer,
-            imageAnalysisRepository: noteImageAnalysisRepository
+            imageAnalysisRepository: noteImageAnalysisRepository,
+            labelTranslator: labelTranslator
           )
         } label: {
           NoteRowView(note: note)
@@ -138,7 +140,8 @@ private struct StoredNoteChangeToken: Equatable {
   NotesView(
     noteRepository: PreviewRepositories.note,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    labelTranslator: PreviewRepositories.labelTranslator
   )
     .modelContainer(for: [StoredNote.self, StoredContact.self], inMemory: true)
 }

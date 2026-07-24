@@ -20,14 +20,16 @@ struct ChatView: View {
     contact: Contact,
     repository: any NoteRepository,
     imageAnalyzer: any NoteImageAnalyzing,
-    imageAnalysisRepository: any NoteImageAnalysisRepository
+    imageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating
   ) {
     _viewModel = State(
       initialValue: ChatViewModel(
         contact: contact,
         repository: repository,
         imageAnalyzer: imageAnalyzer,
-        imageAnalysisRepository: imageAnalysisRepository
+        imageAnalysisRepository: imageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
     )
   }
@@ -301,7 +303,8 @@ struct ChatView: View {
       ),
       repository: PreviewRepositories.note,
       imageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-      imageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+      imageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      labelTranslator: PreviewRepositories.labelTranslator
     )
   }
 }

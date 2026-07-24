@@ -13,6 +13,7 @@ struct MyPageView: View {
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let labelTranslator: any LabelTranslating
   let onSave: (Contact) -> Void
 
   init(
@@ -24,12 +25,14 @@ struct MyPageView: View {
     noteRepository: any NoteRepository,
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating,
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
     self.contact = contact
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.labelTranslator = labelTranslator
     self.onSave = onSave
   }
 
@@ -149,7 +152,8 @@ struct MyPageView: View {
         contact: contact,
         repository: noteRepository,
         imageAnalyzer: noteImageAnalyzer,
-        imageAnalysisRepository: noteImageAnalysisRepository
+        imageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
     } label: {
       Text("메모하기")
@@ -208,6 +212,7 @@ private extension View {
   MyPageView(
     noteRepository: PreviewRepositories.note,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    labelTranslator: PreviewRepositories.labelTranslator
   )
 }

@@ -4,7 +4,7 @@ import XCTest
 
 final class SearchViewModelImageKeywordTests: XCTestCase {
   @MainActor
-  func testImageLabelMatchesThroughKeywordSearch() async throws {
+  func testImageLabelsMatchInKoreanAndPreserveUnmappedEnglish() async throws {
     let container = try ModelContainer(
       for: StoredContact.self,
       StoredNote.self,
@@ -33,20 +33,28 @@ final class SearchViewModelImageKeywordTests: XCTestCase {
       noteImageAnalysisRepository: ImageAnalysisRepositoryStub(
         analyses: [
           noteId: NoteImageAnalysisResult(
-            labels: ["animal", "cat", "feline"],
+            labels: ["animal", "cat", "unmapped_label"],
             ocrText: ""
           )
         ]
       ),
+      labelTranslator: StaticLabelDictionary(
+        translations: ["cat": "고양이"]
+      ),
       userDefaults: defaults
     )
 
-    viewModel.updateQuery("cat")
+    viewModel.updateQuery("고양이")
     try await Task.sleep(for: .milliseconds(500))
 
     XCTAssertFalse(viewModel.isSearching)
     XCTAssertEqual(viewModel.filteredResults.count, 1)
     XCTAssertEqual(viewModel.filteredResults.first?.category, .notes)
+
+    viewModel.updateQuery("unmapped_label")
+    try await Task.sleep(for: .milliseconds(500))
+
+    XCTAssertEqual(viewModel.filteredResults.count, 1)
   }
 }
 

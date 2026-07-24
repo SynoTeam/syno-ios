@@ -18,6 +18,7 @@ final class ChatViewModel {
   private let repository: any NoteRepository
   private let imageAnalyzer: any NoteImageAnalyzing
   private let imageAnalysisRepository: any NoteImageAnalysisRepository
+  private let labelTranslator: any LabelTranslating
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "ChatViewModel"
@@ -27,12 +28,14 @@ final class ChatViewModel {
     contact: Contact,
     repository: any NoteRepository,
     imageAnalyzer: any NoteImageAnalyzing,
-    imageAnalysisRepository: any NoteImageAnalysisRepository
+    imageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating
   ) {
     self.contact = contact
     self.repository = repository
     self.imageAnalyzer = imageAnalyzer
     self.imageAnalysisRepository = imageAnalysisRepository
+    self.labelTranslator = labelTranslator
   }
 
   var canSend: Bool {
@@ -145,7 +148,9 @@ final class ChatViewModel {
   ) -> String {
     var components = [note.content]
     if note.imageData != nil, let analysis {
-      components.append(contentsOf: analysis.labels)
+      components.append(
+        contentsOf: labelTranslator.searchTerms(for: analysis.labels)
+      )
       components.append(analysis.ocrText)
     }
     return components

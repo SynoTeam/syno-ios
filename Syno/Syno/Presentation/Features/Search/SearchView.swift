@@ -14,22 +14,26 @@ struct SearchView: View {
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  private let labelTranslator: any LabelTranslating
 
   init(
     modelContext: ModelContext,
     noteRepository: any NoteRepository,
     searchIndex: any SearchIndexing,
     noteImageAnalyzer: any NoteImageAnalyzing,
-    noteImageAnalysisRepository: any NoteImageAnalysisRepository
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating
   ) {
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.labelTranslator = labelTranslator
     _viewModel = State(
       initialValue: SearchViewModel(
         modelContext: modelContext,
         searchIndex: searchIndex,
-        noteImageAnalysisRepository: noteImageAnalysisRepository
+        noteImageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
     )
   }
@@ -168,14 +172,16 @@ struct SearchView: View {
         contact: contact,
         noteRepository: noteRepository,
         noteImageAnalyzer: noteImageAnalyzer,
-        noteImageAnalysisRepository: noteImageAnalysisRepository
+        noteImageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
     case .note(_, let contact):
       ChatView(
         contact: contact,
         repository: noteRepository,
         imageAnalyzer: noteImageAnalyzer,
-        imageAnalysisRepository: noteImageAnalysisRepository
+        imageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
     }
   }
@@ -194,7 +200,8 @@ struct SearchView: View {
       noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext),
       searchIndex: PreviewRepositories.searchIndex,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-      noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+      noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      labelTranslator: PreviewRepositories.labelTranslator
     )
   }
 }

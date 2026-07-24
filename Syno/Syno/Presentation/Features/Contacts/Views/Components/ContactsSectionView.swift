@@ -14,6 +14,7 @@ struct ContactsSectionView: View {
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let labelTranslator: any LabelTranslating
   @Binding var isCollapsed: Bool
   let onToggleFavorite: (Contact.ID) -> Void
   let onDelete: (Contact.ID) -> Void
@@ -30,7 +31,8 @@ struct ContactsSectionView: View {
                 contact: contact,
                 noteRepository: noteRepository,
                 noteImageAnalyzer: noteImageAnalyzer,
-                noteImageAnalysisRepository: noteImageAnalysisRepository
+                noteImageAnalysisRepository: noteImageAnalysisRepository,
+                labelTranslator: labelTranslator
               )
             } label: {
               ContactsRowView(
@@ -110,6 +112,7 @@ struct ContactsSectionView: View {
     noteRepository: PreviewRepositories.note,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    labelTranslator: PreviewRepositories.labelTranslator,
     isCollapsed: .constant(false),
     onToggleFavorite: { _ in },
     onDelete: { _ in }

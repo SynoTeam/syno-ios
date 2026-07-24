@@ -6,6 +6,7 @@ final class SearchIndexBackfillService {
   private let modelContext: ModelContext
   private let searchIndex: any SearchIndexing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  private let labelTranslator: any LabelTranslating
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "SearchIndexBackfill"
@@ -15,11 +16,13 @@ final class SearchIndexBackfillService {
   init(
     modelContext: ModelContext,
     searchIndex: any SearchIndexing,
-    noteImageAnalysisRepository: any NoteImageAnalysisRepository
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating
   ) {
     self.modelContext = modelContext
     self.searchIndex = searchIndex
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.labelTranslator = labelTranslator
   }
 
   func start() async {
@@ -63,7 +66,11 @@ final class SearchIndexBackfillService {
     guard note.imageData != nil, let analysis else {
       return note.content
     }
-    return ([note.content] + analysis.labels + [analysis.ocrText])
+    return (
+      [note.content]
+        + labelTranslator.searchTerms(for: analysis.labels)
+        + [analysis.ocrText]
+    )
       .filter { !$0.isEmpty }
       .joined(separator: "\n")
   }

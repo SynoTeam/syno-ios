@@ -26,37 +26,44 @@ struct ContactsSectionView: View {
       if !isCollapsed {
         LazyVStack(spacing: 16) {
           ForEach(contacts) { contact in
-            NavigationLink {
-              ContactDetailView(
-                contact: contact,
-                noteRepository: noteRepository,
-                noteImageAnalyzer: noteImageAnalyzer,
-                noteImageAnalysisRepository: noteImageAnalysisRepository,
-                labelTranslator: labelTranslator
-              )
-            } label: {
-              ContactsRowView(
-                name: contact.name,
-                role: contact.role,
-                company: contact.company,
-                profileImageData: contact.profileImageData
-              )
-            }
-            .buttonStyle(.plain)
-            .contextMenu {
-              Button {
+            FavoriteSwipeRow(
+              isFavorite: contact.isFavorite,
+              onToggleFavorite: {
                 onToggleFavorite(contact.id)
+              }
+            ) {
+              NavigationLink {
+                ContactDetailView(
+                  contact: contact,
+                  noteRepository: noteRepository,
+                  noteImageAnalyzer: noteImageAnalyzer,
+                  noteImageAnalysisRepository: noteImageAnalysisRepository,
+                  labelTranslator: labelTranslator
+                )
               } label: {
-                Label(
-                  contact.isFavorite ? "Remove Favorite" : "Add Favorite",
-                  systemImage: contact.isFavorite ? "star.slash" : "star"
+                ContactsRowView(
+                  name: contact.name,
+                  role: contact.role,
+                  company: contact.company,
+                  profileImageData: contact.profileImageData
                 )
               }
+              .buttonStyle(.plain)
+              .contextMenu {
+                Button {
+                  onToggleFavorite(contact.id)
+                } label: {
+                  Label(
+                    contact.isFavorite ? "즐겨찾기 삭제하기" : "즐겨찾기 추가하기",
+                    systemImage: contact.isFavorite ? "star.slash" : "star"
+                  )
+                }
 
-              Button(role: .destructive) {
-                onDelete(contact.id)
-              } label: {
-                Label("Delete", systemImage: "trash")
+                Button(role: .destructive) {
+                  onDelete(contact.id)
+                } label: {
+                  Label("Delete", systemImage: "trash")
+                }
               }
             }
           }
@@ -98,6 +105,89 @@ struct ContactsSectionView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+}
+
+private struct FavoriteSwipeRow<Content: View>: View {
+  private let actionWidth: CGFloat = 40
+
+  let isFavorite: Bool
+  let onToggleFavorite: () -> Void
+  private let label: () -> Content
+
+  @State private var restingOffset: CGFloat = 0
+  @GestureState private var dragOffset: CGFloat = 0
+
+  init(
+    isFavorite: Bool,
+    onToggleFavorite: @escaping () -> Void,
+    @ViewBuilder label: @escaping () -> Content
+  ) {
+    self.isFavorite = isFavorite
+    self.onToggleFavorite = onToggleFavorite
+    self.label = label
+  }
+
+  var body: some View {
+    ZStack(alignment: .leading) {
+      favoriteButton
+
+      label()
+        .contentShape(Rectangle())
+        .offset(x: displayedOffset)
+        .highPriorityGesture(swipeGesture)
+    }
+    .clipped()
+    .animation(.snappy(duration: 0.2), value: restingOffset)
+    .onChange(of: isFavorite) { _, _ in
+      restingOffset = 0
+    }
+    .accessibilityAction(named: isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가") {
+      onToggleFavorite()
+    }
+  }
+
+  private var favoriteButton: some View {
+    Button {
+      withAnimation {
+        restingOffset = 0
+      }
+      onToggleFavorite()
+    } label: {
+      Image(systemName: isFavorite ? "star.slash.fill" : "star.fill")
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(.violet500)
+        .frame(width: actionWidth, height: actionWidth)
+        .background(.violet100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    .buttonStyle(.plain)
+  }
+
+  private var displayedOffset: CGFloat {
+    max(0, min(actionWidth, restingOffset + dragOffset))
+  }
+
+  private var swipeGesture: some Gesture {
+    DragGesture(minimumDistance: 12)
+      .updating($dragOffset) { value, state, _ in
+        guard abs(value.translation.width) > abs(value.translation.height) else {
+          return
+        }
+        state = value.translation.width
+      }
+      .onEnded { value in
+        guard abs(value.translation.width) > abs(value.translation.height) else {
+          return
+        }
+
+        let proposedOffset = restingOffset + value.predictedEndTranslation.width
+        withAnimation {
+          restingOffset = proposedOffset > actionWidth / 2
+            ? actionWidth
+            : 0
+        }
+      }
   }
 }
 

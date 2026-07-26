@@ -5,7 +5,7 @@ private struct ToastModifier: ViewModifier {
 
   func body(content: Content) -> some View {
     content
-      .overlay(alignment: .top) {
+      .overlay(alignment: .bottom) {
         if let item {
           ToastView(
             toast: item,
@@ -14,9 +14,9 @@ private struct ToastModifier: ViewModifier {
             }
           )
           .padding(.horizontal, 16)
-          .padding(.top, 12)
+          .padding(.bottom, 12)
           .transition(
-            .move(edge: .top)
+            .move(edge: .bottom)
               .combined(with: .opacity)
           )
           .zIndex(1)

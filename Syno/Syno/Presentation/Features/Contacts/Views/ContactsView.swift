@@ -11,6 +11,7 @@ struct ContactsView: View {
   @State private var viewModel: ContactsViewModel
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
+  @State private var toast: Toast?
 
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
@@ -104,11 +105,17 @@ struct ContactsView: View {
     }
     .background(Color.gray50)
     .onAppear(perform: viewModel.loadContacts)
-    .alert("오류", isPresented: persistenceErrorBinding) {
-      Button("확인", action: viewModel.clearPersistenceError)
-    } message: {
-      Text(viewModel.persistenceError ?? "")
+    .onChange(of: viewModel.persistenceError) { _, errorMessage in
+      guard let errorMessage else {
+        return
+      }
+      toast = Toast(
+        message: errorMessage,
+        style: .failure
+      )
+      viewModel.clearPersistenceError()
     }
+    .toast(item: $toast)
   }
   
   private var header: some View {
@@ -159,16 +166,21 @@ struct ContactsView: View {
   }
 
   private func toggleFavorite(id: Contact.ID) {
-    viewModel.toggleFavorite(id: id)
-  }
+    guard let isFavorite = viewModel.toggleFavorite(id: id) else {
+      return
+    }
 
-  private var persistenceErrorBinding: Binding<Bool> {
-    Binding(
-      get: { viewModel.persistenceError != nil },
-      set: { isPresented in
-        if !isPresented {
-          viewModel.clearPersistenceError()
-        }
+    toast = Toast(
+      message: isFavorite
+        ? "즐겨찾기에 추가되었습니다"
+        : "즐겨찾기 해제되었습니다",
+      style: .success,
+      icon: isFavorite ? "star.fill" : "star.slash.fill",
+      action: Toast.Action(title: "되돌리기") {
+        viewModel.setFavorite(
+          id: id,
+          isFavorite: !isFavorite
+        )
       }
     )
   }

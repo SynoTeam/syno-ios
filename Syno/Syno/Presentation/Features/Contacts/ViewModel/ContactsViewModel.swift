@@ -81,14 +81,30 @@ final class ContactsViewModel {
     }
   }
   
-  func toggleFavorite(id: Contact.ID) {
+  @discardableResult
+  func toggleFavorite(id: Contact.ID) -> Bool? {
     guard let index = contacts.firstIndex(where: { $0.id == id && !$0.isMe }) else {
-      return
+      return nil
+    }
+
+    let isFavorite = !contacts[index].isFavorite
+    return setFavorite(id: id, isFavorite: isFavorite) ? isFavorite : nil
+  }
+
+  @discardableResult
+  func setFavorite(id: Contact.ID, isFavorite: Bool) -> Bool {
+    guard let index = contacts.firstIndex(where: { $0.id == id && !$0.isMe }) else {
+      return false
+    }
+
+    guard contacts[index].isFavorite != isFavorite else {
+      persistenceError = nil
+      return true
     }
 
     var updatedContact = contacts[index]
-    updatedContact.isFavorite.toggle()
-    persist(updatedContact) {
+    updatedContact.isFavorite = isFavorite
+    return persist(updatedContact) {
       contacts[index] = updatedContact
     }
   }
@@ -97,13 +113,16 @@ final class ContactsViewModel {
     persistenceError = nil
   }
 
-  private func persist(_ contact: Contact, updateLocalState: () -> Void) {
+  @discardableResult
+  private func persist(_ contact: Contact, updateLocalState: () -> Void) -> Bool {
     do {
       try repository.save(contact)
       updateLocalState()
       persistenceError = nil
+      return true
     } catch {
       handle(error)
+      return false
     }
   }
 

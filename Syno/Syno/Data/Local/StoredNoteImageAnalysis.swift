@@ -4,10 +4,10 @@ import SwiftData
 /// 원본 메모와 분리해 저장하는 이미지 분석 파생 데이터입니다.
 @Model
 final class StoredNoteImageAnalysis {
-  @Attribute(.unique) var noteId: UUID
-  var labels: [String]
-  var ocrText: String
-  var analyzedAt: Date
+  var noteId: UUID = UUID()
+  var labels: [String] = []
+  var ocrText: String = ""
+  var analyzedAt: Date = Date()
 
   init(
     noteId: UUID,

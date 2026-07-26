@@ -12,16 +12,16 @@ import SwiftData
 @Model
 final class StoredNote {
   /// 앱 내부 노트 식별자입니다.
-  @Attribute(.unique) var id: UUID
+  var id: UUID = UUID()
 
   /// 연결된 연락처 식별자입니다.
   var contactId: UUID?
 
   /// 노트에 표시할 연락처 이름입니다.
-  var contactName: String
+  var contactName: String = ""
 
   /// 노트 본문입니다.
-  var content: String
+  var content: String = ""
 
   /// 채팅 기록에 첨부된 이미지 데이터입니다.
   var imageData: Data?
@@ -30,10 +30,10 @@ final class StoredNote {
   var profileImageData: Data?
 
   /// 즐겨찾기 여부입니다.
-  var isFavorite: Bool
+  var isFavorite: Bool = false
 
   /// 저장 생성 시각입니다.
-  var createdAt: Date
+  var createdAt: Date = Date()
 
   init(
     id: UUID,

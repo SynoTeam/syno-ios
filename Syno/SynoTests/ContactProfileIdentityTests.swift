@@ -27,6 +27,36 @@ final class ContactProfileIdentityTests: XCTestCase {
   }
 
   @MainActor
+  func testSaveUpdatesExistingContactWithoutCreatingDuplicate() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataContactRepository(modelContext: container.mainContext)
+    let contactId = UUID()
+
+    try repository.save(
+      Contact(
+        id: contactId,
+        name: "수정 전",
+        role: "",
+        company: ""
+      )
+    )
+    try repository.save(
+      Contact(
+        id: contactId,
+        name: "수정 후",
+        role: "",
+        company: ""
+      )
+    )
+
+    let storedContacts = try container.mainContext.fetch(
+      FetchDescriptor<StoredContact>()
+    )
+    XCTAssertEqual(storedContacts.count, 1)
+    XCTAssertEqual(storedContacts.first?.name, "수정 후")
+  }
+
+  @MainActor
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(
       for: StoredContact.self,

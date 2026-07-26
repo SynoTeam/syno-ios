@@ -12,43 +12,43 @@ import SwiftData
 @Model
 final class StoredContact {
   /// 앱 내부 연락처 식별자입니다.
-  @Attribute(.unique) var id: UUID
+  var id: UUID = UUID()
 
   /// 연락처 이름입니다.
-  var name: String
+  var name: String = ""
 
   /// 연락처 역할 또는 보조 설명입니다.
-  var role: String
+  var role: String = ""
 
   /// 회사 또는 소속 정보입니다.
-  var company: String
+  var company: String = ""
 
   /// 이메일 주소입니다.
-  var email: String
+  var email: String = ""
 
   /// 전화번호입니다.
-  var phone: String
+  var phone: String = ""
 
   /// 링크드인 또는 URL 정보입니다.
-  var linkedInURL: String
+  var linkedInURL: String = ""
 
   /// 연락처 그룹입니다.
-  var group: String
+  var group: String = ""
 
   /// 한 줄 기록입니다.
-  var note: String
+  var note: String = ""
 
   /// 프로필 이미지 데이터입니다.
   var profileImageData: Data?
 
   /// 즐겨찾기 여부입니다.
-  var isFavorite: Bool
+  var isFavorite: Bool = false
 
   /// 사용자 본인의 프로필인지 여부입니다.
   var isMe: Bool = false
 
   /// 저장 생성 시각입니다.
-  var createdAt: Date
+  var createdAt: Date = Date()
 
   init(
     id: UUID,

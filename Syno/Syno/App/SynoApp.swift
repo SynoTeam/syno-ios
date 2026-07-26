@@ -22,13 +22,21 @@ struct SynoApp: App {
 
   init() {
     do {
-      let container = try ModelContainer(
-        for: UserProfile.self,
+      let schema = Schema([
+        UserProfile.self,
         StoredContact.self,
         StoredNote.self,
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
         StoredNoteImageAnalysis.self
+      ])
+      let configuration = ModelConfiguration(
+        schema: schema,
+        cloudKitDatabase: .private("iCloud.com.synoteam.Syno")
+      )
+      let container = try ModelContainer(
+        for: schema,
+        configurations: configuration
       )
       modelContainer = container
       let embeddingRepository = SwiftDataSearchEmbeddingRepository(

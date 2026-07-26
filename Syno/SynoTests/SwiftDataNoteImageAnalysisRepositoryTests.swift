@@ -29,4 +29,32 @@ final class SwiftDataNoteImageAnalysisRepositoryTests: XCTestCase {
     XCTAssertEqual(fetched, result)
     XCTAssertEqual(all[noteId], result)
   }
+
+  @MainActor
+  func testSaveUpdatesExistingAnalysisWithoutCreatingDuplicate() async throws {
+    let container = try ModelContainer(
+      for: StoredNoteImageAnalysis.self,
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    let repository = SwiftDataNoteImageAnalysisRepository(
+      modelContainer: container
+    )
+    let noteId = UUID()
+
+    try await repository.save(
+      noteId: noteId,
+      result: NoteImageAnalysisResult(labels: ["cat"], ocrText: "")
+    )
+    try await repository.save(
+      noteId: noteId,
+      result: NoteImageAnalysisResult(labels: ["dog"], ocrText: "수정됨")
+    )
+
+    let storedAnalyses = try container.mainContext.fetch(
+      FetchDescriptor<StoredNoteImageAnalysis>()
+    )
+    XCTAssertEqual(storedAnalyses.count, 1)
+    XCTAssertEqual(storedAnalyses.first?.labels, ["dog"])
+    XCTAssertEqual(storedAnalyses.first?.ocrText, "수정됨")
+  }
 }

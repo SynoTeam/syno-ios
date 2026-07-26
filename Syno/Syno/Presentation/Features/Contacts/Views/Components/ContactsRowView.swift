@@ -64,7 +64,7 @@ struct ContactsRowView: View {
   private var infoText: some View {
     VStack(alignment: .leading, spacing: 0) {
       Text(name)
-        .typeStyle(.headline)
+        .typeStyle(.callout)
         .foregroundStyle(style.nameColor)
       HStack(spacing: 6) {
         if !role.isEmpty {

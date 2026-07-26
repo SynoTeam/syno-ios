@@ -12,12 +12,12 @@ struct ContactsView: View {
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
   @State private var toast: Toast?
-
+  
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   private let labelTranslator: any LabelTranslating
-
+  
   init(
     userProfile: UserProfile? = nil,
     contactRepository: any ContactRepository,
@@ -81,7 +81,7 @@ struct ContactsView: View {
             onDelete: deleteContact
           )
         }
-
+        
         ContactsSectionView(
           title: "All",
           count: viewModel.regularContactCount,
@@ -94,7 +94,7 @@ struct ContactsView: View {
           onToggleFavorite: toggleFavorite,
           onDelete: deleteContact
         )
-
+        
         if viewModel.regularContacts.isEmpty {
           emptyState
         }
@@ -142,7 +142,7 @@ struct ContactsView: View {
       .accessibilityLabel("Add Contact")
     }
   }
-
+  
   private var emptyState: some View {
     VStack(spacing: 28) {
       Image(.logo)
@@ -150,7 +150,7 @@ struct ContactsView: View {
         .aspectRatio(contentMode: .fit)
         .frame(width: 148, height: 148)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-
+      
       Text("환영합니다!\n연락처를 추가해보세요.")
         .typeStyle(.headline)
         .foregroundStyle(.gray500)
@@ -159,21 +159,21 @@ struct ContactsView: View {
     .frame(maxWidth: .infinity)
     .padding(.top, 116)
   }
-
+  
   private func deleteContact(id: Contact.ID) {
     viewModel.deleteContact(id: id)
     isAllCollapsed = viewModel.regularContacts.isEmpty
   }
-
+  
   private func toggleFavorite(id: Contact.ID) {
     guard let isFavorite = viewModel.toggleFavorite(id: id) else {
       return
     }
-
+    
     toast = Toast(
       message: isFavorite
-        ? "즐겨찾기에 추가되었습니다"
-        : "즐겨찾기 해제되었습니다",
+      ? "즐겨찾기에 추가되었습니다"
+      : "즐겨찾기 해제되었습니다",
       style: .success,
       icon: isFavorite ? "star.fill" : "star.slash.fill",
       action: Toast.Action(title: "되돌리기") {

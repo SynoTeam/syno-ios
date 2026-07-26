@@ -58,7 +58,7 @@ struct ContactsSectionView: View {
                     systemImage: contact.isFavorite ? "star.slash" : "star"
                   )
                 }
-
+                
                 Button(role: .destructive) {
                   onDelete(contact.id)
                 } label: {
@@ -83,11 +83,11 @@ struct ContactsSectionView: View {
     } label: {
       HStack(spacing: 8) {
         Text(title)
-          .typeStyle(.headline)
+          .typeStyle(.calloutEmphasized)
           .foregroundStyle(.gray500)
         
         Text("\(count)")
-          .typeStyle(.caption1)
+          .typeStyle(.footnoteEmphasized)
           .foregroundStyle(.violet500)
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
@@ -110,14 +110,14 @@ struct ContactsSectionView: View {
 
 private struct FavoriteSwipeRow<Content: View>: View {
   private let actionWidth: CGFloat = 40
-
+  
   let isFavorite: Bool
   let onToggleFavorite: () -> Void
   private let label: () -> Content
-
+  
   @State private var restingOffset: CGFloat = 0
   @GestureState private var dragOffset: CGFloat = 0
-
+  
   init(
     isFavorite: Bool,
     onToggleFavorite: @escaping () -> Void,
@@ -127,11 +127,11 @@ private struct FavoriteSwipeRow<Content: View>: View {
     self.onToggleFavorite = onToggleFavorite
     self.label = label
   }
-
+  
   var body: some View {
     ZStack(alignment: .leading) {
       favoriteButton
-
+      
       label()
         .contentShape(Rectangle())
         .offset(x: displayedOffset)
@@ -146,7 +146,7 @@ private struct FavoriteSwipeRow<Content: View>: View {
       onToggleFavorite()
     }
   }
-
+  
   private var favoriteButton: some View {
     Button {
       withAnimation {
@@ -163,11 +163,11 @@ private struct FavoriteSwipeRow<Content: View>: View {
     }
     .buttonStyle(.plain)
   }
-
+  
   private var displayedOffset: CGFloat {
     max(0, min(actionWidth, restingOffset + dragOffset))
   }
-
+  
   private var swipeGesture: some Gesture {
     DragGesture(minimumDistance: 12)
       .updating($dragOffset) { value, state, _ in
@@ -180,12 +180,12 @@ private struct FavoriteSwipeRow<Content: View>: View {
         guard abs(value.translation.width) > abs(value.translation.height) else {
           return
         }
-
+        
         let proposedOffset = restingOffset + value.predictedEndTranslation.width
         withAnimation {
           restingOffset = proposedOffset > actionWidth / 2
-            ? actionWidth
-            : 0
+          ? actionWidth
+          : 0
         }
       }
   }

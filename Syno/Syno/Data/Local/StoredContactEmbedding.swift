@@ -3,10 +3,10 @@ import SwiftData
 
 @Model
 final class StoredContactEmbedding {
-  @Attribute(.unique) var contactId: UUID
-  var contentFingerprint: String
-  var vectorData: Data
-  var updatedAt: Date
+  var contactId: UUID = UUID()
+  var contentFingerprint: String = ""
+  var vectorData: Data = Data()
+  var updatedAt: Date = Date()
 
   init(contactId: UUID, contentFingerprint: String, vectorData: Data, updatedAt: Date) {
     self.contactId = contactId

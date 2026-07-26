@@ -42,6 +42,34 @@ final class SwiftDataNoteRepositoryTests: XCTestCase {
   }
 
   @MainActor
+  func testSaveUpdatesExistingNoteWithoutCreatingDuplicate() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+    let noteId = UUID()
+
+    try repository.save(
+      Note(
+        id: noteId,
+        contactName: "연락처",
+        content: "수정 전"
+      )
+    )
+    try repository.save(
+      Note(
+        id: noteId,
+        contactName: "연락처",
+        content: "수정 후"
+      )
+    )
+
+    let storedNotes = try container.mainContext.fetch(
+      FetchDescriptor<StoredNote>()
+    )
+    XCTAssertEqual(storedNotes.count, 1)
+    XCTAssertEqual(storedNotes.first?.content, "수정 후")
+  }
+
+  @MainActor
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(
       for: StoredNote.self,

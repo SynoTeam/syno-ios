@@ -12,16 +12,16 @@ import SwiftData
 @Model
 final class UserProfile {
   /// 사용자 프로필의 고유 식별자입니다.
-  var id: UUID
+  var id: UUID = UUID()
 
   /// 사용자의 성입니다.
-  var familyName: String
+  var familyName: String = ""
 
   /// 사용자의 이름입니다.
-  var givenName: String
+  var givenName: String = ""
 
   /// 프로필이 생성된 시각입니다.
-  var createdAt: Date
+  var createdAt: Date = Date()
 
   init(
     id: UUID = UUID(),

@@ -20,6 +20,7 @@ final class SearchViewModel {
   @ObservationIgnored private let searchIndex: any SearchIndexing
   @ObservationIgnored private let noteImageAnalysisRepository:
     any NoteImageAnalysisRepository
+  @ObservationIgnored private let labelTranslator: any LabelTranslating
   @ObservationIgnored private let userDefaults: UserDefaults
   @ObservationIgnored private var searchTask: Task<Void, Never>?
 
@@ -30,11 +31,13 @@ final class SearchViewModel {
     modelContext: ModelContext,
     searchIndex: any SearchIndexing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating,
     userDefaults: UserDefaults = .standard
   ) {
     self.modelContext = modelContext
     self.searchIndex = searchIndex
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.labelTranslator = labelTranslator
     self.userDefaults = userDefaults
     recentSearches = userDefaults.stringArray(forKey: Self.recentSearchesKey) ?? []
   }
@@ -248,7 +251,9 @@ final class SearchViewModel {
   ) -> String {
     var components = [note.contactName, note.content]
     if note.imageData != nil, let analysis {
-      components.append(contentsOf: analysis.labels)
+      components.append(
+        contentsOf: labelTranslator.searchTerms(for: analysis.labels)
+      )
       components.append(analysis.ocrText)
     }
     return components
@@ -274,7 +279,11 @@ final class SearchViewModel {
     guard note.imageData != nil, let analysis else {
       return note.content
     }
-    return ([note.content] + analysis.labels + [analysis.ocrText])
+    return (
+      [note.content]
+        + labelTranslator.searchTerms(for: analysis.labels)
+        + [analysis.ocrText]
+    )
       .filter { !$0.isEmpty }
       .joined(separator: "\n")
   }

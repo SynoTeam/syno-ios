@@ -18,6 +18,7 @@ struct SynoApp: App {
   private let searchIndexBackfillService: SearchIndexBackfillService
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  private let labelTranslator: any LabelTranslating
 
   init() {
     do {
@@ -43,10 +44,13 @@ struct SynoApp: App {
         modelContainer: container
       )
       noteImageAnalysisRepository = imageAnalysisRepository
+      let staticLabelDictionary = StaticLabelDictionary()
+      labelTranslator = staticLabelDictionary
       searchIndexBackfillService = SearchIndexBackfillService(
         modelContext: container.mainContext,
         searchIndex: index,
-        noteImageAnalysisRepository: imageAnalysisRepository
+        noteImageAnalysisRepository: imageAnalysisRepository,
+        labelTranslator: staticLabelDictionary
       )
       contactRepository = SwiftDataContactRepository(
         modelContext: container.mainContext,
@@ -70,7 +74,8 @@ struct SynoApp: App {
         userProfileRepository: userProfileRepository,
         searchIndex: searchIndex,
         noteImageAnalyzer: noteImageAnalyzer,
-        noteImageAnalysisRepository: noteImageAnalysisRepository
+        noteImageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator
       )
       .task {
         await searchIndexBackfillService.start()

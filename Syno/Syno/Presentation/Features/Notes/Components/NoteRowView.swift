@@ -47,6 +47,14 @@ struct NoteRowView: View {
   private var profileImage: some View {
     Group {
       if
+        let imageData = note.imageData,
+        let uiImage = UIImage(data: imageData)
+      {
+        Image(uiImage: uiImage)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .frame(width: 44, height: 44)
+      } else if
         let profileImageData = note.profileImageData,
         let uiImage = UIImage(data: profileImageData)
       {

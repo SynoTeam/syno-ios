@@ -17,6 +17,7 @@ struct MainTabView: View {
   private let searchIndex: any SearchIndexing
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  private let labelTranslator: any LabelTranslating
 
   init(
     userProfile: UserProfile? = nil,
@@ -24,7 +25,8 @@ struct MainTabView: View {
     noteRepository: any NoteRepository,
     searchIndex: any SearchIndexing,
     noteImageAnalyzer: any NoteImageAnalyzing,
-    noteImageAnalysisRepository: any NoteImageAnalysisRepository
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    labelTranslator: any LabelTranslating
   ) {
     self.userProfile = userProfile
     self.contactRepository = contactRepository
@@ -32,6 +34,7 @@ struct MainTabView: View {
     self.searchIndex = searchIndex
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.labelTranslator = labelTranslator
   }
   
   var body: some View {
@@ -43,7 +46,8 @@ struct MainTabView: View {
             contactRepository: contactRepository,
             noteRepository: noteRepository,
             noteImageAnalyzer: noteImageAnalyzer,
-            noteImageAnalysisRepository: noteImageAnalysisRepository
+            noteImageAnalysisRepository: noteImageAnalysisRepository,
+            labelTranslator: labelTranslator
           )
         }
       }
@@ -53,7 +57,8 @@ struct MainTabView: View {
           NotesView(
             noteRepository: noteRepository,
             noteImageAnalyzer: noteImageAnalyzer,
-            noteImageAnalysisRepository: noteImageAnalysisRepository
+            noteImageAnalysisRepository: noteImageAnalysisRepository,
+            labelTranslator: labelTranslator
           )
         }
       }
@@ -65,7 +70,8 @@ struct MainTabView: View {
             noteRepository: noteRepository,
             searchIndex: searchIndex,
             noteImageAnalyzer: noteImageAnalyzer,
-            noteImageAnalysisRepository: noteImageAnalysisRepository
+            noteImageAnalysisRepository: noteImageAnalysisRepository,
+            labelTranslator: labelTranslator
           )
         }
       }
@@ -108,6 +114,7 @@ private enum AppTab: Hashable {
     noteRepository: PreviewRepositories.note,
     searchIndex: PreviewRepositories.searchIndex,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis
+    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    labelTranslator: PreviewRepositories.labelTranslator
   )
 }

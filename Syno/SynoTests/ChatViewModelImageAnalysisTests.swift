@@ -11,7 +11,8 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
       contact: Contact(name: "홍길동", role: "", company: ""),
       repository: noteRepository,
       imageAnalyzer: FailingImageAnalyzer(),
-      imageAnalysisRepository: analysisRepository
+      imageAnalysisRepository: analysisRepository,
+      labelTranslator: StaticLabelDictionary(translations: [:])
     )
     let imageData = try XCTUnwrap(
       UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8))
@@ -56,12 +57,17 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
       contact: contact,
       repository: noteRepository,
       imageAnalyzer: FailingImageAnalyzer(),
-      imageAnalysisRepository: analysisRepository
+      imageAnalysisRepository: analysisRepository,
+      labelTranslator: StaticLabelDictionary(
+        translations: ["cat": "고양이"]
+      )
     )
 
     await viewModel.loadMessages()
     viewModel.messageSearchText = "cat"
 
+    XCTAssertEqual(viewModel.messageSearchResults.map(\.id), [note.id])
+    viewModel.messageSearchText = "고양이"
     XCTAssertEqual(viewModel.messageSearchResults.map(\.id), [note.id])
     viewModel.messageSearchText = "invoice"
     XCTAssertEqual(viewModel.messageSearchResults.map(\.id), [note.id])

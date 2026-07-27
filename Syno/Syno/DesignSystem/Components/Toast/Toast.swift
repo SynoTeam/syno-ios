@@ -79,11 +79,10 @@ struct ToastView: View {
     }
     .padding(.leading, 18)
     .padding(.vertical, 14)
-    .background(toast.style.backgroundColor)
     .frame(height: 48)
-    .clipShape(RoundedRectangle(cornerRadius: 999, style: .continuous))
+    .glassEffect(.regular.tint(toast.style.backgroundColor), in: .capsule)
     .overlay {
-      RoundedRectangle(cornerRadius: 999, style: .continuous)
+      Capsule()
         .stroke(toast.style.accentColor.opacity(0.16), lineWidth: 1)
     }
     .shadow(color: .black.opacity(0.12), radius: 12, y: 4)

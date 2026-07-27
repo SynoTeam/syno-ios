@@ -11,12 +11,14 @@ struct ContactsView: View {
   @State private var viewModel: ContactsViewModel
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
-
+  @State private var toast: Toast?
+  @State private var contactPendingDeletion: Contact?
+  
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   private let labelTranslator: any LabelTranslating
-
+  
   init(
     userProfile: UserProfile? = nil,
     contactRepository: any ContactRepository,
@@ -57,8 +59,7 @@ struct ContactsView: View {
           } label: {
             ContactsRowView(
               name: myContact.name,
-              role: "My Profile",
-              company: myContact.company,
+              group: "My Profile",
               profileImageData: myContact.profileImageData,
               style: .me
             )
@@ -77,10 +78,10 @@ struct ContactsView: View {
             labelTranslator: labelTranslator,
             isCollapsed: $isFavoriteCollapsed,
             onToggleFavorite: toggleFavorite,
-            onDelete: deleteContact
+            onDelete: requestDelete
           )
         }
-
+        
         ContactsSectionView(
           title: "All",
           count: viewModel.regularContactCount,
@@ -91,9 +92,9 @@ struct ContactsView: View {
           labelTranslator: labelTranslator,
           isCollapsed: $isAllCollapsed,
           onToggleFavorite: toggleFavorite,
-          onDelete: deleteContact
+          onDelete: requestDelete
         )
-
+        
         if viewModel.regularContacts.isEmpty {
           emptyState
         }
@@ -103,12 +104,28 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
-    .onAppear(perform: viewModel.loadContacts)
-    .alert("오류", isPresented: persistenceErrorBinding) {
-      Button("확인", action: viewModel.clearPersistenceError)
-    } message: {
-      Text(viewModel.persistenceError ?? "")
+    .navigationDestination(item: $contactPendingDeletion) { contact in
+      ContactsDeleteView(
+        viewModel: viewModel,
+        initiallySelectedContactID: contact.id,
+        onDeleted: handleDeletedContacts
+      )
     }
+    .onAppear {
+      viewModel.loadContacts()
+      isAllCollapsed = viewModel.regularContacts.isEmpty
+    }
+    .onChange(of: viewModel.persistenceError) { _, errorMessage in
+      guard let errorMessage else {
+        return
+      }
+      toast = Toast(
+        message: errorMessage,
+        style: .failure
+      )
+      viewModel.clearPersistenceError()
+    }
+    .toast(item: $toast)
   }
   
   private var header: some View {
@@ -135,7 +152,7 @@ struct ContactsView: View {
       .accessibilityLabel("Add Contact")
     }
   }
-
+  
   private var emptyState: some View {
     VStack(spacing: 28) {
       Image(.logo)
@@ -143,7 +160,7 @@ struct ContactsView: View {
         .aspectRatio(contentMode: .fit)
         .frame(width: 148, height: 148)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-
+      
       Text("환영합니다!\n연락처를 추가해보세요.")
         .typeStyle(.headline)
         .foregroundStyle(.gray500)
@@ -152,23 +169,37 @@ struct ContactsView: View {
     .frame(maxWidth: .infinity)
     .padding(.top, 116)
   }
+  
+  private func requestDelete(contact: Contact) {
+    contactPendingDeletion = contact
+  }
 
-  private func deleteContact(id: Contact.ID) {
-    viewModel.deleteContact(id: id)
+  private func handleDeletedContacts(_ count: Int) {
+    contactPendingDeletion = nil
     isAllCollapsed = viewModel.regularContacts.isEmpty
+    toast = Toast(
+      message: "연락처 \(count)건이 삭제되었습니다.",
+      style: .success,
+      icon: "trash.fill"
+    )
   }
-
+  
   private func toggleFavorite(id: Contact.ID) {
-    viewModel.toggleFavorite(id: id)
-  }
-
-  private var persistenceErrorBinding: Binding<Bool> {
-    Binding(
-      get: { viewModel.persistenceError != nil },
-      set: { isPresented in
-        if !isPresented {
-          viewModel.clearPersistenceError()
-        }
+    guard let isFavorite = viewModel.toggleFavorite(id: id) else {
+      return
+    }
+    
+    toast = Toast(
+      message: isFavorite
+      ? "즐겨찾기에 추가되었습니다"
+      : "즐겨찾기 해제되었습니다",
+      style: .success,
+      icon: isFavorite ? "star.fill" : "star.slash.fill",
+      action: Toast.Action(title: "되돌리기") {
+        viewModel.setFavorite(
+          id: id,
+          isFavorite: !isFavorite
+        )
       }
     )
   }

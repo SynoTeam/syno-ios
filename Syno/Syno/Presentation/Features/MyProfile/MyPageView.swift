@@ -76,11 +76,11 @@ struct MyPageView: View {
 
       VStack(spacing: 8) {
         Text(displayName)
-          .typeStyle(.title1)
+          .typeStyle(.callout)
           .foregroundStyle(.gray950)
 
         Text(subtitle)
-          .typeStyle(.headline)
+          .typeStyle(.footnote)
           .foregroundStyle(.gray500)
           .multilineTextAlignment(.center)
           .lineLimit(2)

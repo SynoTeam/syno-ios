@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Contact: Identifiable, Equatable {
+struct Contact: Identifiable, Equatable, Hashable {
   let id: UUID
   var name: String
   var role: String

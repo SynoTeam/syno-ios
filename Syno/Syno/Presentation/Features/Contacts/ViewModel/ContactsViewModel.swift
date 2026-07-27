@@ -71,24 +71,65 @@ final class ContactsViewModel {
     }
   }
   
-  func deleteContact(id: Contact.ID) {
-    do {
-      try repository.delete(id: id)
-      contacts.removeAll { $0.id == id && !$0.isMe }
-      persistenceError = nil
-    } catch {
-      handle(error)
+  @discardableResult
+  func deleteContact(id: Contact.ID) -> Bool {
+    deleteContacts(ids: [id]) != nil
+  }
+
+  /// 선택한 연락처를 순서대로 삭제합니다. 일부 삭제 후 저장소 오류가 발생하면
+  /// 이미 삭제된 연락처만 목록에서 제거하고 실패를 호출자에게 알립니다.
+  @discardableResult
+  func deleteContacts(ids: Set<Contact.ID>) -> Int? {
+    let targetIDs = contacts
+      .filter { ids.contains($0.id) && !$0.isMe }
+      .map(\.id)
+
+    guard !targetIDs.isEmpty else {
+      return nil
     }
+
+    var deletedIDs = Set<Contact.ID>()
+
+    for id in targetIDs {
+      do {
+        try repository.delete(id: id)
+        deletedIDs.insert(id)
+      } catch {
+        contacts.removeAll { deletedIDs.contains($0.id) }
+        handleDelete(error)
+        return nil
+      }
+    }
+
+    contacts.removeAll { deletedIDs.contains($0.id) }
+    persistenceError = nil
+    return deletedIDs.count
   }
   
-  func toggleFavorite(id: Contact.ID) {
+  @discardableResult
+  func toggleFavorite(id: Contact.ID) -> Bool? {
     guard let index = contacts.firstIndex(where: { $0.id == id && !$0.isMe }) else {
-      return
+      return nil
+    }
+
+    let isFavorite = !contacts[index].isFavorite
+    return setFavorite(id: id, isFavorite: isFavorite) ? isFavorite : nil
+  }
+
+  @discardableResult
+  func setFavorite(id: Contact.ID, isFavorite: Bool) -> Bool {
+    guard let index = contacts.firstIndex(where: { $0.id == id && !$0.isMe }) else {
+      return false
+    }
+
+    guard contacts[index].isFavorite != isFavorite else {
+      persistenceError = nil
+      return true
     }
 
     var updatedContact = contacts[index]
-    updatedContact.isFavorite.toggle()
-    persist(updatedContact) {
+    updatedContact.isFavorite = isFavorite
+    return persist(updatedContact) {
       contacts[index] = updatedContact
     }
   }
@@ -97,13 +138,16 @@ final class ContactsViewModel {
     persistenceError = nil
   }
 
-  private func persist(_ contact: Contact, updateLocalState: () -> Void) {
+  @discardableResult
+  private func persist(_ contact: Contact, updateLocalState: () -> Void) -> Bool {
     do {
       try repository.save(contact)
       updateLocalState()
       persistenceError = nil
+      return true
     } catch {
       handle(error)
+      return false
     }
   }
 
@@ -117,6 +161,10 @@ final class ContactsViewModel {
 
   private func handle(_ error: Error) {
     persistenceError = "연락처를 저장하지 못했습니다. 다시 시도해주세요."
+  }
+
+  private func handleDelete(_ error: Error) {
+    persistenceError = "연락처를 삭제하지 못했습니다. 다시 시도해주세요."
   }
 }
 

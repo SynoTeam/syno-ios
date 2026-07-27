@@ -10,21 +10,18 @@ import UIKit
 
 struct ContactsRowView: View {
   let name: String
-  let role: String
-  let company: String
+  let group: String
   let profileImageData: Data?
   let style: Style
 
   init(
     name: String = "Sample User",
-    role: String = "Product Designer",
-    company: String = "@syno",
+    group: String = "Design Team",
     profileImageData: Data? = nil,
     style: Style = .contact
   ) {
     self.name = name
-    self.role = role
-    self.company = company
+    self.group = group
     self.profileImageData = profileImageData
     self.style = style
   }
@@ -64,20 +61,17 @@ struct ContactsRowView: View {
   private var infoText: some View {
     VStack(alignment: .leading, spacing: 0) {
       Text(name)
-        .typeStyle(.headline)
+        .typeStyle(.callout)
         .foregroundStyle(style.nameColor)
-      HStack(spacing: 6) {
-        if !role.isEmpty {
-          Text(role)
-            .typeStyle(.footnote)
-            .foregroundStyle(style.metaColor)
-        }
+        .lineLimit(1)
+        .truncationMode(.tail)
 
-        if !company.isEmpty {
-          Text(company)
-            .typeStyle(.footnote)
-            .foregroundStyle(style.metaColor)
-        }
+      if !group.isEmpty {
+        Text(group)
+          .typeStyle(.footnote)
+          .foregroundStyle(style.metaColor)
+          .lineLimit(1)
+          .truncationMode(.tail)
       }
     }
   }
@@ -86,19 +80,19 @@ struct ContactsRowView: View {
     case me
     case contact
 
-    var backgroundColor: Color {
+    var backgroundColor: AnyShapeStyle {
       switch self {
       case .me:
-          .gray800
+        AnyShapeStyle(LinearGradient.gradient02)
       case .contact:
-          .white
+        AnyShapeStyle(Color.white)
       }
     }
 
     var nameColor: Color {
       switch self {
       case .me:
-          .gray25
+          .gray950
       case .contact:
           .gray950
       }
@@ -107,7 +101,7 @@ struct ContactsRowView: View {
     var metaColor: Color {
       switch self {
       case .me:
-          .gray300
+          .gray500
       case .contact:
           .gray400
       }
@@ -116,7 +110,7 @@ struct ContactsRowView: View {
     var cornerRadius: CGFloat {
       switch self {
       case .me:
-        24
+        20
       case .contact:
         0
       }

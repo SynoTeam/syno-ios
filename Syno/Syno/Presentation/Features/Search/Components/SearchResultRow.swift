@@ -13,8 +13,7 @@ struct SearchResultRow: View {
     case .contact(let contact, _):
       ContactsRowView(
         name: contact.name,
-        role: contact.role,
-        company: contact.company,
+        group: contact.group,
         profileImageData: contact.profileImageData
       )
       .padding(12)

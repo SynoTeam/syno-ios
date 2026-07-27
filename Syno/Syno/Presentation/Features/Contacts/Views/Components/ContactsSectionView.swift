@@ -43,8 +43,7 @@ struct ContactsSectionView: View {
               } label: {
                 ContactsRowView(
                   name: contact.name,
-                  role: contact.role,
-                  company: contact.company,
+                  group: contact.group,
                   profileImageData: contact.profileImageData
                 )
               }

@@ -58,8 +58,7 @@ struct ContactsView: View {
           } label: {
             ContactsRowView(
               name: myContact.name,
-              role: "My Profile",
-              company: myContact.company,
+              group: "My Profile",
               profileImageData: myContact.profileImageData,
               style: .me
             )
@@ -104,7 +103,10 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
-    .onAppear(perform: viewModel.loadContacts)
+    .onAppear {
+      viewModel.loadContacts()
+      isAllCollapsed = viewModel.regularContacts.isEmpty
+    }
     .onChange(of: viewModel.persistenceError) { _, errorMessage in
       guard let errorMessage else {
         return

@@ -1,23 +1,21 @@
 import SwiftUI
 
 extension LinearGradient {
-  /// #633EFF → #D084FF
   static let gradient01 = LinearGradient(
     colors: [
-      Color(red: 0x63 / 255, green: 0x3E / 255, blue: 0xFF / 255),
-      Color(red: 0xD0 / 255, green: 0x84 / 255, blue: 0xFF / 255)
+      Color.gradient01,
+      Color.gradient03
     ],
-    startPoint: .topLeading,
-    endPoint: .bottomTrailing
+    startPoint: .leading,
+    endPoint: .trailing
   )
 
-  /// #8BA0FF → #D084FF
   static let gradient02 = LinearGradient(
     colors: [
-      Color(red: 0x8B / 255, green: 0xA0 / 255, blue: 0xFF / 255),
-      Color(red: 0xD0 / 255, green: 0x84 / 255, blue: 0xFF / 255)
+      Color.gradient02,
+      Color.gradient03
     ],
-    startPoint: .topLeading,
-    endPoint: .bottomTrailing
+    startPoint: .leading,
+    endPoint: .trailing
   )
 }

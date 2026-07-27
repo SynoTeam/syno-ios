@@ -12,6 +12,7 @@ struct ContactsView: View {
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
   @State private var toast: Toast?
+  @State private var contactPendingDeletion: Contact?
   
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
@@ -77,7 +78,7 @@ struct ContactsView: View {
             labelTranslator: labelTranslator,
             isCollapsed: $isFavoriteCollapsed,
             onToggleFavorite: toggleFavorite,
-            onDelete: deleteContact
+            onDelete: requestDelete
           )
         }
         
@@ -91,7 +92,7 @@ struct ContactsView: View {
           labelTranslator: labelTranslator,
           isCollapsed: $isAllCollapsed,
           onToggleFavorite: toggleFavorite,
-          onDelete: deleteContact
+          onDelete: requestDelete
         )
         
         if viewModel.regularContacts.isEmpty {
@@ -103,6 +104,13 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
+    .navigationDestination(item: $contactPendingDeletion) { contact in
+      ContactsDeleteView(
+        viewModel: viewModel,
+        initiallySelectedContactID: contact.id,
+        onDeleted: handleDeletedContacts
+      )
+    }
     .onAppear {
       viewModel.loadContacts()
       isAllCollapsed = viewModel.regularContacts.isEmpty
@@ -162,9 +170,18 @@ struct ContactsView: View {
     .padding(.top, 116)
   }
   
-  private func deleteContact(id: Contact.ID) {
-    viewModel.deleteContact(id: id)
+  private func requestDelete(contact: Contact) {
+    contactPendingDeletion = contact
+  }
+
+  private func handleDeletedContacts(_ count: Int) {
+    contactPendingDeletion = nil
     isAllCollapsed = viewModel.regularContacts.isEmpty
+    toast = Toast(
+      message: "연락처 \(count)건이 삭제되었습니다.",
+      style: .success,
+      icon: "trash.fill"
+    )
   }
   
   private func toggleFavorite(id: Contact.ID) {

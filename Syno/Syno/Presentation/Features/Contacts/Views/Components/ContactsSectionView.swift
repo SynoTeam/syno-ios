@@ -17,7 +17,7 @@ struct ContactsSectionView: View {
   let labelTranslator: any LabelTranslating
   @Binding var isCollapsed: Bool
   let onToggleFavorite: (Contact.ID) -> Void
-  let onDelete: (Contact.ID) -> Void
+  let onDelete: (Contact) -> Void
   
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -30,6 +30,9 @@ struct ContactsSectionView: View {
               isFavorite: contact.isFavorite,
               onToggleFavorite: {
                 onToggleFavorite(contact.id)
+              },
+              onDelete: {
+                onDelete(contact)
               }
             ) {
               NavigationLink {
@@ -59,9 +62,9 @@ struct ContactsSectionView: View {
                 }
                 
                 Button(role: .destructive) {
-                  onDelete(contact.id)
+                  onDelete(contact)
                 } label: {
-                  Label("Delete", systemImage: "trash")
+                  Label("연락처 삭제", systemImage: "trash")
                 }
               }
             }
@@ -112,6 +115,7 @@ private struct FavoriteSwipeRow<Content: View>: View {
   
   let isFavorite: Bool
   let onToggleFavorite: () -> Void
+  let onDelete: () -> Void
   private let label: () -> Content
   
   @State private var restingOffset: CGFloat = 0
@@ -120,16 +124,22 @@ private struct FavoriteSwipeRow<Content: View>: View {
   init(
     isFavorite: Bool,
     onToggleFavorite: @escaping () -> Void,
+    onDelete: @escaping () -> Void,
     @ViewBuilder label: @escaping () -> Content
   ) {
     self.isFavorite = isFavorite
     self.onToggleFavorite = onToggleFavorite
+    self.onDelete = onDelete
     self.label = label
   }
   
   var body: some View {
-    ZStack(alignment: .leading) {
-      favoriteButton
+    ZStack {
+      HStack {
+        favoriteButton
+        Spacer()
+        deleteButton
+      }
       
       label()
         .contentShape(Rectangle())
@@ -162,9 +172,27 @@ private struct FavoriteSwipeRow<Content: View>: View {
     }
     .buttonStyle(.plain)
   }
+
+  private var deleteButton: some View {
+    Button {
+      withAnimation {
+        restingOffset = 0
+      }
+      onDelete()
+    } label: {
+      Image(systemName: "trash.fill")
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(.errorRed)
+        .frame(width: actionWidth, height: actionWidth)
+        .background(.errorRed.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("연락처 삭제")
+  }
   
   private var displayedOffset: CGFloat {
-    max(0, min(actionWidth, restingOffset + dragOffset))
+    max(-actionWidth, min(actionWidth, restingOffset + dragOffset))
   }
   
   private var swipeGesture: some Gesture {
@@ -182,9 +210,13 @@ private struct FavoriteSwipeRow<Content: View>: View {
         
         let proposedOffset = restingOffset + value.predictedEndTranslation.width
         withAnimation {
-          restingOffset = proposedOffset > actionWidth / 2
-          ? actionWidth
-          : 0
+          if proposedOffset > actionWidth / 2 {
+            restingOffset = actionWidth
+          } else if proposedOffset < -actionWidth / 2 {
+            restingOffset = -actionWidth
+          } else {
+            restingOffset = 0
+          }
         }
       }
   }

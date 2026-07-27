@@ -72,11 +72,43 @@ final class SwiftDataContactRepository: ContactRepository {
         predicate: #Predicate { $0.id == id }
       )
       if let storedContact = try modelContext.fetch(descriptor).first {
+        let noteDescriptor = FetchDescriptor<StoredNote>(
+          predicate: #Predicate { $0.contactId == id }
+        )
+        let storedNotes = try modelContext.fetch(noteDescriptor)
+        let noteIDs = Set(storedNotes.map(\.id))
+
+        let noteAnalyses = try modelContext.fetch(
+          FetchDescriptor<StoredNoteImageAnalysis>()
+        )
+        let noteEmbeddings = try modelContext.fetch(
+          FetchDescriptor<StoredNoteEmbedding>()
+        )
+        let contactEmbeddings = try modelContext.fetch(
+          FetchDescriptor<StoredContactEmbedding>()
+        )
+
+        for note in storedNotes {
+          modelContext.delete(note)
+        }
+        for analysis in noteAnalyses where noteIDs.contains(analysis.noteId) {
+          modelContext.delete(analysis)
+        }
+        for embedding in noteEmbeddings where noteIDs.contains(embedding.noteId) {
+          modelContext.delete(embedding)
+        }
+        for embedding in contactEmbeddings where embedding.contactId == id {
+          modelContext.delete(embedding)
+        }
         modelContext.delete(storedContact)
         try modelContext.save()
         if let searchIndex {
           let key = SearchDocumentKey(kind: .contact, sourceId: id)
           Task { await searchIndex.remove(key) }
+          for noteID in noteIDs {
+            let key = SearchDocumentKey(kind: .note, sourceId: noteID)
+            Task { await searchIndex.remove(key) }
+          }
         }
       }
     } catch {

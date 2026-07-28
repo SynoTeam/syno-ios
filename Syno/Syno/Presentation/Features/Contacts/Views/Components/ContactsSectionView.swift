@@ -11,10 +11,7 @@ struct ContactsSectionView: View {
   let title: String
   let count: Int
   let contacts: [Contact]
-  let noteRepository: any NoteRepository
-  let noteImageAnalyzer: any NoteImageAnalyzing
-  let noteImageAnalysisRepository: any NoteImageAnalysisRepository
-  let labelTranslator: any LabelTranslating
+  let onSelectContact: (Contact) -> Void
   @Binding var isCollapsed: Bool
   let onToggleFavorite: (Contact.ID) -> Void
   let onDelete: (Contact) -> Void
@@ -35,14 +32,8 @@ struct ContactsSectionView: View {
                 onDelete(contact)
               }
             ) {
-              NavigationLink {
-                ContactDetailView(
-                  contact: contact,
-                  noteRepository: noteRepository,
-                  noteImageAnalyzer: noteImageAnalyzer,
-                  noteImageAnalysisRepository: noteImageAnalysisRepository,
-                  labelTranslator: labelTranslator
-                )
+              Button {
+                onSelectContact(contact)
               } label: {
                 ContactsRowView(
                   name: contact.name,
@@ -230,10 +221,7 @@ private struct FavoriteSwipeRow<Content: View>: View {
       Contact(name: "Sample User", role: "Product Designer", company: "@syno"),
       Contact(name: "Demo Contact", role: "iOS Developer", company: "@syno")
     ],
-    noteRepository: PreviewRepositories.note,
-    noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
-    noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
-    labelTranslator: PreviewRepositories.labelTranslator,
+    onSelectContact: { _ in },
     isCollapsed: .constant(false),
     onToggleFavorite: { _ in },
     onDelete: { _ in }

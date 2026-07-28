@@ -33,6 +33,8 @@ final class AddContactViewModel {
     CountryCodeOption(code: "+66", countryName: "태국"),
     CountryCodeOption(code: "+852", countryName: "홍콩")
   ]
+
+  private let originalContact: Contact?
   
   var familyName = ""
   var givenName = ""
@@ -40,6 +42,10 @@ final class AddContactViewModel {
   var countryCode = "+82"
   var phone = ""
   var url = ""
+  var address = ""
+  var birthday: Date?
+  var anniversary: Date?
+  var socialLinks: [ContactSocialLink] = []
   var group = ""
   var selectedImageData: Data?
   var note = "" {
@@ -48,6 +54,34 @@ final class AddContactViewModel {
         note = String(note.prefix(Self.noteLimit))
       }
     }
+  }
+
+  init(contact: Contact? = nil) {
+    originalContact = contact
+
+    guard let contact else {
+      return
+    }
+
+    let nameParts = Self.splitName(contact.name)
+    familyName = nameParts.familyName
+    givenName = nameParts.givenName
+    email = contact.email
+    url = contact.url
+    address = contact.address
+    birthday = contact.birthday
+    anniversary = contact.anniversary
+    socialLinks = contact.socialLinks
+    group = contact.group
+    selectedImageData = contact.profileImageData
+    note = contact.note
+
+    let phoneParts = ContactPhoneNumberFormatter.split(
+      contact.phone,
+      countryCodeOptions: Self.countryCodeOptions
+    )
+    countryCode = phoneParts.countryCode
+    phone = phoneParts.phone
   }
   
   /// 성 또는 이름 중 하나 이상 입력됐을 때 저장할 수 있는지 여부입니다.
@@ -92,19 +126,44 @@ final class AddContactViewModel {
   /// 현재 폼 상태를 저장 가능한 `Contact` 엔티티로 변환합니다.
   func makeContact() -> Contact {
     Contact(
+      id: originalContact?.id ?? UUID(),
       name: contactName,
-      role: trimmed(email),
-      company: "",
+      role: originalContact?.role ?? trimmed(email),
+      company: originalContact?.company ?? "",
       email: trimmed(email),
       phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
       url: trimmed(url),
+      address: trimmed(address),
+      birthday: birthday,
+      anniversary: anniversary,
+      socialLinks: socialLinks,
       group: group,
       note: trimmed(note),
-      profileImageData: selectedImageData
+      profileImageData: selectedImageData,
+      isFavorite: originalContact?.isFavorite ?? false,
+      isMe: originalContact?.isMe ?? false
     )
   }
   
   private func trimmed(_ value: String) -> String {
     value.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private static func splitName(_ name: String) -> (familyName: String, givenName: String) {
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else {
+      return ("", "")
+    }
+
+    let parts = trimmedName.split(separator: " ", maxSplits: 1).map(String.init)
+    if parts.count == 2 {
+      return (parts[0], parts[1])
+    }
+
+    guard let firstCharacter = trimmedName.first, trimmedName.count > 1 else {
+      return (trimmedName, "")
+    }
+
+    return (String(firstCharacter), String(trimmedName.dropFirst()))
   }
 }

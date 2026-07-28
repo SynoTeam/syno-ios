@@ -32,6 +32,18 @@ final class StoredContact {
   /// 웹사이트 또는 프로필 URL 정보입니다.
   var url: String = ""
 
+  /// 연락처 주소입니다.
+  var address: String = ""
+
+  /// 생일입니다.
+  var birthday: Date?
+
+  /// 기념일입니다.
+  var anniversary: Date?
+
+  /// 소셜 플랫폼별 사용자 식별자 목록입니다.
+  var socialLinks: [ContactSocialLink] = []
+
   /// 연락처 그룹입니다.
   var group: String = ""
 
@@ -58,6 +70,10 @@ final class StoredContact {
     email: String,
     phone: String,
     url: String,
+    address: String,
+    birthday: Date?,
+    anniversary: Date?,
+    socialLinks: [ContactSocialLink],
     group: String,
     note: String,
     profileImageData: Data?,
@@ -72,6 +88,10 @@ final class StoredContact {
     self.email = email
     self.phone = phone
     self.url = url
+    self.address = address
+    self.birthday = birthday
+    self.anniversary = anniversary
+    self.socialLinks = socialLinks
     self.group = group
     self.note = note
     self.profileImageData = profileImageData
@@ -89,6 +109,10 @@ final class StoredContact {
       email: contact.email,
       phone: contact.phone,
       url: contact.url,
+      address: contact.address,
+      birthday: contact.birthday,
+      anniversary: contact.anniversary,
+      socialLinks: contact.socialLinks,
       group: contact.group,
       note: contact.note,
       profileImageData: contact.profileImageData,
@@ -109,6 +133,10 @@ extension StoredContact {
       email: email,
       phone: phone,
       url: url,
+      address: address,
+      birthday: birthday,
+      anniversary: anniversary,
+      socialLinks: socialLinks,
       group: group,
       note: note,
       profileImageData: profileImageData,
@@ -125,6 +153,10 @@ extension StoredContact {
     email = contact.email
     phone = contact.phone
     url = contact.url
+    address = contact.address
+    birthday = contact.birthday
+    anniversary = contact.anniversary
+    socialLinks = contact.socialLinks
     group = contact.group
     note = contact.note
     profileImageData = contact.profileImageData

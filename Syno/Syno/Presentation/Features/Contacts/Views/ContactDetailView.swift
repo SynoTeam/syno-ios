@@ -8,23 +8,34 @@
 import SwiftUI
 
 struct ContactDetailView: View {
+  @State private var toast: Toast?
+
   let contact: Contact
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
+  let viewModel: ContactsViewModel?
+  let existingGroups: [String]
+  let onDeleted: () -> Void
 
   var body: some View {
     VStack(spacing: 0) {
       ScrollView {
-        VStack(spacing: 28) {
+        VStack(spacing: 20) {
           profileHeader
-          infoCard
+          contactInfoCard
+          additionalInfoCard
+
+          if !contact.note.isEmpty {
+            noteCard
+          }
         }
         .padding(.horizontal, 22)
         .padding(.top, 28)
         .padding(.bottom, 40)
       }
+      .toast(item: $toast)
 
       chatButton
         .padding(.horizontal, 22)
@@ -33,61 +44,128 @@ struct ContactDetailView: View {
     .background(Color.gray50)
     .navigationTitle(contact.name)
     .navigationBarTitleDisplayMode(.inline)
+    .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        Button {} label: {
-          Image(systemName: "pencil")
+        if let viewModel {
+          NavigationLink {
+            AddContactView(
+              existingContact: contact,
+              existingGroups: existingGroups,
+              onSave: { updatedContact in
+                guard viewModel.saveMyContact(updatedContact) else {
+                  return false
+                }
+                showUpdatedToast(originalContact: contact)
+                return true
+              },
+              onDelete: { contactID in
+                viewModel.deleteContact(id: contactID)
+              },
+              onDeleted: onDeleted
+            )
+          } label: {
+            Image(systemName: "pencil")
+          }
+          .accessibilityLabel("Edit Contact")
         }
-        .accessibilityLabel("Edit Contact")
       }
     }
     .tint(.gray950)
   }
 
+  private func showUpdatedToast(originalContact: Contact) {
+    guard let viewModel else {
+      return
+    }
+
+    toast = Toast(
+      message: "연락처가 수정되었습니다",
+      style: .success,
+      action: Toast.Action(title: "되돌리기") {
+        viewModel.saveMyContact(originalContact)
+      }
+    )
+  }
+
   private var profileHeader: some View {
     VStack(spacing: 22) {
-      Image(.logo)
-        .profileImage(data: contact.profileImageData, size: 136)
+      profileImage
 
       VStack(spacing: 8) {
         Text(contact.name)
-          .typeStyle(.title1)
+          .typeStyle(.title1Emphasized)
           .foregroundStyle(.gray950)
 
         Text(subtitle)
-          .typeStyle(.headline)
-          .foregroundStyle(.gray500)
+          .typeStyle(.subheadline)
+          .foregroundStyle(.gray600)
           .multilineTextAlignment(.center)
+          .padding(.horizontal, 14)
+          .padding(.vertical, 6)
+          .background(.gray100)
+          .clipShape(Capsule())
       }
     }
   }
 
-  private var infoCard: some View {
-    VStack(alignment: .leading, spacing: 24) {
-      profileInfo(label: "이메일", value: displayValue(contact.email))
-      profileInfo(label: "연락처", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
-      profileInfo(label: "URL", value: displayValue(contact.url), lineLimit: 1)
-      profileInfo(label: "그룹", value: displayValue(contact.group))
-
-      if !contact.note.isEmpty {
-        profileInfo(label: "한 줄 기록", value: contact.note)
+  private var profileImage: some View {
+    Group {
+      if contact.profileImageData != nil {
+        Image(.logo)
+          .profileImage(data: contact.profileImageData, size: 136)
+      } else {
+        RoundedRectangle(cornerRadius: 25.6)
+          .fill(.gray100)
+          .frame(width: 96, height: 96)
       }
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(28)
-    .background(.white)
-    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var contactInfoCard: some View {
+    VStack(alignment: .leading, spacing: 24) {
+      profileInfo(label: "이메일", value: displayValue(contact.email))
+      profileInfo(label: "전화번호", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
+      profileInfo(label: "URL", value: displayValue(contact.url), lineLimit: 1)
+    }
+    .profileCard()
+  }
+
+  private var additionalInfoCard: some View {
+    VStack(alignment: .leading, spacing: 24) {
+      profileInfo(label: "주소", value: displayValue(contact.address))
+      profileInfo(label: "생일", value: formattedDate(contact.birthday))
+      profileInfo(label: "기념일", value: formattedDate(contact.anniversary))
+      socialLinksInfo
+    }
+    .profileCard()
+  }
+
+  private var noteCard: some View {
+    profileInfo(label: "한 줄 기록", value: contact.note)
+      .profileCard()
+  }
+
+  @ViewBuilder
+  private var socialLinksInfo: some View {
+    if contact.socialLinks.isEmpty {
+      profileInfo(label: "소셜 링크", value: "-")
+    } else {
+      ForEach(contact.socialLinks, id: \.self) { link in
+        profileInfo(label: link.platform, value: displayValue(link.handle), lineLimit: 1)
+      }
+    }
   }
 
   private func profileInfo(label: String, value: String, lineLimit: Int? = nil) -> some View {
     VStack(alignment: .leading, spacing: 10) {
       Text(label)
-        .typeStyle(.subheadline)
+        .typeStyle(.footnote)
         .foregroundStyle(.gray400)
 
       Text(value)
-        .typeStyle(.title3)
-        .foregroundStyle(.gray950)
+        .typeStyle(.headline)
+        .foregroundStyle(.gray800)
         .lineLimit(lineLimit)
         .truncationMode(.tail)
     }
@@ -116,20 +194,31 @@ struct ContactDetailView: View {
     value.isEmpty ? "-" : value
   }
 
+  private static let dateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy.MM.dd"
+    return formatter
+  }()
+
+  private func formattedDate(_ date: Date?) -> String {
+    guard let date else {
+      return "-"
+    }
+    return Self.dateFormatter.string(from: date)
+  }
+
   private var subtitle: String {
-    if !contact.role.isEmpty && !contact.company.isEmpty {
-      return "\(contact.role) \(contact.company)"
-    }
+    displayValue(contact.group)
+  }
+}
 
-    if !contact.role.isEmpty {
-      return contact.role
-    }
-
-    if !contact.email.isEmpty {
-      return contact.email
-    }
-
-    return "-"
+private extension View {
+  func profileCard() -> some View {
+    self
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(20)
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 16))
   }
 }
 
@@ -148,7 +237,10 @@ struct ContactDetailView: View {
       noteRepository: PreviewRepositories.note,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
-      labelTranslator: PreviewRepositories.labelTranslator
+      labelTranslator: PreviewRepositories.labelTranslator,
+      viewModel: nil,
+      existingGroups: [],
+      onDeleted: {}
     )
   }
 }

@@ -67,13 +67,15 @@ final class ContactsViewModel {
     }
   }
 
-  func saveMyContact(_ contact: Contact) {
+  @discardableResult
+  func saveMyContact(_ contact: Contact) -> Bool {
     persist(contact) {
       updateLocalContact(contact)
     }
   }
 
-  func addContact(_ contact: Contact) {
+  @discardableResult
+  func addContact(_ contact: Contact) -> Bool {
     persist(contact) {
       contacts.append(contact)
     }

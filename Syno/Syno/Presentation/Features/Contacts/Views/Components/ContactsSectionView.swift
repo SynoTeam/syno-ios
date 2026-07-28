@@ -15,6 +15,10 @@ struct ContactsSectionView: View {
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
+  let viewModel: ContactsViewModel
+  let existingGroups: [String]
+  let onContactUpdated: (Contact) -> Void
+  let onContactDeleted: () -> Void
   @Binding var isCollapsed: Bool
   let onToggleFavorite: (Contact.ID) -> Void
   let onDelete: (Contact) -> Void
@@ -41,7 +45,11 @@ struct ContactsSectionView: View {
                   noteRepository: noteRepository,
                   noteImageAnalyzer: noteImageAnalyzer,
                   noteImageAnalysisRepository: noteImageAnalysisRepository,
-                  labelTranslator: labelTranslator
+                  labelTranslator: labelTranslator,
+                  viewModel: viewModel,
+                  existingGroups: existingGroups,
+                  onUpdated: onContactUpdated,
+                  onDeleted: onContactDeleted
                 )
               } label: {
                 ContactsRowView(
@@ -234,6 +242,13 @@ private struct FavoriteSwipeRow<Content: View>: View {
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
     labelTranslator: PreviewRepositories.labelTranslator,
+    viewModel: ContactsViewModel(
+      repository: PreviewRepositories.contact,
+      myProfileId: UUID()
+    ),
+    existingGroups: [],
+    onContactUpdated: { _ in },
+    onContactDeleted: {},
     isCollapsed: .constant(false),
     onToggleFavorite: { _ in },
     onDelete: { _ in }

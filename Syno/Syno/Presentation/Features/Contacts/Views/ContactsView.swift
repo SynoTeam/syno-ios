@@ -59,7 +59,9 @@ struct ContactsView: View {
               labelTranslator: labelTranslator,
               existingGroups: viewModel.existingGroups,
               accountResetService: accountResetService,
-              onSave: viewModel.saveMyContact
+              onSave: { contact in
+                _ = viewModel.saveMyContact(contact)
+              }
             )
           } label: {
             ContactsRowView(
@@ -81,6 +83,10 @@ struct ContactsView: View {
             noteImageAnalyzer: noteImageAnalyzer,
             noteImageAnalysisRepository: noteImageAnalysisRepository,
             labelTranslator: labelTranslator,
+            viewModel: viewModel,
+            existingGroups: viewModel.existingGroups,
+            onContactUpdated: showContactUpdatedToast,
+            onContactDeleted: showContactDeletedToast,
             isCollapsed: $isFavoriteCollapsed,
             onToggleFavorite: toggleFavorite,
             onDelete: requestDelete
@@ -95,6 +101,10 @@ struct ContactsView: View {
           noteImageAnalyzer: noteImageAnalyzer,
           noteImageAnalysisRepository: noteImageAnalysisRepository,
           labelTranslator: labelTranslator,
+          viewModel: viewModel,
+          existingGroups: viewModel.existingGroups,
+          onContactUpdated: showContactUpdatedToast,
+          onContactDeleted: showContactDeletedToast,
           isCollapsed: $isAllCollapsed,
           onToggleFavorite: toggleFavorite,
           onDelete: requestDelete
@@ -143,8 +153,11 @@ struct ContactsView: View {
       
       NavigationLink {
         AddContactView(existingGroups: viewModel.existingGroups) { contact in
-          viewModel.addContact(contact)
+          guard viewModel.addContact(contact) else {
+            return false
+          }
           isAllCollapsed = false
+          return true
         }
       } label: {
         Image(systemName: "plus")
@@ -206,6 +219,25 @@ struct ContactsView: View {
           isFavorite: !isFavorite
         )
       }
+    )
+  }
+
+  private func showContactUpdatedToast(_ originalContact: Contact) {
+    toast = Toast(
+      message: "연락처가 수정되었습니다",
+      style: .success,
+      action: Toast.Action(title: "되돌리기") {
+        viewModel.saveMyContact(originalContact)
+      }
+    )
+  }
+
+  private func showContactDeletedToast() {
+    isAllCollapsed = viewModel.regularContacts.isEmpty
+    toast = Toast(
+      message: "연락처가 삭제되었습니다",
+      style: .success,
+      icon: "trash.fill"
     )
   }
 }

@@ -14,7 +14,7 @@ import SwiftUI
 struct AddContactView: View {
   @Environment(\.dismiss) private var dismiss
   @FocusState private var focusedField: AddContactField?
-  @State private var viewModel = AddContactViewModel()
+  @State private var viewModel: AddContactViewModel
   @State private var isShowingGroupSheet = false
   @State private var isShowingCountryCodeSheet = false
   @State private var isShowingDeviceContactPicker = false
@@ -22,14 +22,29 @@ struct AddContactView: View {
   /// 저장된 연락처에서 수집한 그룹 목록입니다.
   let existingGroups: [String]
 
-  let onSave: (Contact) -> Void
+  /// 편집할 기존 연락처입니다. 값이 없으면 새 연락처를 추가합니다.
+  let existingContact: Contact?
+
+  let onSave: (Contact) -> Bool
+  let onDelete: ((Contact.ID) -> Bool)?
+  let onDeleted: (() -> Void)?
+
+  @State private var confirmationAlert: DestructiveConfirmationAlert?
+  @State private var toast: Toast?
 
   init(
+    existingContact: Contact? = nil,
     existingGroups: [String] = [],
-    onSave: @escaping (Contact) -> Void
+    onSave: @escaping (Contact) -> Bool,
+    onDelete: ((Contact.ID) -> Bool)? = nil,
+    onDeleted: (() -> Void)? = nil
   ) {
+    _viewModel = State(initialValue: AddContactViewModel(contact: existingContact))
+    self.existingContact = existingContact
     self.existingGroups = existingGroups
     self.onSave = onSave
+    self.onDelete = onDelete
+    self.onDeleted = onDeleted
   }
 
   var body: some View {
@@ -38,6 +53,7 @@ struct AddContactView: View {
         AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
         importDeviceContactButton
         contactForm
+        deleteButton
       }
       .padding(.horizontal, 16)
       .padding(.top, 32)
@@ -46,7 +62,7 @@ struct AddContactView: View {
     .background(Color.gray50)
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
-    .navigationTitle("연락처 추가")
+    .navigationTitle(existingContact == nil ? "연락처 추가" : "연락처 편집")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
@@ -76,6 +92,8 @@ struct AddContactView: View {
         viewModel.applyDeviceContact(contact)
       }
     }
+    .destructiveConfirmationAlert(item: $confirmationAlert)
+    .toast(item: $toast)
   }
 
   private var importDeviceContactButton: some View {
@@ -123,6 +141,22 @@ struct AddContactView: View {
     }
   }
 
+  @ViewBuilder
+  private var deleteButton: some View {
+    if existingContact != nil, onDelete != nil {
+      Button(action: requestDeleteConfirmation) {
+        Label("연락처 삭제하기", systemImage: "trash")
+          .typeStyle(.headline)
+          .foregroundStyle(.errorRed)
+          .frame(maxWidth: .infinity, minHeight: 52)
+          .background(.errorRed.opacity(0.08))
+          .clipShape(Capsule())
+      }
+      .buttonStyle(.plain)
+      .padding(.top, 8)
+    }
+  }
+
   private func binding<Value>(
     _ keyPath: ReferenceWritableKeyPath<AddContactViewModel, Value>
   ) -> Binding<Value> {
@@ -133,13 +167,44 @@ struct AddContactView: View {
   }
 
   private func saveContact() {
-    onSave(viewModel.makeContact())
+    guard onSave(viewModel.makeContact()) else {
+      return
+    }
+    dismiss()
+  }
+
+  private func requestDeleteConfirmation() {
+    confirmationAlert = DestructiveConfirmationAlert(
+      title: "해당 연락처를\n영구적으로 삭제하겠습니까?",
+      message: "연락처와 모든 노트와 파일이 삭제됩니다. 이 작업은 되돌릴 수 없습니다."
+    ) {
+      deleteContact()
+    }
+  }
+
+  private func deleteContact() {
+    guard let existingContact, let onDelete else {
+      return
+    }
+
+    guard onDelete(existingContact.id) else {
+      toast = Toast(
+        message: "연락처 삭제 실패하였습니다",
+        style: .failure,
+        action: Toast.Action(title: "다시 시도") {
+          deleteContact()
+        }
+      )
+      return
+    }
+
+    onDeleted?()
     dismiss()
   }
 }
 
 #Preview {
   NavigationStack {
-    AddContactView(existingGroups: ["스터디", "Portfolio"]) { _ in }
+    AddContactView(existingGroups: ["스터디", "Portfolio"]) { _ in true }
   }
 }

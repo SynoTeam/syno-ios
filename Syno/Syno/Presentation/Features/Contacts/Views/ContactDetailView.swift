@@ -8,11 +8,17 @@
 import SwiftUI
 
 struct ContactDetailView: View {
+  @Environment(\.dismiss) private var dismiss
+
   let contact: Contact
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
+  let viewModel: ContactsViewModel?
+  let existingGroups: [String]
+  let onUpdated: (Contact) -> Void
+  let onDeleted: () -> Void
 
   var body: some View {
     VStack(spacing: 0) {
@@ -35,10 +41,32 @@ struct ContactDetailView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        Button {} label: {
-          Image(systemName: "pencil")
+        if let viewModel {
+          NavigationLink {
+            AddContactView(
+              existingContact: contact,
+              existingGroups: existingGroups,
+              onSave: { updatedContact in
+                guard viewModel.saveMyContact(updatedContact) else {
+                  return false
+                }
+                onUpdated(contact)
+                dismiss()
+                return true
+              },
+              onDelete: { contactID in
+                viewModel.deleteContact(id: contactID)
+              },
+              onDeleted: {
+                onDeleted()
+                dismiss()
+              }
+            )
+          } label: {
+            Image(systemName: "pencil")
+          }
+          .accessibilityLabel("Edit Contact")
         }
-        .accessibilityLabel("Edit Contact")
       }
     }
     .tint(.gray950)
@@ -67,6 +95,10 @@ struct ContactDetailView: View {
       profileInfo(label: "이메일", value: displayValue(contact.email))
       profileInfo(label: "연락처", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
       profileInfo(label: "URL", value: displayValue(contact.url), lineLimit: 1)
+      profileInfo(label: "주소", value: displayValue(contact.address))
+      profileInfo(label: "생일", value: formattedDate(contact.birthday))
+      profileInfo(label: "기념일", value: formattedDate(contact.anniversary))
+      profileInfo(label: "소셜 링크", value: socialLinksText)
       profileInfo(label: "그룹", value: displayValue(contact.group))
 
       if !contact.note.isEmpty {
@@ -116,6 +148,20 @@ struct ContactDetailView: View {
     value.isEmpty ? "-" : value
   }
 
+  private func formattedDate(_ date: Date?) -> String {
+    guard let date else {
+      return "-"
+    }
+    return date.formatted(date: .long, time: .omitted)
+  }
+
+  private var socialLinksText: String {
+    guard !contact.socialLinks.isEmpty else {
+      return "-"
+    }
+    return contact.socialLinks.map { "\($0.platform): \($0.handle)" }.joined(separator: "\n")
+  }
+
   private var subtitle: String {
     if !contact.role.isEmpty && !contact.company.isEmpty {
       return "\(contact.role) \(contact.company)"
@@ -148,7 +194,11 @@ struct ContactDetailView: View {
       noteRepository: PreviewRepositories.note,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
-      labelTranslator: PreviewRepositories.labelTranslator
+      labelTranslator: PreviewRepositories.labelTranslator,
+      viewModel: nil,
+      existingGroups: [],
+      onUpdated: { _ in },
+      onDeleted: {}
     )
   }
 }

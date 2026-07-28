@@ -173,7 +173,11 @@ struct SearchView: View {
         noteRepository: noteRepository,
         noteImageAnalyzer: noteImageAnalyzer,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
-        labelTranslator: labelTranslator
+        labelTranslator: labelTranslator,
+        viewModel: nil,
+        existingGroups: [],
+        onUpdated: { _ in },
+        onDeleted: {}
       )
     case .note(_, let contact):
       ChatView(

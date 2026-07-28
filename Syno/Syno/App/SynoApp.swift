@@ -91,6 +91,7 @@ struct SynoApp: App {
       .task {
         await searchIndexBackfillService.start()
       }
+      .preferredColorScheme(.light)
     }
     .modelContainer(modelContainer)
   }

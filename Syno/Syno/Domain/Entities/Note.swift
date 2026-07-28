@@ -17,6 +17,7 @@ struct Note: Identifiable, Equatable {
   var imageData: Data?
   var profileImageData: Data?
   var isFavorite: Bool
+  var isPinned: Bool
 
   var timeText: String {
     let calendar = Calendar.current
@@ -50,7 +51,8 @@ struct Note: Identifiable, Equatable {
     createdAt: Date = Date(),
     imageData: Data? = nil,
     profileImageData: Data? = nil,
-    isFavorite: Bool = false
+    isFavorite: Bool = false,
+    isPinned: Bool = false
   ) {
     self.id = id
     self.contactId = contactId
@@ -60,6 +62,7 @@ struct Note: Identifiable, Equatable {
     self.imageData = imageData
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
+    self.isPinned = isPinned
   }
 
   private static let timeFormatter = makeFormatter("a h:mm")

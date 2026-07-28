@@ -64,4 +64,51 @@ final class NotesViewModelTests: XCTestCase {
     XCTAssertEqual(viewModel.notes.first?.isFavorite, true)
     XCTAssertEqual(viewModel.availableFilters, [.all, .favorite])
   }
+
+  @MainActor
+  func testPinnedNotesStayAtTopAndUnpinnedNotesKeepSortOrder() async {
+    let pinnedContactA = UUID()
+    let pinnedContactB = UUID()
+    let viewModel = NotesViewModel()
+    viewModel.replaceNotes(
+      [
+        Note(contactName: "가", content: "일반 최신", createdAt: Date(timeIntervalSince1970: 300)),
+        Note(contactId: pinnedContactA, contactName: "나", content: "고정 오래됨", createdAt: Date(timeIntervalSince1970: 100)),
+        Note(contactId: pinnedContactB, contactName: "다", content: "고정 최신", createdAt: Date(timeIntervalSince1970: 200))
+      ],
+      pinnedContactIds: [pinnedContactA, pinnedContactB]
+    )
+
+    XCTAssertEqual(
+      viewModel.filteredNotes.map(\.content),
+      ["고정 최신", "고정 오래됨", "일반 최신"]
+    )
+
+    viewModel.sortOrder = .name
+
+    XCTAssertEqual(
+      viewModel.filteredNotes.map(\.content),
+      ["고정 최신", "고정 오래됨", "일반 최신"]
+    )
+  }
+
+  @MainActor
+  func testUnpinningReturnsNoteToExistingSortOrder() async {
+    let pinnedContact = UUID()
+    let viewModel = NotesViewModel()
+    viewModel.replaceNotes(
+      [
+        Note(contactId: pinnedContact, contactName: "가", content: "가", createdAt: Date(timeIntervalSince1970: 100)),
+        Note(contactName: "나", content: "나", createdAt: Date(timeIntervalSince1970: 200))
+      ],
+      pinnedContactIds: [pinnedContact]
+    )
+
+    viewModel.replaceNotes([
+      Note(contactId: pinnedContact, contactName: "가", content: "가", createdAt: Date(timeIntervalSince1970: 100)),
+      Note(contactName: "나", content: "나", createdAt: Date(timeIntervalSince1970: 200))
+    ])
+
+    XCTAssertEqual(viewModel.filteredNotes.map(\.content), ["나", "가"])
+  }
 }

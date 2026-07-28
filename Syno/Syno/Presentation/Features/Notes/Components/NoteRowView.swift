@@ -18,6 +18,13 @@ struct NoteRowView: View {
 
       VStack(alignment: .leading, spacing: 2) {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
+          if note.isPinned {
+            Image(systemName: "pin.fill")
+              .font(.system(size: 11, weight: .semibold))
+              .foregroundStyle(.violet500)
+              .accessibilityLabel("고정된 노트")
+          }
+
           Text(note.contactName)
             .typeStyle(.callout)
             .foregroundStyle(.gray950)

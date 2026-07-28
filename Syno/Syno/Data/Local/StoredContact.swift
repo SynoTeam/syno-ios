@@ -56,6 +56,9 @@ final class StoredContact {
   /// 즐겨찾기 여부입니다.
   var isFavorite: Bool = false
 
+  /// 노트 목록 상단에 고정할지 여부입니다.
+  var isPinned: Bool = false
+
   /// 사용자 본인의 프로필인지 여부입니다.
   var isMe: Bool = false
 
@@ -78,6 +81,7 @@ final class StoredContact {
     note: String,
     profileImageData: Data?,
     isFavorite: Bool,
+    isPinned: Bool = false,
     isMe: Bool,
     createdAt: Date = Date()
   ) {
@@ -96,6 +100,7 @@ final class StoredContact {
     self.note = note
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
+    self.isPinned = isPinned
     self.isMe = isMe
     self.createdAt = createdAt
   }
@@ -117,6 +122,7 @@ final class StoredContact {
       note: contact.note,
       profileImageData: contact.profileImageData,
       isFavorite: contact.isFavorite,
+      isPinned: contact.isPinned,
       isMe: contact.isMe
     )
   }
@@ -141,6 +147,7 @@ extension StoredContact {
       note: note,
       profileImageData: profileImageData,
       isFavorite: isFavorite,
+      isPinned: isPinned,
       isMe: isMe
     )
   }
@@ -161,6 +168,7 @@ extension StoredContact {
     note = contact.note
     profileImageData = contact.profileImageData
     isFavorite = contact.isFavorite
+    isPinned = contact.isPinned
     isMe = contact.isMe
   }
 }

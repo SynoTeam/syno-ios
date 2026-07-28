@@ -23,8 +23,9 @@ struct Contact: Identifiable, Equatable, Hashable {
   var note: String
   var profileImageData: Data?
   var isFavorite: Bool
+  var isPinned: Bool
   var isMe: Bool
-  
+
   init(
     id: UUID = UUID(),
     name: String,
@@ -41,6 +42,7 @@ struct Contact: Identifiable, Equatable, Hashable {
     note: String = "",
     profileImageData: Data? = nil,
     isFavorite: Bool = false,
+    isPinned: Bool = false,
     isMe: Bool = false
   ) {
     self.id = id
@@ -58,6 +60,7 @@ struct Contact: Identifiable, Equatable, Hashable {
     self.note = note
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
+    self.isPinned = isPinned
     self.isMe = isMe
   }
 }

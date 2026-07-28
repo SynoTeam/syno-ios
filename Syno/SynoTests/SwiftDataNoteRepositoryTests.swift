@@ -70,6 +70,18 @@ final class SwiftDataNoteRepositoryTests: XCTestCase {
   }
 
   @MainActor
+  func testSavePersistsPinnedState() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+    let note = Note(contactName: "연락처", content: "고정 메모", isPinned: true)
+
+    try repository.save(note)
+
+    let savedNote = try XCTUnwrap(repository.fetch(contactId: nil).first)
+    XCTAssertTrue(savedNote.isPinned)
+  }
+
+  @MainActor
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(
       for: StoredNote.self,

@@ -14,6 +14,7 @@ struct NotesView: View {
   @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
   @State private var viewModel = NotesViewModel()
   @State private var isShowingAddContact = false
+  @State private var toast: Toast?
   @State private var isShowingGroupManagement = false
   let noteRepository: any NoteRepository
   let contactRepository: any ContactRepository
@@ -38,11 +39,12 @@ struct NotesView: View {
       .padding(.bottom, 120)
     }
     .background(Color.gray50)
+    .toast(item: $toast)
     .onAppear(perform: loadStoredNotes)
     .onChange(of: storedNoteChangeTokens) {
       loadStoredNotes()
     }
-    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite):\($0.group)" }) {
+    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite):\($0.isPinned):\($0.group)" }) {
       loadStoredNotes()
     }
     .onChange(of: storedGroups.map { "\($0.persistentModelID):\($0.name):\($0.sortIndex)" }) {
@@ -123,18 +125,22 @@ struct NotesView: View {
   private var notesList: some View {
     LazyVStack(spacing: 14) {
       ForEach(viewModel.filteredNotes) { note in
-        NavigationLink {
-          ChatView(
-            contact: note.contact,
-            repository: noteRepository,
-            imageAnalyzer: noteImageAnalyzer,
-            imageAnalysisRepository: noteImageAnalysisRepository,
-            labelTranslator: labelTranslator
-          )
+        NotePinSwipeRow(isPinned: note.isPinned) {
+          togglePin(for: note)
         } label: {
-          NoteRowView(note: note)
+          NavigationLink {
+            ChatView(
+              contact: note.contact,
+              repository: noteRepository,
+              imageAnalyzer: noteImageAnalyzer,
+              imageAnalysisRepository: noteImageAnalysisRepository,
+              labelTranslator: labelTranslator
+            )
+          } label: {
+            NoteRowView(note: note)
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
       }
     }
   }
@@ -152,6 +158,11 @@ struct NotesView: View {
         .filter(\.isFavorite)
         .map(\.id)
     )
+    let pinnedContactIds = Set(
+      storedContacts
+        .filter(\.isPinned)
+        .map(\.id)
+    )
     let groupNames = storedGroups.map(\.name)
     let groupNamesByContactID = Dictionary(
       uniqueKeysWithValues: storedContacts.map { contact in
@@ -165,6 +176,7 @@ struct NotesView: View {
     viewModel.replaceNotes(
       storedNotes.map(\.note),
       favoriteContactIds: favoriteContactIds,
+      pinnedContactIds: pinnedContactIds,
       groupNames: groupNames,
       groupNamesByContactID: groupNamesByContactID
     )
@@ -176,6 +188,48 @@ struct NotesView: View {
       return true
     } catch {
       return false
+    }
+  }
+
+  private func togglePin(for note: Note) {
+    setPin(!note.isPinned, for: note, showsSuccessToast: true)
+  }
+
+  private func setPin(
+    _ isPinned: Bool,
+    for note: Note,
+    showsSuccessToast: Bool
+  ) {
+    guard
+      let contactId = note.contactId,
+      let storedContact = storedContacts.first(where: { $0.id == contactId })
+    else {
+      return
+    }
+
+    var updatedContact = storedContact.contact
+    updatedContact.isPinned = isPinned
+
+    do {
+      try contactRepository.save(updatedContact)
+
+      guard showsSuccessToast else {
+        return
+      }
+
+      toast = Toast(
+        message: isPinned ? "핀 추가되었습니다" : "핀 해제되었습니다",
+        style: .success,
+        icon: isPinned ? "pin.fill" : "pin.slash.fill",
+        action: Toast.Action(title: "되돌리기") {
+          setPin(!isPinned, for: note, showsSuccessToast: false)
+        }
+      )
+    } catch {
+      toast = Toast(
+        message: isPinned ? "핀 추가 실패했습니다" : "핀 해제 실패했습니다",
+        style: .failure
+      )
     }
   }
 }

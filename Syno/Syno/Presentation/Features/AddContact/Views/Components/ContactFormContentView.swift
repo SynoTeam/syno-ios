@@ -176,21 +176,6 @@ struct ContactFormContentView: View {
           Divider().background(.gray50)
         }
       }
-
-      Button {
-        socialLinks.append(ContactSocialLink(platform: "Instagram", handle: ""))
-      } label: {
-        HStack(spacing: 8) {
-          Image(systemName: "plus")
-            .font(.system(size: 14, weight: .semibold))
-          Text("항목 추가하기")
-            .typeStyle(.subheadline)
-        }
-        .foregroundStyle(.violet500)
-        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
-        .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
     }
   }
 

@@ -40,6 +40,10 @@ final class AddContactViewModel {
   var countryCode = "+82"
   var phone = ""
   var url = ""
+  var address = ""
+  var birthday: Date?
+  var anniversary: Date?
+  var socialLinks: [ContactSocialLink] = []
   var group = ""
   var selectedImageData: Data?
   var note = "" {
@@ -98,6 +102,10 @@ final class AddContactViewModel {
       email: trimmed(email),
       phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
       url: trimmed(url),
+      address: trimmed(address),
+      birthday: birthday,
+      anniversary: anniversary,
+      socialLinks: socialLinks,
       group: group,
       note: trimmed(note),
       profileImageData: selectedImageData

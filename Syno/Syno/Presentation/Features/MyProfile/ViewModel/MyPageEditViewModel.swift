@@ -23,6 +23,10 @@ final class MyPageEditViewModel {
   var countryCode = "+82"
   var phone = ""
   var url = ""
+  var address = ""
+  var birthday: Date?
+  var anniversary: Date?
+  var socialLinks: [ContactSocialLink] = []
   var group = ""
   var selectedImageData: Data?
   var note = "" {
@@ -52,6 +56,10 @@ final class MyPageEditViewModel {
     givenName = nameParts.givenName
     email = contact.email
     url = contact.url
+    address = contact.address
+    birthday = contact.birthday
+    anniversary = contact.anniversary
+    socialLinks = contact.socialLinks
     group = contact.group
     selectedImageData = contact.profileImageData
     note = contact.note
@@ -84,6 +92,10 @@ final class MyPageEditViewModel {
       email: trimmed(email),
       phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
       url: trimmed(url),
+      address: trimmed(address),
+      birthday: birthday,
+      anniversary: anniversary,
+      socialLinks: socialLinks,
       group: group,
       note: trimmed(note),
       profileImageData: selectedImageData,

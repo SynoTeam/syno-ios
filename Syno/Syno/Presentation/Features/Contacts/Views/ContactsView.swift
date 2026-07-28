@@ -54,6 +54,7 @@ struct ContactsView: View {
               noteImageAnalyzer: noteImageAnalyzer,
               noteImageAnalysisRepository: noteImageAnalysisRepository,
               labelTranslator: labelTranslator,
+              existingGroups: viewModel.existingGroups,
               onSave: viewModel.saveMyContact
             )
           } label: {
@@ -137,7 +138,7 @@ struct ContactsView: View {
       Spacer()
       
       NavigationLink {
-        AddContactView { contact in
+        AddContactView(existingGroups: viewModel.existingGroups) { contact in
           viewModel.addContact(contact)
           isAllCollapsed = false
         }

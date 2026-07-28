@@ -15,6 +15,9 @@ struct AddContactSheetHeader: View {
   /// X 버튼을 눌렀을 때 실행할 취소 액션입니다.
   let onCancel: () -> Void
 
+  /// 체크 버튼 활성화 여부입니다.
+  var isApplyEnabled: Bool = true
+
   /// 체크 버튼을 눌렀을 때 실행할 적용 액션입니다.
   let onApply: () -> Void
 
@@ -25,6 +28,8 @@ struct AddContactSheetHeader: View {
           .font(.system(size: 16, weight: .semibold))
           .foregroundStyle(.gray950)
           .frame(width: 44, height: 44)
+          .background(.white)
+          .clipShape(Circle())
       }
       .buttonStyle(.plain)
 
@@ -39,12 +44,15 @@ struct AddContactSheetHeader: View {
       Button(action: onApply) {
         Image(systemName: "checkmark")
           .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(.violet500)
+          .foregroundStyle(.white)
           .frame(width: 44, height: 44)
+          .background(isApplyEnabled ? .violet500 : .violet200)
+          .clipShape(Circle())
       }
       .buttonStyle(.plain)
+      .disabled(!isApplyEnabled)
     }
-    .padding(.horizontal, 10)
+    .padding(.horizontal, 16)
     .padding(.bottom, 12)
   }
 }

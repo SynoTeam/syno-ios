@@ -16,9 +16,6 @@ final class AddContactViewModel {
   /// 한 줄 기록에 허용되는 최대 글자 수입니다.
   static let noteLimit = 100
 
-  /// 그룹 선택 시트에 표시할 기본 그룹 목록입니다.
-  static let groupOptions = ["포트폴리오", "커피챗", "채용", "기타"]
-
   /// 국가번호 선택 시트에 표시할 기본 국가번호 목록입니다.
   static let countryCodeOptions = [
     CountryCodeOption(code: "+82", countryName: "대한민국"),

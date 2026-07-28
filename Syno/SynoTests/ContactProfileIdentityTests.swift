@@ -57,6 +57,33 @@ final class ContactProfileIdentityTests: XCTestCase {
   }
 
   @MainActor
+  func testContactAdditionalFieldsRoundTripThroughSwiftData() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataContactRepository(modelContext: container.mainContext)
+    let contact = Contact(
+      name: "김테스트",
+      role: "",
+      company: "",
+      address: "서울특별시 중구 세종대로 110",
+      birthday: Date(timeIntervalSince1970: 1_000_000),
+      anniversary: Date(timeIntervalSince1970: 2_000_000),
+      socialLinks: [
+        ContactSocialLink(platform: "Instagram", handle: "@syno"),
+        ContactSocialLink(platform: "LinkedIn", handle: "syno-team")
+      ]
+    )
+    try repository.save(contact)
+
+    let freshContext = ModelContext(container)
+    let fetchedContact = try SwiftDataContactRepository(modelContext: freshContext).fetchAll().first
+
+    XCTAssertEqual(fetchedContact?.address, contact.address)
+    XCTAssertEqual(fetchedContact?.birthday, contact.birthday)
+    XCTAssertEqual(fetchedContact?.anniversary, contact.anniversary)
+    XCTAssertEqual(fetchedContact?.socialLinks, contact.socialLinks)
+  }
+
+  @MainActor
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(
       for: StoredContact.self,

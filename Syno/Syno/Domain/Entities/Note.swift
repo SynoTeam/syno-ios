@@ -19,7 +19,17 @@ struct Note: Identifiable, Equatable {
   var isFavorite: Bool
 
   var timeText: String {
-    createdAt.formatted(date: .omitted, time: .shortened)
+    let calendar = Calendar.current
+
+    if calendar.isDateInToday(createdAt) {
+      return Self.timeFormatter.string(from: createdAt)
+    }
+
+    if calendar.isDate(createdAt, equalTo: Date(), toGranularity: .year) {
+      return Self.monthDayFormatter.string(from: createdAt)
+    }
+
+    return Self.yearMonthDayFormatter.string(from: createdAt)
   }
 
   var contact: Contact {
@@ -50,5 +60,17 @@ struct Note: Identifiable, Equatable {
     self.imageData = imageData
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
+  }
+
+  private static let timeFormatter = makeFormatter("a h:mm")
+  private static let monthDayFormatter = makeFormatter("M월 d일")
+  private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일")
+
+  private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "ko_KR")
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.dateFormat = dateFormat
+    return formatter
   }
 }

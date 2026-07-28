@@ -60,6 +60,7 @@ struct MainTabView: View {
         NavigationStack {
           NotesView(
             noteRepository: noteRepository,
+            contactRepository: contactRepository,
             noteImageAnalyzer: noteImageAnalyzer,
             noteImageAnalysisRepository: noteImageAnalysisRepository,
             labelTranslator: labelTranslator

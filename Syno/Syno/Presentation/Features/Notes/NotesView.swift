@@ -12,7 +12,9 @@ struct NotesView: View {
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
   @Query private var storedContacts: [StoredContact]
   @State private var viewModel = NotesViewModel()
+  @State private var isShowingAddContact = false
   let noteRepository: any NoteRepository
+  let contactRepository: any ContactRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
@@ -24,7 +26,7 @@ struct NotesView: View {
         filterChips
 
         if viewModel.isEmpty {
-          NotesEmptyStateView()
+          emptyState
         } else {
           notesList
         }
@@ -40,6 +42,11 @@ struct NotesView: View {
     }
     .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite)" }) {
       loadStoredNotes()
+    }
+    .navigationDestination(isPresented: $isShowingAddContact) {
+      AddContactView(existingGroups: existingGroups) { contact in
+        saveContact(contact)
+      }
     }
   }
 
@@ -116,6 +123,20 @@ struct NotesView: View {
     }
   }
 
+  private var emptyState: some View {
+    NotesEmptyStateView(
+      state: storedContacts.isEmpty ? .noContacts : .noNotes,
+      onAddContact: storedContacts.isEmpty ? { isShowingAddContact = true } : nil
+    )
+  }
+
+  private var existingGroups: [String] {
+    GroupOptions.merged(
+      existingGroups: storedContacts.map(\.group),
+      draftGroup: ""
+    )
+  }
+
   private func loadStoredNotes() {
     let favoriteContactIds = Set(
       storedContacts
@@ -126,6 +147,15 @@ struct NotesView: View {
       storedNotes.map(\.note),
       favoriteContactIds: favoriteContactIds
     )
+  }
+
+  private func saveContact(_ contact: Contact) -> Bool {
+    do {
+      try contactRepository.save(contact)
+      return true
+    } catch {
+      return false
+    }
   }
 }
 
@@ -139,6 +169,7 @@ private struct StoredNoteChangeToken: Equatable {
 #Preview {
   NotesView(
     noteRepository: PreviewRepositories.note,
+    contactRepository: PreviewRepositories.contact,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
     labelTranslator: PreviewRepositories.labelTranslator

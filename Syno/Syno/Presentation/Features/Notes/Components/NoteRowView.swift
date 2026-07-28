@@ -22,6 +22,7 @@ struct NoteRowView: View {
             .typeStyle(.callout)
             .foregroundStyle(.gray950)
             .lineLimit(1)
+            .truncationMode(.tail)
 
           Spacer(minLength: 8)
 
@@ -35,6 +36,7 @@ struct NoteRowView: View {
           .typeStyle(.footnote)
           .foregroundStyle(.gray500)
           .lineLimit(1)
+          .truncationMode(.tail)
       }
       .padding(.top, 3)
     }

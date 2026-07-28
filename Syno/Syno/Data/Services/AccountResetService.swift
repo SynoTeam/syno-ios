@@ -36,6 +36,7 @@ final class AccountResetService {
       try modelContext.delete(model: StoredContactEmbedding.self)
       try modelContext.delete(model: StoredNoteEmbedding.self)
       try modelContext.delete(model: StoredNoteImageAnalysis.self)
+      try modelContext.delete(model: StoredGroup.self)
       try modelContext.delete(model: StoredContact.self)
       try modelContext.delete(model: StoredNote.self)
       try modelContext.delete(model: UserProfile.self)

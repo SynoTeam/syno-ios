@@ -7,6 +7,7 @@ enum PreviewRepositories {
       return try ModelContainer(
         for: UserProfile.self,
         StoredContact.self,
+        StoredGroup.self,
         StoredNote.self,
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,

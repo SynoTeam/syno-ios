@@ -11,8 +11,10 @@ import SwiftUI
 struct NotesView: View {
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
   @Query private var storedContacts: [StoredContact]
+  @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
   @State private var viewModel = NotesViewModel()
   @State private var isShowingAddContact = false
+  @State private var isShowingGroupManagement = false
   let noteRepository: any NoteRepository
   let contactRepository: any ContactRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
@@ -40,13 +42,21 @@ struct NotesView: View {
     .onChange(of: storedNoteChangeTokens) {
       loadStoredNotes()
     }
-    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite)" }) {
+    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite):\($0.group)" }) {
+      loadStoredNotes()
+    }
+    .onChange(of: storedGroups.map { "\($0.persistentModelID):\($0.name):\($0.sortIndex)" }) {
       loadStoredNotes()
     }
     .navigationDestination(isPresented: $isShowingAddContact) {
-      AddContactView(existingGroups: existingGroups) { contact in
+      AddContactView { contact in
         saveContact(contact)
       }
+    }
+    .sheet(isPresented: $isShowingGroupManagement) {
+      GroupManagementSheet()
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
   }
 
@@ -75,6 +85,12 @@ struct NotesView: View {
             Label(sortOrder.title, systemImage: sortOrder.systemImage)
               .tag(sortOrder)
           }
+        }
+
+        Button {
+          isShowingGroupManagement = true
+        } label: {
+          Label("그룹 편집", systemImage: "folder")
         }
       } label: {
         Image(systemName: "ellipsis")
@@ -130,22 +146,27 @@ struct NotesView: View {
     )
   }
 
-  private var existingGroups: [String] {
-    GroupOptions.merged(
-      existingGroups: storedContacts.map(\.group),
-      draftGroup: ""
-    )
-  }
-
   private func loadStoredNotes() {
     let favoriteContactIds = Set(
       storedContacts
         .filter(\.isFavorite)
         .map(\.id)
     )
+    let groupNames = storedGroups.map(\.name)
+    let groupNamesByContactID = Dictionary(
+      uniqueKeysWithValues: storedContacts.map { contact in
+        let canonicalName = groupNames.first {
+          $0.compare(contact.group, options: .caseInsensitive) == .orderedSame
+        } ?? contact.group
+        return (contact.id, canonicalName)
+      }
+    )
+
     viewModel.replaceNotes(
       storedNotes.map(\.note),
-      favoriteContactIds: favoriteContactIds
+      favoriteContactIds: favoriteContactIds,
+      groupNames: groupNames,
+      groupNamesByContactID: groupNamesByContactID
     )
   }
 
@@ -174,5 +195,5 @@ private struct StoredNoteChangeToken: Equatable {
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
     labelTranslator: PreviewRepositories.labelTranslator
   )
-    .modelContainer(for: [StoredNote.self, StoredContact.self], inMemory: true)
+    .modelContainer(for: [StoredNote.self, StoredContact.self, StoredGroup.self], inMemory: true)
 }

@@ -62,6 +62,6 @@ final class NotesViewModelTests: XCTestCase {
     XCTAssertEqual(viewModel.notes.count, 1)
     XCTAssertEqual(viewModel.notes.first?.content, "최신 메모")
     XCTAssertEqual(viewModel.notes.first?.isFavorite, true)
-    XCTAssertEqual(viewModel.availableFilters, NoteFilter.allCases)
+    XCTAssertEqual(viewModel.availableFilters, [.all, .favorite])
   }
 }

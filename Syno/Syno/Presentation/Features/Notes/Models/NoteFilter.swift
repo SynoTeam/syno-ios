@@ -6,9 +6,10 @@
 //
 
 /// 노트 목록 상단에서 선택하는 필터입니다.
-enum NoteFilter: Hashable, CaseIterable {
+enum NoteFilter: Hashable {
   case all
   case favorite
+  case group(String)
 
   var title: String {
     switch self {
@@ -16,6 +17,8 @@ enum NoteFilter: Hashable, CaseIterable {
       "All"
     case .favorite:
       "Favorite"
+    case let .group(name):
+      name
     }
   }
 }

@@ -14,17 +14,21 @@ final class NotesViewModel {
   var selectedFilter: NoteFilter = .all
   var sortOrder: NoteSortOrder = .newest
   private(set) var notes: [Note]
+  private(set) var groupNames: [String] = []
+  private var groupNamesByContactID: [UUID: String] = [:]
 
   init(notes: [Note] = []) {
     self.notes = notes
   }
 
   var availableFilters: [NoteFilter] {
+    var filters: [NoteFilter] = [.all]
+
     if notes.contains(where: \.isFavorite) {
-      return NoteFilter.allCases
+      filters.append(.favorite)
     }
 
-    return [.all]
+    return filters + groupNames.map(NoteFilter.group)
   }
 
   var filteredNotes: [Note] {
@@ -35,6 +39,13 @@ final class NotesViewModel {
       filteredNotes = notes
     case .favorite:
       filteredNotes = notes.filter(\.isFavorite)
+    case let .group(groupName):
+      filteredNotes = notes.filter { note in
+        guard let contactID = note.contactId else {
+          return false
+        }
+        return groupNamesByContactID[contactID] == groupName
+      }
     }
 
     switch sortOrder {
@@ -53,14 +64,18 @@ final class NotesViewModel {
 
   func replaceNotes(
     _ notes: [Note],
-    favoriteContactIds: Set<UUID> = []
+    favoriteContactIds: Set<UUID> = [],
+    groupNames: [String] = [],
+    groupNamesByContactID: [UUID: String] = [:]
   ) {
     self.notes = Self.latestNotesByContact(
       from: notes,
       favoriteContactIds: favoriteContactIds
     )
+    self.groupNames = groupNames
+    self.groupNamesByContactID = groupNamesByContactID
 
-    if selectedFilter == .favorite && !self.notes.contains(where: \.isFavorite) {
+    if !availableFilters.contains(selectedFilter) {
       selectedFilter = .all
     }
   }

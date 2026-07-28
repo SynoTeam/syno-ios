@@ -1,87 +1,56 @@
-//
-//  GroupSelectionSheet.swift
-//  Syno
-//
-//  Created by 이승진 on 7/18/26.
-//
-
+import SwiftData
 import SwiftUI
 
-/// 연락처 그룹을 임시 선택한 뒤 체크 버튼으로 적용하는 바텀시트입니다.
+/// `StoredGroup`을 단일 소스로 사용해 연락처 그룹을 선택하는 바텀시트입니다.
 struct GroupSelectionSheet: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.modelContext) private var modelContext
+  @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
 
-  /// 시트 안에서만 변경되는 임시 그룹 값입니다.
   @State private var draftGroup: String
-
-  /// 새로 만들 그룹의 임시 입력값입니다.
   @State private var newGroup = ""
-
-  /// 새 그룹 입력 필드 노출 여부입니다.
   @State private var isAddingNewGroup = false
-
-  /// 이번 시트 세션에서 새로 추가해 목록 맨 위에 고정할 그룹입니다.
-  @State private var justAddedGroup: String?
-
+  @State private var isShowingGroupManagement = false
+  @State private var toast: Toast?
   @FocusState private var isNewGroupFieldFocused: Bool
 
-  /// 저장된 연락처에서 수집한 그룹 목록입니다.
-  let existingGroups: [String]
-
-  /// 체크 버튼을 눌렀을 때 부모 폼에 선택값을 반영하는 콜백입니다.
   let onApply: (String) -> Void
-
-  /// 방금 추가한 그룹을 제외한, 정렬된 순서로 보여줄 목록입니다.
-  private var sortedGroupOptions: [String] {
-    groupOptions.filter { $0 != justAddedGroup }
-  }
-
-  /// 선택 안 함 항목을 제외한 병합 그룹 목록입니다.
-  private var groupOptions: [String] {
-    GroupOptions.merged(
-      existingGroups: existingGroups,
-      draftGroup: draftGroup
-    )
-  }
 
   init(
     selectedGroup: String,
-    existingGroups: [String] = [],
+    existingGroups _: [String] = [],
     onApply: @escaping (String) -> Void
   ) {
-    let options = GroupOptions.merged(
-      existingGroups: existingGroups,
-      draftGroup: selectedGroup
-    )
+    _draftGroup = State(initialValue: selectedGroup)
     self.onApply = onApply
-    self.existingGroups = existingGroups
-    _draftGroup = State(
-      initialValue: GroupOptions.matchingGroup(for: selectedGroup, in: options) ?? selectedGroup
-    )
   }
 
   var body: some View {
     VStack(spacing: 0) {
       AddContactSheetHeader(
         title: "그룹 선택",
-        onCancel: { dismiss() },
-        isApplyEnabled: !draftGroup.isEmpty
+        onCancel: { dismiss() }
       ) {
-        onApply(draftGroup)
+        onApply(canonicalGroupName(for: draftGroup))
         dismiss()
       }
 
       ScrollView {
         VStack(spacing: 8) {
-          if let justAddedGroup {
-            groupRow(title: justAddedGroup, group: justAddedGroup)
-          }
+          groupRow(title: "선택 안 함", group: "")
 
-          ForEach(sortedGroupOptions.indices, id: \.self) { index in
-            groupRow(title: sortedGroupOptions[index], group: sortedGroupOptions[index])
+          ForEach(storedGroups, id: \.persistentModelID) { group in
+            groupRow(title: group.name, group: group.name)
           }
 
           addNewGroupRow
+
+          Button("그룹 편집") {
+            isShowingGroupManagement = true
+          }
+          .typeStyle(.subheadline)
+          .foregroundStyle(.gray600)
+          .frame(maxWidth: .infinity, minHeight: 44)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -91,13 +60,19 @@ struct GroupSelectionSheet: View {
     }
     .padding(.top, 32)
     .background(Color.gray50)
+    .sheet(isPresented: $isShowingGroupManagement) {
+      GroupManagementSheet()
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+    .toast(item: $toast)
   }
 
   private func groupRow(title: String, group: String) -> some View {
     let isSelected = draftGroup == group
 
     return Button {
-      draftGroup = isSelected ? "" : group
+      draftGroup = group
     } label: {
       HStack(spacing: 8) {
         Image(systemName: "checkmark")
@@ -149,23 +124,14 @@ struct GroupSelectionSheet: View {
         isAddingNewGroup = true
         isNewGroupFieldFocused = true
       } label: {
-        HStack(spacing: 12) {
-          Image(systemName: "plus.circle.fill")
-            .font(.system(size: 20, weight: .semibold))
-            .foregroundStyle(.violet500)
-
-          Text("그룹 추가하기")
-            .typeStyle(.calloutEmphasized)
-            .foregroundStyle(.violet500)
-
-          Spacer()
-        }
-        .padding(.horizontal, 20)
-        .frame(height: 54)
-        .frame(maxWidth: .infinity)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .contentShape(Rectangle())
+        Label("그룹 추가하기", systemImage: "plus.circle.fill")
+          .typeStyle(.calloutEmphasized)
+          .foregroundStyle(.violet500)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 20)
+          .frame(height: 54)
+          .background(.white)
+          .clipShape(RoundedRectangle(cornerRadius: 16))
       }
       .buttonStyle(.plain)
     }
@@ -179,23 +145,27 @@ struct GroupSelectionSheet: View {
   }
 
   private func confirmNewGroup() {
-    let trimmedGroup = newGroup.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedGroup.isEmpty else {
-      return
+    do {
+      let group = try GroupService(modelContext: modelContext).createGroup(named: newGroup)
+      if let group {
+        draftGroup = group.name
+      }
+      newGroup = ""
+      isAddingNewGroup = false
+      isNewGroupFieldFocused = false
+    } catch {
+      toast = Toast(message: "그룹 추가에 실패했습니다", style: .failure)
     }
+  }
 
-    if let matchedGroup = GroupOptions.matchingGroup(for: trimmedGroup, in: groupOptions) {
-      draftGroup = matchedGroup
-    } else {
-      draftGroup = trimmedGroup
-      justAddedGroup = trimmedGroup
-    }
-    newGroup = ""
-    isAddingNewGroup = false
-    isNewGroupFieldFocused = false
+  private func canonicalGroupName(for group: String) -> String {
+    storedGroups.first {
+      $0.name.compare(group, options: .caseInsensitive) == .orderedSame
+    }?.name ?? group
   }
 }
 
 #Preview {
-  GroupSelectionSheet(selectedGroup: "커피챗", existingGroups: ["스터디", "Portfolio"]) { _ in }
+  GroupSelectionSheet(selectedGroup: "커피챗") { _ in }
+    .modelContainer(for: [StoredGroup.self], inMemory: true)
 }

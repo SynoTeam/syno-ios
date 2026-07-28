@@ -16,6 +16,7 @@ struct SynoApp: App {
   private let userProfileRepository: any UserProfileRepository
   private let searchIndex: any SearchIndexing
   private let searchIndexBackfillService: SearchIndexBackfillService
+  private let groupService: GroupService
   private let accountResetService: AccountResetService
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -26,6 +27,7 @@ struct SynoApp: App {
       let schema = Schema([
         UserProfile.self,
         StoredContact.self,
+        StoredGroup.self,
         StoredNote.self,
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
@@ -61,6 +63,7 @@ struct SynoApp: App {
         noteImageAnalysisRepository: imageAnalysisRepository,
         labelTranslator: staticLabelDictionary
       )
+      groupService = GroupService(modelContext: container.mainContext)
       accountResetService = AccountResetService(modelContext: container.mainContext)
       contactRepository = SwiftDataContactRepository(
         modelContext: container.mainContext,
@@ -90,6 +93,7 @@ struct SynoApp: App {
       )
       .task {
         await searchIndexBackfillService.start()
+        try? groupService.backfillGroupsIfNeeded()
       }
       .preferredColorScheme(.light)
     }

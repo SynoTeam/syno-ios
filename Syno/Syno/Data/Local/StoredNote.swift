@@ -32,6 +32,9 @@ final class StoredNote {
   /// 즐겨찾기 여부입니다.
   var isFavorite: Bool = false
 
+  /// 목록 상단에 고정할지 여부입니다.
+  var isPinned: Bool = false
+
   /// 저장 생성 시각입니다.
   var createdAt: Date = Date()
 
@@ -43,6 +46,7 @@ final class StoredNote {
     imageData: Data?,
     profileImageData: Data?,
     isFavorite: Bool,
+    isPinned: Bool = false,
     createdAt: Date = Date()
   ) {
     self.id = id
@@ -52,6 +56,7 @@ final class StoredNote {
     self.imageData = imageData
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
+    self.isPinned = isPinned
     self.createdAt = createdAt
   }
 
@@ -64,6 +69,7 @@ final class StoredNote {
       imageData: note.imageData,
       profileImageData: note.profileImageData,
       isFavorite: note.isFavorite,
+      isPinned: note.isPinned,
       createdAt: note.createdAt
     )
   }
@@ -77,6 +83,7 @@ extension StoredNote {
     imageData = note.imageData
     profileImageData = note.profileImageData
     isFavorite = note.isFavorite
+    isPinned = note.isPinned
     createdAt = note.createdAt
   }
 
@@ -90,7 +97,8 @@ extension StoredNote {
       createdAt: createdAt,
       imageData: imageData,
       profileImageData: profileImageData,
-      isFavorite: isFavorite
+      isFavorite: isFavorite,
+      isPinned: isPinned
     )
   }
 }

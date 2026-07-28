@@ -11,8 +11,13 @@ import SwiftUI
 struct NotesView: View {
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
   @Query private var storedContacts: [StoredContact]
+  @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
   @State private var viewModel = NotesViewModel()
+  @State private var isShowingAddContact = false
+  @State private var toast: Toast?
+  @State private var isShowingGroupManagement = false
   let noteRepository: any NoteRepository
+  let contactRepository: any ContactRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
@@ -24,7 +29,7 @@ struct NotesView: View {
         filterChips
 
         if viewModel.isEmpty {
-          NotesEmptyStateView()
+          emptyState
         } else {
           notesList
         }
@@ -34,12 +39,26 @@ struct NotesView: View {
       .padding(.bottom, 120)
     }
     .background(Color.gray50)
+    .toast(item: $toast)
     .onAppear(perform: loadStoredNotes)
     .onChange(of: storedNoteChangeTokens) {
       loadStoredNotes()
     }
-    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite)" }) {
+    .onChange(of: storedContacts.map { "\($0.id.uuidString):\($0.isFavorite):\($0.isPinned):\($0.group)" }) {
       loadStoredNotes()
+    }
+    .onChange(of: storedGroups.map { "\($0.persistentModelID):\($0.name):\($0.sortIndex)" }) {
+      loadStoredNotes()
+    }
+    .navigationDestination(isPresented: $isShowingAddContact) {
+      AddContactView { contact in
+        saveContact(contact)
+      }
+    }
+    .sheet(isPresented: $isShowingGroupManagement) {
+      GroupManagementSheet()
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
   }
 
@@ -68,6 +87,12 @@ struct NotesView: View {
             Label(sortOrder.title, systemImage: sortOrder.systemImage)
               .tag(sortOrder)
           }
+        }
+
+        Button {
+          isShowingGroupManagement = true
+        } label: {
+          Label("그룹 편집", systemImage: "folder")
         }
       } label: {
         Image(systemName: "ellipsis")
@@ -100,20 +125,31 @@ struct NotesView: View {
   private var notesList: some View {
     LazyVStack(spacing: 14) {
       ForEach(viewModel.filteredNotes) { note in
-        NavigationLink {
-          ChatView(
-            contact: note.contact,
-            repository: noteRepository,
-            imageAnalyzer: noteImageAnalyzer,
-            imageAnalysisRepository: noteImageAnalysisRepository,
-            labelTranslator: labelTranslator
-          )
+        NotePinSwipeRow(isPinned: note.isPinned) {
+          togglePin(for: note)
         } label: {
-          NoteRowView(note: note)
+          NavigationLink {
+            ChatView(
+              contact: note.contact,
+              repository: noteRepository,
+              imageAnalyzer: noteImageAnalyzer,
+              imageAnalysisRepository: noteImageAnalysisRepository,
+              labelTranslator: labelTranslator
+            )
+          } label: {
+            NoteRowView(note: note)
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
       }
     }
+  }
+
+  private var emptyState: some View {
+    NotesEmptyStateView(
+      state: storedContacts.isEmpty ? .noContacts : .noNotes,
+      onAddContact: storedContacts.isEmpty ? { isShowingAddContact = true } : nil
+    )
   }
 
   private func loadStoredNotes() {
@@ -122,10 +158,79 @@ struct NotesView: View {
         .filter(\.isFavorite)
         .map(\.id)
     )
+    let pinnedContactIds = Set(
+      storedContacts
+        .filter(\.isPinned)
+        .map(\.id)
+    )
+    let groupNames = storedGroups.map(\.name)
+    let groupNamesByContactID = Dictionary(
+      uniqueKeysWithValues: storedContacts.map { contact in
+        let canonicalName = groupNames.first {
+          $0.compare(contact.group, options: .caseInsensitive) == .orderedSame
+        } ?? contact.group
+        return (contact.id, canonicalName)
+      }
+    )
+
     viewModel.replaceNotes(
       storedNotes.map(\.note),
-      favoriteContactIds: favoriteContactIds
+      favoriteContactIds: favoriteContactIds,
+      pinnedContactIds: pinnedContactIds,
+      groupNames: groupNames,
+      groupNamesByContactID: groupNamesByContactID
     )
+  }
+
+  private func saveContact(_ contact: Contact) -> Bool {
+    do {
+      try contactRepository.save(contact)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  private func togglePin(for note: Note) {
+    setPin(!note.isPinned, for: note, showsSuccessToast: true)
+  }
+
+  private func setPin(
+    _ isPinned: Bool,
+    for note: Note,
+    showsSuccessToast: Bool
+  ) {
+    guard
+      let contactId = note.contactId,
+      let storedContact = storedContacts.first(where: { $0.id == contactId })
+    else {
+      return
+    }
+
+    var updatedContact = storedContact.contact
+    updatedContact.isPinned = isPinned
+
+    do {
+      try contactRepository.save(updatedContact)
+
+      guard showsSuccessToast else {
+        return
+      }
+
+      toast = Toast(
+        message: isPinned ? "핀 추가되었습니다" : "핀 해제되었습니다",
+        style: .success,
+        icon: isPinned ? "pin.fill" : "pin.slash.fill",
+        action: Toast.Action(title: "되돌리기") {
+          setPin(!isPinned, for: note, showsSuccessToast: false)
+        }
+      )
+    } catch {
+      toast = Toast(
+        message: isPinned ? "핀 추가 실패했습니다" : "핀 해제 실패했습니다",
+        style: .failure
+      )
+    }
   }
 }
 
@@ -139,9 +244,10 @@ private struct StoredNoteChangeToken: Equatable {
 #Preview {
   NotesView(
     noteRepository: PreviewRepositories.note,
+    contactRepository: PreviewRepositories.contact,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
     labelTranslator: PreviewRepositories.labelTranslator
   )
-    .modelContainer(for: [StoredNote.self, StoredContact.self], inMemory: true)
+    .modelContainer(for: [StoredNote.self, StoredContact.self, StoredGroup.self], inMemory: true)
 }

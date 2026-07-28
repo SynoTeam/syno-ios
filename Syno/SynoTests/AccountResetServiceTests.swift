@@ -38,6 +38,7 @@ final class AccountResetServiceTests: XCTestCase {
     let container = try makeContainer()
     let context = container.mainContext
     context.insert(StoredContact(contact: Contact(name: "테스트", role: "", company: "")))
+    context.insert(StoredGroup(name: "테스트 그룹", sortIndex: 0))
     context.insert(StoredNote(id: UUID(), contactId: nil, contactName: "", content: "노트", imageData: Data(), profileImageData: nil, isFavorite: false))
     context.insert(UserProfile(familyName: "홍", givenName: "길동"))
     context.insert(StoredContactEmbedding(contactId: UUID(), contentFingerprint: "contact", vectorData: Data(), updatedAt: .now))
@@ -48,6 +49,7 @@ final class AccountResetServiceTests: XCTestCase {
     try AccountResetService(modelContext: context).resetAllData()
 
     XCTAssertTrue(try context.fetch(FetchDescriptor<StoredContact>()).isEmpty)
+    XCTAssertTrue(try context.fetch(FetchDescriptor<StoredGroup>()).isEmpty)
     XCTAssertTrue(try context.fetch(FetchDescriptor<StoredNote>()).isEmpty)
     XCTAssertTrue(try context.fetch(FetchDescriptor<UserProfile>()).isEmpty)
     XCTAssertTrue(try context.fetch(FetchDescriptor<StoredContactEmbedding>()).isEmpty)
@@ -109,6 +111,7 @@ final class AccountResetServiceTests: XCTestCase {
     try ModelContainer(
       for: UserProfile.self,
       StoredContact.self,
+      StoredGroup.self,
       StoredNote.self,
       StoredContactEmbedding.self,
       StoredNoteEmbedding.self,

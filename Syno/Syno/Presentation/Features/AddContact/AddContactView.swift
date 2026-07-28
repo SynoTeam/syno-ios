@@ -168,6 +168,14 @@ struct AddContactView: View {
 
   private func saveContact() {
     guard onSave(viewModel.makeContact()) else {
+      let message = existingContact == nil ? "연락처 저장에 실패했습니다" : "연락처 편집에 실패했습니다"
+      toast = Toast(
+        message: message,
+        style: .failure,
+        action: Toast.Action(title: "다시 시도") {
+          saveContact()
+        }
+      )
       return
     }
     dismiss()

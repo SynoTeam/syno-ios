@@ -43,4 +43,6 @@ enum PreviewRepositories {
 
   static let userProfile: any UserProfileRepository =
     SwiftDataUserProfileRepository(modelContext: container.mainContext)
+
+  static let accountReset = AccountResetService(modelContext: container.mainContext)
 }

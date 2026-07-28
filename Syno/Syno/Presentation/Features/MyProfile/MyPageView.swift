@@ -15,6 +15,7 @@ struct MyPageView: View {
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
   let existingGroups: [String]
+  let accountResetService: AccountResetService
   let onSave: (Contact) -> Void
 
   init(
@@ -28,6 +29,7 @@ struct MyPageView: View {
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     labelTranslator: any LabelTranslating,
     existingGroups: [String] = [],
+    accountResetService: AccountResetService,
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
     self.contact = contact
@@ -36,6 +38,7 @@ struct MyPageView: View {
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.labelTranslator = labelTranslator
     self.existingGroups = existingGroups
+    self.accountResetService = accountResetService
     self.onSave = onSave
   }
 
@@ -61,7 +64,7 @@ struct MyPageView: View {
     .navigationTitle(displayName)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      ToolbarItemGroup(placement: .topBarTrailing) {
         NavigationLink {
           MyPageEditView(
             contact: contact,
@@ -72,6 +75,13 @@ struct MyPageView: View {
           Image(systemName: "pencil")
         }
         .accessibilityLabel("Edit My Page")
+
+        NavigationLink {
+          SettingsView(accountResetService: accountResetService)
+        } label: {
+          Image(systemName: "gearshape")
+        }
+        .accessibilityLabel("Settings")
       }
     }
     .tint(.gray950)
@@ -142,12 +152,12 @@ struct MyPageView: View {
   private func profileInfo(label: String, value: String, lineLimit: Int? = nil) -> some View {
     VStack(alignment: .leading, spacing: 6) {
       Text(label)
-        .typeStyle(.caption1)
+        .typeStyle(.footnote)
         .foregroundStyle(.gray400)
 
       Text(value)
-        .typeStyle(.callout)
-        .foregroundStyle(.gray950)
+        .typeStyle(.headline)
+        .foregroundStyle(.gray800)
         .lineLimit(lineLimit)
         .truncationMode(.tail)
     }
@@ -220,6 +230,7 @@ private extension View {
     noteRepository: PreviewRepositories.note,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
-    labelTranslator: PreviewRepositories.labelTranslator
+    labelTranslator: PreviewRepositories.labelTranslator,
+    accountResetService: PreviewRepositories.accountReset
   )
 }

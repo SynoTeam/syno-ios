@@ -18,6 +18,7 @@ struct ContactsView: View {
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   private let labelTranslator: any LabelTranslating
+  private let accountResetService: AccountResetService
   
   init(
     userProfile: UserProfile? = nil,
@@ -25,13 +26,15 @@ struct ContactsView: View {
     noteRepository: any NoteRepository,
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
-    labelTranslator: any LabelTranslating
+    labelTranslator: any LabelTranslating,
+    accountResetService: AccountResetService
   ) {
     let myProfileId = userProfile?.id ?? UUID()
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.labelTranslator = labelTranslator
+    self.accountResetService = accountResetService
     _viewModel = State(
       initialValue: ContactsViewModel(
         repository: contactRepository,
@@ -55,6 +58,7 @@ struct ContactsView: View {
               noteImageAnalysisRepository: noteImageAnalysisRepository,
               labelTranslator: labelTranslator,
               existingGroups: viewModel.existingGroups,
+              accountResetService: accountResetService,
               onSave: viewModel.saveMyContact
             )
           } label: {
@@ -213,7 +217,8 @@ struct ContactsView: View {
       noteRepository: PreviewRepositories.note,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
-      labelTranslator: PreviewRepositories.labelTranslator
+      labelTranslator: PreviewRepositories.labelTranslator,
+      accountResetService: PreviewRepositories.accountReset
     )
   }
 }

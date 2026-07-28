@@ -18,7 +18,7 @@ struct AddContactFormSection<Content: View>: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       Text(title)
-        .typeStyle(.subheadline)
+        .typeStyle(.subheadlineEmphasized)
         .foregroundStyle(.gray500)
 
       content()

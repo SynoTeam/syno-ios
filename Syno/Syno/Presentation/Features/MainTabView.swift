@@ -18,6 +18,7 @@ struct MainTabView: View {
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   private let labelTranslator: any LabelTranslating
+  private let accountResetService: AccountResetService
 
   init(
     userProfile: UserProfile? = nil,
@@ -26,7 +27,8 @@ struct MainTabView: View {
     searchIndex: any SearchIndexing,
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
-    labelTranslator: any LabelTranslating
+    labelTranslator: any LabelTranslating,
+    accountResetService: AccountResetService
   ) {
     self.userProfile = userProfile
     self.contactRepository = contactRepository
@@ -35,6 +37,7 @@ struct MainTabView: View {
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.labelTranslator = labelTranslator
+    self.accountResetService = accountResetService
   }
   
   var body: some View {
@@ -47,7 +50,8 @@ struct MainTabView: View {
             noteRepository: noteRepository,
             noteImageAnalyzer: noteImageAnalyzer,
             noteImageAnalysisRepository: noteImageAnalysisRepository,
-            labelTranslator: labelTranslator
+            labelTranslator: labelTranslator,
+            accountResetService: accountResetService
           )
         }
       }
@@ -115,6 +119,7 @@ private enum AppTab: Hashable {
     searchIndex: PreviewRepositories.searchIndex,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
-    labelTranslator: PreviewRepositories.labelTranslator
+    labelTranslator: PreviewRepositories.labelTranslator,
+    accountResetService: PreviewRepositories.accountReset
   )
 }

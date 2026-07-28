@@ -79,7 +79,7 @@ struct MyPageEditView: View {
       email: binding(\.email),
       countryCode: binding(\.countryCode),
       phone: binding(\.phone),
-      linkedInURL: binding(\.linkedInURL),
+      url: binding(\.url),
       group: binding(\.group),
       note: binding(\.note),
       noteLimit: MyPageEditViewModel.noteLimit,
@@ -116,7 +116,7 @@ struct MyPageEditView: View {
         company: "",
         email: "dknwflosn@gmail.com",
         phone: "+82 010-1234-5678",
-        linkedInURL: "https://www.linkedin.com/in/syno",
+        url: "https://www.linkedin.com/in/syno",
         note: "프로필 편집 예시"
       )
     ) { _ in }

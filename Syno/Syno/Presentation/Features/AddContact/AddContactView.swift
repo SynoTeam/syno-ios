@@ -106,7 +106,7 @@ struct AddContactView: View {
       email: binding(\.email),
       countryCode: binding(\.countryCode),
       phone: binding(\.phone),
-      linkedInURL: binding(\.linkedInURL),
+      url: binding(\.url),
       group: binding(\.group),
       note: binding(\.note),
       noteLimit: AddContactViewModel.noteLimit,

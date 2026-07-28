@@ -112,7 +112,7 @@ struct MyPageView: View {
     VStack(alignment: .leading, spacing: 24) {
       profileInfo(label: "이메일", value: emailText)
       profileInfo(label: "전화번호", value: phoneText)
-      profileInfo(label: "URL", value: linkedInText, lineLimit: 1)
+      profileInfo(label: "URL", value: urlText, lineLimit: 1)
     }
     .profileCard()
   }
@@ -184,8 +184,8 @@ struct MyPageView: View {
     displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone))
   }
 
-  private var linkedInText: String {
-    displayValue(contact.linkedInURL)
+  private var urlText: String {
+    displayValue(contact.url)
   }
 
   private var groupText: String {

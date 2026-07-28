@@ -17,13 +17,18 @@ struct MyPageEditView: View {
   @State private var isShowingGroupSheet = false
   @State private var isShowingCountryCodeSheet = false
 
+  /// 저장된 연락처에서 수집한 그룹 목록입니다.
+  let existingGroups: [String]
+
   let onSave: (Contact) -> Void
 
   init(
     contact: Contact,
+    existingGroups: [String] = [],
     onSave: @escaping (Contact) -> Void
   ) {
     _viewModel = State(initialValue: MyPageEditViewModel(contact: contact))
+    self.existingGroups = existingGroups
     self.onSave = onSave
   }
 
@@ -49,17 +54,20 @@ struct MyPageEditView: View {
       }
     }
     .sheet(isPresented: $isShowingGroupSheet) {
-      GroupSelectionSheet(selectedGroup: viewModel.group) { selectedGroup in
+      GroupSelectionSheet(
+        selectedGroup: viewModel.group,
+        existingGroups: existingGroups
+      ) { selectedGroup in
         viewModel.selectGroup(selectedGroup)
       }
-      .presentationDetents([.height(320)])
+      .presentationDetents([.large])
       .presentationDragIndicator(.visible)
     }
     .sheet(isPresented: $isShowingCountryCodeSheet) {
       CountryCodeSelectionSheet(selectedCountryCode: viewModel.countryCode) { countryCode in
         viewModel.selectCountryCode(countryCode)
       }
-      .presentationDetents([.height(380)])
+      .presentationDetents([.large])
       .presentationDragIndicator(.visible)
     }
   }
@@ -71,7 +79,7 @@ struct MyPageEditView: View {
       email: binding(\.email),
       countryCode: binding(\.countryCode),
       phone: binding(\.phone),
-      linkedInURL: binding(\.linkedInURL),
+      url: binding(\.url),
       group: binding(\.group),
       note: binding(\.note),
       noteLimit: MyPageEditViewModel.noteLimit,
@@ -108,7 +116,7 @@ struct MyPageEditView: View {
         company: "",
         email: "dknwflosn@gmail.com",
         phone: "+82 010-1234-5678",
-        linkedInURL: "https://www.linkedin.com/in/syno",
+        url: "https://www.linkedin.com/in/syno",
         note: "프로필 편집 예시"
       )
     ) { _ in }

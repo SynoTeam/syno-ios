@@ -29,8 +29,8 @@ final class StoredContact {
   /// 전화번호입니다.
   var phone: String = ""
 
-  /// 링크드인 또는 URL 정보입니다.
-  var linkedInURL: String = ""
+  /// 웹사이트 또는 프로필 URL 정보입니다.
+  var url: String = ""
 
   /// 연락처 그룹입니다.
   var group: String = ""
@@ -57,7 +57,7 @@ final class StoredContact {
     company: String,
     email: String,
     phone: String,
-    linkedInURL: String,
+    url: String,
     group: String,
     note: String,
     profileImageData: Data?,
@@ -71,7 +71,7 @@ final class StoredContact {
     self.company = company
     self.email = email
     self.phone = phone
-    self.linkedInURL = linkedInURL
+    self.url = url
     self.group = group
     self.note = note
     self.profileImageData = profileImageData
@@ -88,7 +88,7 @@ final class StoredContact {
       company: contact.company,
       email: contact.email,
       phone: contact.phone,
-      linkedInURL: contact.linkedInURL,
+      url: contact.url,
       group: contact.group,
       note: contact.note,
       profileImageData: contact.profileImageData,
@@ -108,7 +108,7 @@ extension StoredContact {
       company: company,
       email: email,
       phone: phone,
-      linkedInURL: linkedInURL,
+      url: url,
       group: group,
       note: note,
       profileImageData: profileImageData,
@@ -124,7 +124,7 @@ extension StoredContact {
     company = contact.company
     email = contact.email
     phone = contact.phone
-    linkedInURL = contact.linkedInURL
+    url = contact.url
     group = contact.group
     note = contact.note
     profileImageData = contact.profileImageData

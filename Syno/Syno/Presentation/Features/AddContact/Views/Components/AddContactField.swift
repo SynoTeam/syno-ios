@@ -11,6 +11,6 @@ enum AddContactField: Hashable {
   case givenName
   case email
   case phone
-  case linkedInURL
+  case url
   case note
 }

@@ -16,16 +16,22 @@ final class AddContactViewModel {
   /// 한 줄 기록에 허용되는 최대 글자 수입니다.
   static let noteLimit = 100
 
-  /// 그룹 선택 시트에 표시할 기본 그룹 목록입니다.
-  static let groupOptions = ["포트폴리오", "커피챗", "채용", "기타"]
-
   /// 국가번호 선택 시트에 표시할 기본 국가번호 목록입니다.
   static let countryCodeOptions = [
     CountryCodeOption(code: "+82", countryName: "대한민국"),
     CountryCodeOption(code: "+1", countryName: "미국"),
     CountryCodeOption(code: "+81", countryName: "일본"),
     CountryCodeOption(code: "+86", countryName: "중국"),
-    CountryCodeOption(code: "+44", countryName: "영국")
+    CountryCodeOption(code: "+44", countryName: "영국"),
+    CountryCodeOption(code: "+49", countryName: "독일"),
+    CountryCodeOption(code: "+33", countryName: "프랑스"),
+    CountryCodeOption(code: "+61", countryName: "호주"),
+    CountryCodeOption(code: "+91", countryName: "인도"),
+    CountryCodeOption(code: "+65", countryName: "싱가포르"),
+    CountryCodeOption(code: "+886", countryName: "대만"),
+    CountryCodeOption(code: "+84", countryName: "베트남"),
+    CountryCodeOption(code: "+66", countryName: "태국"),
+    CountryCodeOption(code: "+852", countryName: "홍콩")
   ]
   
   var familyName = ""
@@ -33,7 +39,7 @@ final class AddContactViewModel {
   var email = ""
   var countryCode = "+82"
   var phone = ""
-  var linkedInURL = ""
+  var url = ""
   var group = ""
   var selectedImageData: Data?
   var note = "" {
@@ -70,7 +76,7 @@ final class AddContactViewModel {
     familyName = contact.familyName
     givenName = contact.givenName
     email = contact.emailAddresses.first?.value as String? ?? ""
-    linkedInURL = contact.urlAddresses.first?.value as String? ?? ""
+    url = contact.urlAddresses.first?.value as String? ?? ""
     selectedImageData = contact.imageData
 
     if let phoneNumber = contact.phoneNumbers.first?.value.stringValue {
@@ -91,7 +97,7 @@ final class AddContactViewModel {
       company: "",
       email: trimmed(email),
       phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
-      linkedInURL: trimmed(linkedInURL),
+      url: trimmed(url),
       group: group,
       note: trimmed(note),
       profileImageData: selectedImageData

@@ -42,7 +42,7 @@ struct AddContactPhoneNumberField: View {
       }
       .buttonStyle(.plain)
 
-      TextField("전화번호", text: $phone)
+      TextField("전화번호", text: formattedPhone)
         .typeStyle(.body)
         .foregroundStyle(.gray950)
         .frame(height: 54)
@@ -52,5 +52,12 @@ struct AddContactPhoneNumberField: View {
         .submitLabel(.next)
         .onSubmit(onSubmit)
     }
+  }
+
+  private var formattedPhone: Binding<String> {
+    Binding(
+      get: { ContactPhoneNumberFormatter.hyphenated(phone) },
+      set: { phone = ContactPhoneNumberFormatter.digitsOnly($0) }
+    )
   }
 }

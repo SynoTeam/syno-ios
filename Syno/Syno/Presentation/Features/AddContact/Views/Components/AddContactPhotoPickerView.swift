@@ -23,12 +23,34 @@ struct AddContactPhotoPickerView: View {
   /// 카메라 촬영 화면 표시 여부입니다.
   @State private var isShowingCamera = false
 
+  /// 카메라 시트가 닫힌 뒤 크롭 화면으로 넘길 이미지입니다.
+  @State private var pendingCameraImage: UIImage?
+
+  /// 크롭 화면에 표시할 원본 이미지입니다.
+  @State private var cropRequest: PhotoCropRequest?
+
+  /// 이미지 로드 또는 렌더링 실패 알림입니다.
+  @State private var toast: Toast?
+
   var body: some View {
     VStack(spacing: 20) {
       profileImage
       photoMenu
     }
     .frame(maxWidth: .infinity)
+    .sheet(isPresented: $isShowingCamera, onDismiss: presentPendingCameraImage) {
+      CameraPickerView { image in
+        pendingCameraImage = image
+      }
+      .ignoresSafeArea()
+    }
+    .fullScreenCover(item: $cropRequest) { request in
+      PhotoCropView(
+        image: request.image,
+        onComplete: { selectedImageData = $0 }
+      )
+    }
+    .toast(item: $toast)
   }
 
   private var profileImage: some View {
@@ -52,12 +74,10 @@ struct AddContactPhotoPickerView: View {
 
   private var photoMenu: some View {
     Menu {
-      if UIImagePickerController.isSourceTypeAvailable(.camera) {
-        Button {
-          isShowingCamera = true
-        } label: {
-          Label("사진 촬영하기", systemImage: "camera")
-        }
+      Button {
+        openCamera()
+      } label: {
+        Label("사진 촬영하기", systemImage: "camera")
       }
 
       Button {
@@ -74,7 +94,6 @@ struct AddContactPhotoPickerView: View {
         .background(.gray100)
         .clipShape(RoundedRectangle(cornerRadius: 999))
     }
-    .buttonStyle(.plain)
     .tint(.gray700)
     .photosPicker(
       isPresented: $isShowingPhotoPicker,
@@ -86,21 +105,52 @@ struct AddContactPhotoPickerView: View {
         await loadImage(from: selectedPhotoItem)
       }
     }
-    .sheet(isPresented: $isShowingCamera) {
-      CameraPickerView { image in
-        selectedImageData = image.jpegData(compressionQuality: 0.85)
-      }
-      .ignoresSafeArea()
-    }
   }
 
   private func loadImage(from item: PhotosPickerItem?) async {
     guard let item else {
-      selectedImageData = nil
       return
     }
 
-    let data = try? await item.loadTransferable(type: Data.self)
-    selectedImageData = data
+    do {
+      guard
+        let data = try await item.loadTransferable(type: Data.self),
+        let image = UIImage(data: data)
+      else {
+        showFailureToast("사진을 불러오지 못했습니다.")
+        return
+      }
+
+      cropRequest = PhotoCropRequest(image: image)
+    } catch {
+      showFailureToast("사진을 불러오지 못했습니다.")
+    }
   }
+
+  private func openCamera() {
+    guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+      showFailureToast("이 기기에서는 카메라를 사용할 수 없습니다.")
+      return
+    }
+
+    isShowingCamera = true
+  }
+
+  private func presentPendingCameraImage() {
+    guard let pendingCameraImage else {
+      return
+    }
+
+    self.pendingCameraImage = nil
+    cropRequest = PhotoCropRequest(image: pendingCameraImage)
+  }
+
+  private func showFailureToast(_ message: String) {
+    toast = Toast(message: message, style: .failure)
+  }
+}
+
+private struct PhotoCropRequest: Identifiable {
+  let id = UUID()
+  let image: UIImage
 }

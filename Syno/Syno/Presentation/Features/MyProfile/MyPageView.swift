@@ -14,6 +14,7 @@ struct MyPageView: View {
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   let labelTranslator: any LabelTranslating
+  let existingGroups: [String]
   let onSave: (Contact) -> Void
 
   init(
@@ -26,6 +27,7 @@ struct MyPageView: View {
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     labelTranslator: any LabelTranslating,
+    existingGroups: [String] = [],
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
     self.contact = contact
@@ -33,6 +35,7 @@ struct MyPageView: View {
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.labelTranslator = labelTranslator
+    self.existingGroups = existingGroups
     self.onSave = onSave
   }
 
@@ -60,7 +63,11 @@ struct MyPageView: View {
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         NavigationLink {
-          MyPageEditView(contact: contact, onSave: onSave)
+          MyPageEditView(
+            contact: contact,
+            existingGroups: existingGroups,
+            onSave: onSave
+          )
         } label: {
           Image(systemName: "pencil")
         }
@@ -105,7 +112,7 @@ struct MyPageView: View {
     VStack(alignment: .leading, spacing: 24) {
       profileInfo(label: "이메일", value: emailText)
       profileInfo(label: "전화번호", value: phoneText)
-      profileInfo(label: "URL", value: linkedInText, lineLimit: 1)
+      profileInfo(label: "URL", value: urlText, lineLimit: 1)
     }
     .profileCard()
   }
@@ -174,11 +181,11 @@ struct MyPageView: View {
   }
 
   private var phoneText: String {
-    displayValue(contact.phone)
+    displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone))
   }
 
-  private var linkedInText: String {
-    displayValue(contact.linkedInURL)
+  private var urlText: String {
+    displayValue(contact.url)
   }
 
   private var groupText: String {

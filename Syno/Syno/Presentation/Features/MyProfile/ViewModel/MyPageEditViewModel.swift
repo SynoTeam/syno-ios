@@ -22,7 +22,7 @@ final class MyPageEditViewModel {
   var email = ""
   var countryCode = "+82"
   var phone = ""
-  var linkedInURL = ""
+  var url = ""
   var group = ""
   var selectedImageData: Data?
   var note = "" {
@@ -51,7 +51,7 @@ final class MyPageEditViewModel {
     familyName = nameParts.familyName
     givenName = nameParts.givenName
     email = contact.email
-    linkedInURL = contact.linkedInURL
+    url = contact.url
     group = contact.group
     selectedImageData = contact.profileImageData
     note = contact.note
@@ -83,7 +83,7 @@ final class MyPageEditViewModel {
       company: originalContact.company,
       email: trimmed(email),
       phone: ContactPhoneNumberFormatter.formatted(countryCode: countryCode, phone: phone),
-      linkedInURL: trimmed(linkedInURL),
+      url: trimmed(url),
       group: group,
       note: trimmed(note),
       profileImageData: selectedImageData,

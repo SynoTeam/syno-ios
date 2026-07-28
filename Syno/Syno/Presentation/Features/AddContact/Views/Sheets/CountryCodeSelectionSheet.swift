@@ -14,6 +14,9 @@ struct CountryCodeSelectionSheet: View {
   /// 시트 안에서만 변경되는 임시 국가번호 값입니다.
   @State private var draftCountryCode: String
 
+  /// 국가번호 목록을 필터링하는 검색어입니다.
+  @State private var searchQuery = ""
+
   /// 체크 버튼을 눌렀을 때 부모 폼에 선택값을 반영하는 콜백입니다.
   let onApply: (String) -> Void
 
@@ -26,61 +29,117 @@ struct CountryCodeSelectionSheet: View {
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      AddContactSheetHeader(
-        title: "국가번호 선택",
-        onCancel: { dismiss() }
-      ) {
-        onApply(draftCountryCode)
-        dismiss()
-      }
-
-      VStack(spacing: 0) {
-        ForEach(AddContactViewModel.countryCodeOptions.indices, id: \.self) { index in
-          let option = AddContactViewModel.countryCodeOptions[index]
-
-          Button {
-            draftCountryCode = option.code
-          } label: {
-            HStack(spacing: 12) {
-              Text(option.countryName)
-                .typeStyle(.body)
-                .foregroundStyle(.gray950)
-
-              Spacer()
-
-              Text(option.code)
-                .typeStyle(.body)
-                .foregroundStyle(.gray500)
-
-              if draftCountryCode == option.code {
-                Image(systemName: "checkmark")
-                  .font(.system(size: 16, weight: .semibold))
-                  .foregroundStyle(.violet500)
-              }
+    NavigationStack {
+      ScrollView {
+        VStack(spacing: 8) {
+          if filteredOptions.isEmpty {
+            ContentUnavailableView("검색결과가 없습니다.", systemImage: "magnifyingglass")
+              .frame(maxWidth: .infinity)
+              .frame(height: 180)
+          } else {
+            ForEach(filteredOptions) { option in
+              countryRow(option)
             }
-            .frame(height: 54)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
-            .contentShape(Rectangle())
           }
-          .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 88)
+      }
+      .background(Color.gray50)
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        searchField
+      }
+      .navigationTitle("국가번호 선택")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Button(action: dismiss.callAsFunction) {
+            Image(systemName: "xmark")
+              .font(.system(size: 16, weight: .semibold))
+              .foregroundStyle(.gray950)
+          }
+        }
 
-          if index < AddContactViewModel.countryCodeOptions.count - 1 {
-            Divider()
-              .background(.gray50)
-              .padding(.horizontal, 20)
+        ToolbarItem(placement: .topBarTrailing) {
+          Button {
+            onApply(draftCountryCode)
+            dismiss()
+          } label: {
+            Image(systemName: "checkmark")
+              .font(.system(size: 17, weight: .semibold))
+              .foregroundStyle(.violet500)
           }
         }
       }
-      .background(.white)
-      .clipShape(RoundedRectangle(cornerRadius: 22))
-      .padding(.horizontal, 16)
-
-      Spacer(minLength: 0)
     }
-    .padding(.top, 16)
-    .background(Color.gray50)
+  }
+
+  private func countryRow(_ option: CountryCodeOption) -> some View {
+    let isSelected = draftCountryCode == option.code
+
+    return Button {
+      draftCountryCode = option.code
+    } label: {
+      HStack(spacing: 8) {
+        Image(systemName: "checkmark")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(.violet500)
+          .opacity(isSelected ? 1 : 0)
+
+        Text(option.displayTitle)
+          .typeStyle(isSelected ? .calloutEmphasized : .callout)
+          .foregroundStyle(.gray900)
+
+        Spacer()
+      }
+      .padding(.horizontal, 18)
+      .frame(height: 54)
+      .frame(maxWidth: .infinity)
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 999))
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  private var filteredOptions: [CountryCodeOption] {
+    CountryCodeSearch.results(
+      options: AddContactViewModel.countryCodeOptions,
+      query: searchQuery,
+      selectedCountryCode: draftCountryCode
+    )
+  }
+
+  private var searchField: some View {
+    HStack(spacing: 8) {
+      Image(systemName: "magnifyingglass")
+        .foregroundStyle(.gray500)
+
+      TextField("검색하기", text: $searchQuery)
+        .typeStyle(.body)
+        .foregroundStyle(.gray950)
+        .autocorrectionDisabled()
+
+      Button {
+        searchQuery = ""
+      } label: {
+        Image(systemName: "xmark.circle.fill")
+          .foregroundStyle(.gray400)
+      }
+      .buttonStyle(.plain)
+      .disabled(searchQuery.isEmpty || filteredOptions.isEmpty)
+      .opacity(searchQuery.isEmpty || filteredOptions.isEmpty ? 0.4 : 1)
+      .accessibilityLabel("검색어 지우기")
+
+      Image(systemName: "waveform")
+        .foregroundStyle(.gray500)
+    }
+    .padding(.horizontal, 16)
+    .frame(height: 48)
+    .glassEffect(.regular, in: .capsule)
+    .padding(.horizontal, 16)
+    .padding(.bottom, 8)
   }
 }
 

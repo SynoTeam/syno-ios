@@ -65,8 +65,8 @@ struct ContactDetailView: View {
   private var infoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
       profileInfo(label: "이메일", value: displayValue(contact.email))
-      profileInfo(label: "연락처", value: displayValue(contact.phone))
-      profileInfo(label: "링크드인 URL", value: displayValue(contact.linkedInURL), lineLimit: 1)
+      profileInfo(label: "연락처", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
+      profileInfo(label: "URL", value: displayValue(contact.url), lineLimit: 1)
       profileInfo(label: "그룹", value: displayValue(contact.group))
 
       if !contact.note.isEmpty {
@@ -142,7 +142,7 @@ struct ContactDetailView: View {
         company: "@syno",
         email: "sample@syno.app",
         phone: "010-0000-0000",
-        linkedInURL: "https://www.linkedin.com/in/syno",
+        url: "https://www.linkedin.com/in/syno",
         note: "샘플 연락처 메모"
       ),
       noteRepository: PreviewRepositories.note,

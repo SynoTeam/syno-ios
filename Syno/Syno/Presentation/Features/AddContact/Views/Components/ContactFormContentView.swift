@@ -14,7 +14,7 @@ struct ContactFormContentView: View {
   @Binding var email: String
   @Binding var countryCode: String
   @Binding var phone: String
-  @Binding var linkedInURL: String
+  @Binding var url: String
   @Binding var group: String
   @Binding var note: String
 
@@ -78,14 +78,14 @@ struct ContactFormContentView: View {
           focusedField: focusedField,
           onCountryCodeTap: onCountryCodeTap
         ) {
-          focusedField.wrappedValue = .linkedInURL
+          focusedField.wrappedValue = .url
         }
         Divider()
           .background(.gray50)
         AddContactTextField(
-          "링크드인 URL",
-          text: $linkedInURL,
-          field: .linkedInURL,
+          "URL",
+          text: $url,
+          field: .url,
           submitLabel: .done,
           focusedField: focusedField
         ) {

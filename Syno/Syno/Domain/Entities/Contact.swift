@@ -14,7 +14,7 @@ struct Contact: Identifiable, Equatable, Hashable {
   var company: String
   var email: String
   var phone: String
-  var linkedInURL: String
+  var url: String
   var group: String
   var note: String
   var profileImageData: Data?
@@ -28,7 +28,7 @@ struct Contact: Identifiable, Equatable, Hashable {
     company: String,
     email: String = "",
     phone: String = "",
-    linkedInURL: String = "",
+    url: String = "",
     group: String = "",
     note: String = "",
     profileImageData: Data? = nil,
@@ -41,7 +41,7 @@ struct Contact: Identifiable, Equatable, Hashable {
     self.company = company
     self.email = email
     self.phone = phone
-    self.linkedInURL = linkedInURL
+    self.url = url
     self.group = group
     self.note = note
     self.profileImageData = profileImageData

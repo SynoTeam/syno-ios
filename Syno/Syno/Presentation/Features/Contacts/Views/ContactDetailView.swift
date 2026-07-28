@@ -65,7 +65,7 @@ struct ContactDetailView: View {
   private var infoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
       profileInfo(label: "이메일", value: displayValue(contact.email))
-      profileInfo(label: "연락처", value: displayValue(contact.phone))
+      profileInfo(label: "연락처", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
       profileInfo(label: "링크드인 URL", value: displayValue(contact.linkedInURL), lineLimit: 1)
       profileInfo(label: "그룹", value: displayValue(contact.group))
 

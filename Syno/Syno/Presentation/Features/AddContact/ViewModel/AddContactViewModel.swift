@@ -25,7 +25,16 @@ final class AddContactViewModel {
     CountryCodeOption(code: "+1", countryName: "미국"),
     CountryCodeOption(code: "+81", countryName: "일본"),
     CountryCodeOption(code: "+86", countryName: "중국"),
-    CountryCodeOption(code: "+44", countryName: "영국")
+    CountryCodeOption(code: "+44", countryName: "영국"),
+    CountryCodeOption(code: "+49", countryName: "독일"),
+    CountryCodeOption(code: "+33", countryName: "프랑스"),
+    CountryCodeOption(code: "+61", countryName: "호주"),
+    CountryCodeOption(code: "+91", countryName: "인도"),
+    CountryCodeOption(code: "+65", countryName: "싱가포르"),
+    CountryCodeOption(code: "+886", countryName: "대만"),
+    CountryCodeOption(code: "+84", countryName: "베트남"),
+    CountryCodeOption(code: "+66", countryName: "태국"),
+    CountryCodeOption(code: "+852", countryName: "홍콩")
   ]
   
   var familyName = ""

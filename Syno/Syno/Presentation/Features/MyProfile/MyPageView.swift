@@ -174,7 +174,7 @@ struct MyPageView: View {
   }
 
   private var phoneText: String {
-    displayValue(contact.phone)
+    displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone))
   }
 
   private var linkedInText: String {

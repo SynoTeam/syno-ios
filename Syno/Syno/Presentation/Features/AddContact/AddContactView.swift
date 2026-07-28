@@ -54,7 +54,7 @@ struct AddContactView: View {
       CountryCodeSelectionSheet(selectedCountryCode: viewModel.countryCode) { countryCode in
         viewModel.selectCountryCode(countryCode)
       }
-      .presentationDetents([.height(380)])
+      .presentationDetents([.large])
       .presentationDragIndicator(.visible)
     }
     .sheet(isPresented: $isShowingDeviceContactPicker) {

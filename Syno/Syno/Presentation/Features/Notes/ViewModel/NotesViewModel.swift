@@ -22,13 +22,7 @@ final class NotesViewModel {
   }
 
   var availableFilters: [NoteFilter] {
-    var filters: [NoteFilter] = [.all]
-
-    if notes.contains(where: \.isFavorite) {
-      filters.append(.favorite)
-    }
-
-    return filters + groupNames.map(NoteFilter.group)
+    [.all] + groupNames.map(NoteFilter.group)
   }
 
   var filteredNotes: [Note] {
@@ -37,8 +31,6 @@ final class NotesViewModel {
     switch selectedFilter {
     case .all:
       filteredNotes = notes
-    case .favorite:
-      filteredNotes = notes.filter(\.isFavorite)
     case let .group(groupName):
       filteredNotes = notes.filter { note in
         guard let contactID = note.contactId else {
@@ -64,7 +56,7 @@ final class NotesViewModel {
   }
 
   var isEmpty: Bool {
-    notes.isEmpty
+    filteredNotes.isEmpty
   }
 
   func replaceNotes(

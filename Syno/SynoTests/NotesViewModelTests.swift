@@ -62,7 +62,7 @@ final class NotesViewModelTests: XCTestCase {
     XCTAssertEqual(viewModel.notes.count, 1)
     XCTAssertEqual(viewModel.notes.first?.content, "최신 메모")
     XCTAssertEqual(viewModel.notes.first?.isFavorite, true)
-    XCTAssertEqual(viewModel.availableFilters, [.all, .favorite])
+    XCTAssertEqual(viewModel.availableFilters, [.all])
   }
 
   @MainActor
@@ -110,5 +110,23 @@ final class NotesViewModelTests: XCTestCase {
     ])
 
     XCTAssertEqual(viewModel.filteredNotes.map(\.content), ["나", "가"])
+  }
+
+  @MainActor
+  func testIsEmptyReflectsSelectedFilterNotWholeList() async {
+    let viewModel = NotesViewModel()
+    viewModel.replaceNotes(
+      [
+        Note(contactName: "가", content: "메모", createdAt: Date(timeIntervalSince1970: 100))
+      ],
+      groupNames: ["Apple", "Apex"],
+      groupNamesByContactID: [:]
+    )
+
+    XCTAssertFalse(viewModel.isEmpty)
+
+    viewModel.selectedFilter = .group("Apex")
+
+    XCTAssertTrue(viewModel.isEmpty)
   }
 }

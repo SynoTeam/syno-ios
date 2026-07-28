@@ -8,6 +8,30 @@ import UIKit
 @MainActor
 @Observable
 final class ChatViewModel {
+  struct MessageDaySection: Identifiable {
+    let date: Date
+    let messages: [Note]
+
+    var id: Date { date }
+
+    var title: String {
+      let isCurrentYear = Calendar.current.isDate(date, equalTo: Date(), toGranularity: .year)
+      let formatter = isCurrentYear ? Self.monthDayFormatter : Self.yearMonthDayFormatter
+      return formatter.string(from: date)
+    }
+
+    private static let monthDayFormatter = makeFormatter("M월 d일 (E)")
+    private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일 (E)")
+
+    private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+      let formatter = DateFormatter()
+      formatter.locale = Locale(identifier: "ko_KR")
+      formatter.calendar = Calendar(identifier: .gregorian)
+      formatter.dateFormat = dateFormat
+      return formatter
+    }
+  }
+
   private(set) var messages: [Note] = []
   var messageText = ""
   var messageSearchText = ""
@@ -53,6 +77,23 @@ final class ChatViewModel {
         analysis: imageAnalyses[$0.id]
       ).localizedStandardContains(searchText)
     }
+  }
+
+  /// 같은 날짜에 작성된 메시지를 하나의 섹션으로 묶어 시간순으로 반환합니다.
+  var messageSections: [MessageDaySection] {
+    let calendar = Calendar.current
+    let groupedMessages = Dictionary(grouping: messages) { message in
+      calendar.startOfDay(for: message.createdAt)
+    }
+
+    return groupedMessages
+      .map { date, messages in
+        MessageDaySection(
+          date: date,
+          messages: messages.sorted { $0.createdAt < $1.createdAt }
+        )
+      }
+      .sorted { $0.date < $1.date }
   }
 
   func loadMessages() async {

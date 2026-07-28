@@ -16,7 +16,7 @@ struct ChatMessageBubble: View {
     VStack(alignment: .trailing, spacing: 4) {
       messageContent
 
-      Text(note.timeText)
+      Text(note.clockTimeText)
         .typeStyle(.caption1)
         .foregroundStyle(.gray500)
     }

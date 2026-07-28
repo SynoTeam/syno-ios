@@ -88,9 +88,13 @@ struct ChatView: View {
             ChatEmptyStateView()
           } else {
             LazyVStack(alignment: .trailing, spacing: 12) {
-              ForEach(viewModel.messages) { message in
-                ChatMessageBubble(note: message)
-                  .id(message.id)
+              ForEach(viewModel.messageSections) { section in
+                ChatDateDivider(title: section.title)
+
+                ForEach(section.messages) { message in
+                  ChatMessageBubble(note: message)
+                    .id(message.id)
+                }
               }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -190,7 +194,7 @@ struct ChatView: View {
   }
 
   private var messageInputBar: some View {
-    HStack(spacing: 10) {
+    HStack(alignment: .bottom, spacing: 10) {
       PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
         Image(systemName: "plus")
           .font(.system(size: 22, weight: .regular))
@@ -203,10 +207,8 @@ struct ChatView: View {
 
       TextField("메모 입력", text: binding(\.messageText), axis: .vertical)
         .typeStyle(.body)
-        .lineLimit(1...4)
+        .lineLimit(1...6)
         .focused($isInputFocused)
-        .submitLabel(.send)
-        .onSubmit(viewModel.sendMessage)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.gray100)
@@ -290,6 +292,29 @@ struct ChatView: View {
         }
       }
     )
+  }
+}
+
+private struct ChatDateDivider: View {
+  let title: String
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Rectangle()
+        .fill(Color.gray200)
+        .frame(height: 1)
+
+      Text(title)
+        .typeStyle(.caption1)
+        .foregroundStyle(.gray400)
+        .fixedSize(horizontal: true, vertical: false)
+
+      Rectangle()
+        .fill(Color.gray200)
+        .frame(height: 1)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 8)
   }
 }
 

@@ -74,6 +74,33 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
     viewModel.messageSearchText = "냉장고"
     XCTAssertTrue(viewModel.messageSearchResults.isEmpty)
   }
+
+  @MainActor
+  func testMessageSectionsGroupsMessagesByCalendarDayInChronologicalOrder() async throws {
+    let contact = Contact(name: "홍길동", role: "", company: "")
+    let calendar = Calendar(identifier: .gregorian)
+    let firstDate = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 15, hour: 9)))
+    let secondDate = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 15, hour: 18)))
+    let thirdDate = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 16, hour: 9)))
+    let noteRepository = NoteRepositorySpy()
+    try noteRepository.save(Note(contactId: contact.id, contactName: contact.name, content: "저녁", createdAt: secondDate))
+    try noteRepository.save(Note(contactId: contact.id, contactName: contact.name, content: "다음 날", createdAt: thirdDate))
+    try noteRepository.save(Note(contactId: contact.id, contactName: contact.name, content: "아침", createdAt: firstDate))
+    let viewModel = ChatViewModel(
+      contact: contact,
+      repository: noteRepository,
+      imageAnalyzer: FailingImageAnalyzer(),
+      imageAnalysisRepository: ImageAnalysisRepositorySpy(),
+      labelTranslator: StaticLabelDictionary(translations: [:])
+    )
+
+    await viewModel.loadMessages()
+
+    XCTAssertEqual(viewModel.messageSections.count, 2)
+    XCTAssertEqual(viewModel.messageSections.first?.messages.map(\.content), ["아침", "저녁"])
+    XCTAssertEqual(viewModel.messageSections.last?.messages.map(\.content), ["다음 날"])
+    XCTAssertEqual(viewModel.messageSections.first?.title, "10월 15일 (목)")
+  }
 }
 
 @MainActor

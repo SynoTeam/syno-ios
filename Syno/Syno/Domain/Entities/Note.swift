@@ -33,6 +33,11 @@ struct Note: Identifiable, Equatable {
     return Self.yearMonthDayFormatter.string(from: createdAt)
   }
 
+  /// 날짜와 무관하게 시각만 표시합니다. 날짜별로 묶어 보여주는 채팅 화면에서 사용합니다.
+  var clockTimeText: String {
+    Self.timeFormatter.string(from: createdAt)
+  }
+
   var contact: Contact {
     Contact(
       id: contactId ?? id,

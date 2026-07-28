@@ -48,22 +48,29 @@ struct AddContactView: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 24) {
-        AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
-        importDeviceContactButton
-        contactForm
-        deleteButton
+    VStack(spacing: 0) {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 24) {
+          AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
+          importDeviceContactButton
+          contactForm
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 32)
+        .padding(.bottom, 24)
       }
-      .padding(.horizontal, 16)
-      .padding(.top, 32)
-      .padding(.bottom, 40)
+      .toast(item: $toast)
+
+      deleteButton
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
     }
     .background(Color.gray50)
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
     .navigationTitle(existingContact == nil ? "연락처 추가" : "연락처 편집")
     .navigationBarTitleDisplayMode(.inline)
+    .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button("완료", action: saveContact)
@@ -93,7 +100,6 @@ struct AddContactView: View {
       }
     }
     .destructiveConfirmationAlert(item: $confirmationAlert)
-    .toast(item: $toast)
   }
 
   private var importDeviceContactButton: some View {
@@ -148,12 +154,11 @@ struct AddContactView: View {
         Label("연락처 삭제하기", systemImage: "trash")
           .typeStyle(.headline)
           .foregroundStyle(.errorRed)
-          .frame(maxWidth: .infinity, minHeight: 52)
-          .background(.errorRed.opacity(0.08))
+          .frame(maxWidth: .infinity, minHeight: 60)
+          .background(.bgError01)
           .clipShape(Capsule())
       }
       .buttonStyle(.plain)
-      .padding(.top, 8)
     }
   }
 

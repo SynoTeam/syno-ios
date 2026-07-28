@@ -13,6 +13,7 @@ struct ContactsView: View {
   @State private var isAllCollapsed = true
   @State private var toast: Toast?
   @State private var contactPendingDeletion: Contact?
+  @State private var selectedContact: Contact?
   
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
@@ -79,32 +80,18 @@ struct ContactsView: View {
             title: "Favorite",
             count: viewModel.favoriteContacts.count,
             contacts: viewModel.favoriteContacts,
-            noteRepository: noteRepository,
-            noteImageAnalyzer: noteImageAnalyzer,
-            noteImageAnalysisRepository: noteImageAnalysisRepository,
-            labelTranslator: labelTranslator,
-            viewModel: viewModel,
-            existingGroups: viewModel.existingGroups,
-            onContactUpdated: showContactUpdatedToast,
-            onContactDeleted: showContactDeletedToast,
+            onSelectContact: { selectedContact = $0 },
             isCollapsed: $isFavoriteCollapsed,
             onToggleFavorite: toggleFavorite,
             onDelete: requestDelete
           )
         }
-        
+
         ContactsSectionView(
           title: "All",
           count: viewModel.regularContactCount,
           contacts: viewModel.regularContacts,
-          noteRepository: noteRepository,
-          noteImageAnalyzer: noteImageAnalyzer,
-          noteImageAnalysisRepository: noteImageAnalysisRepository,
-          labelTranslator: labelTranslator,
-          viewModel: viewModel,
-          existingGroups: viewModel.existingGroups,
-          onContactUpdated: showContactUpdatedToast,
-          onContactDeleted: showContactDeletedToast,
+          onSelectContact: { selectedContact = $0 },
           isCollapsed: $isAllCollapsed,
           onToggleFavorite: toggleFavorite,
           onDelete: requestDelete
@@ -124,6 +111,21 @@ struct ContactsView: View {
         viewModel: viewModel,
         initiallySelectedContactID: contact.id,
         onDeleted: handleDeletedContacts
+      )
+    }
+    .navigationDestination(item: $selectedContact) { contact in
+      ContactDetailView(
+        contact: contact,
+        noteRepository: noteRepository,
+        noteImageAnalyzer: noteImageAnalyzer,
+        noteImageAnalysisRepository: noteImageAnalysisRepository,
+        labelTranslator: labelTranslator,
+        viewModel: viewModel,
+        existingGroups: viewModel.existingGroups,
+        onDeleted: {
+          selectedContact = nil
+          showContactDeletedToast()
+        }
       )
     }
     .onAppear {
@@ -218,16 +220,6 @@ struct ContactsView: View {
           id: id,
           isFavorite: !isFavorite
         )
-      }
-    )
-  }
-
-  private func showContactUpdatedToast(_ originalContact: Contact) {
-    toast = Toast(
-      message: "연락처가 수정되었습니다",
-      style: .success,
-      action: Toast.Action(title: "되돌리기") {
-        viewModel.saveMyContact(originalContact)
       }
     )
   }

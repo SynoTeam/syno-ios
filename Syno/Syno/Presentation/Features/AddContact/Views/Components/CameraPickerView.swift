@@ -10,7 +10,7 @@ import UIKit
 
 /// SwiftUI에서 UIKit 카메라 촬영 화면을 사용할 수 있게 감싸는 래퍼입니다.
 struct CameraPickerView: UIViewControllerRepresentable {
-  /// 촬영 또는 편집이 완료된 이미지를 부모 뷰로 전달하는 콜백입니다.
+  /// 촬영이 완료된 원본 이미지를 부모 뷰로 전달하는 콜백입니다.
   let onImagePicked: (UIImage) -> Void
 
   @Environment(\.dismiss) private var dismiss
@@ -18,7 +18,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
   func makeUIViewController(context: Context) -> UIImagePickerController {
     let picker = UIImagePickerController()
     picker.sourceType = .camera
-    picker.allowsEditing = true
+    picker.allowsEditing = false
     picker.delegate = context.coordinator
     return picker
   }
@@ -51,7 +51,7 @@ extension CameraPickerView {
       _ picker: UIImagePickerController,
       didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
     ) {
-      let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage
+      let image = info[.originalImage] as? UIImage
 
       if let image {
         onImagePicked(image)

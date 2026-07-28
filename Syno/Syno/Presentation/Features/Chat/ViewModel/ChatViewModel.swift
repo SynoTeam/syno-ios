@@ -8,6 +8,17 @@ import UIKit
 @MainActor
 @Observable
 final class ChatViewModel {
+  struct PendingMessage: Identifiable {
+    enum Status: Equatable {
+      case sending
+      case failed
+    }
+
+    let id: UUID
+    let note: Note
+    var status: Status
+  }
+
   struct MessageDaySection: Identifiable {
     let date: Date
     let messages: [Note]
@@ -33,6 +44,7 @@ final class ChatViewModel {
   }
 
   private(set) var messages: [Note] = []
+  private(set) var pendingMessages: [PendingMessage] = []
   var messageText = ""
   var messageSearchText = ""
   private(set) var persistenceError: String?
@@ -124,8 +136,29 @@ final class ChatViewModel {
     }
 
     let note = makeNote(content: trimmedText)
-    save(note) {
-      messageText = ""
+    enqueueMessage(note)
+    messageText = ""
+  }
+
+  func retryPendingMessage(id: PendingMessage.ID) {
+    guard let index = pendingMessages.firstIndex(where: { $0.id == id }) else {
+      return
+    }
+
+    pendingMessages[index].status = .sending
+    persistPendingMessage(id: id)
+  }
+
+  @discardableResult
+  func deleteMessage(id: Note.ID) -> Bool {
+    do {
+      try repository.delete(id: id)
+      messages.removeAll { $0.id == id }
+      imageAnalyses[id] = nil
+      persistenceError = nil
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -197,6 +230,31 @@ final class ChatViewModel {
     return components
       .filter { !$0.isEmpty }
       .joined(separator: "\n")
+  }
+
+  private func enqueueMessage(_ note: Note) {
+    let pendingMessage = PendingMessage(id: UUID(), note: note, status: .sending)
+    pendingMessages.append(pendingMessage)
+
+    Task { @MainActor in
+      persistPendingMessage(id: pendingMessage.id)
+    }
+  }
+
+  private func persistPendingMessage(id: PendingMessage.ID) {
+    guard let index = pendingMessages.firstIndex(where: { $0.id == id }) else {
+      return
+    }
+
+    let note = pendingMessages[index].note
+    do {
+      try repository.save(note)
+      messages.append(note)
+      pendingMessages.removeAll { $0.id == id }
+      persistenceError = nil
+    } catch {
+      pendingMessages[index].status = .failed
+    }
   }
 
   @discardableResult

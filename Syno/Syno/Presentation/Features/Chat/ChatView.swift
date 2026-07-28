@@ -13,6 +13,9 @@ struct ChatView: View {
   @State private var viewModel: ChatViewModel
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var isMessageSearchPresented = false
+  @State private var messagePendingDeletion: Note?
+  @State private var confirmationAlert: DestructiveConfirmationAlert?
+  @State private var toast: Toast?
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
 
@@ -40,6 +43,7 @@ struct ChatView: View {
       messageInputBar
     }
     .background(Color.gray50)
+    .toast(item: $toast)
     .navigationTitle(viewModel.contact.name)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
@@ -72,6 +76,7 @@ struct ChatView: View {
     } message: {
       Text(viewModel.persistenceError ?? "")
     }
+    .destructiveConfirmationAlert(item: $confirmationAlert)
   }
 
   private var messagesScrollView: some View {
@@ -84,7 +89,7 @@ struct ChatView: View {
         }
 
         ScrollView {
-          if viewModel.messages.isEmpty {
+          if viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty {
             ChatEmptyStateView()
           } else {
             LazyVStack(alignment: .trailing, spacing: 12) {
@@ -92,9 +97,23 @@ struct ChatView: View {
                 ChatDateDivider(title: section.title)
 
                 ForEach(section.messages) { message in
-                  ChatMessageBubble(note: message)
+                  ChatMessageBubble(
+                    note: message,
+                    onDelete: { requestDelete(message) }
+                  )
                     .id(message.id)
                 }
+              }
+
+              ForEach(viewModel.pendingMessages) { pendingMessage in
+                ChatMessageBubble(
+                  note: pendingMessage.note,
+                  pendingStatus: pendingMessage.status,
+                  onRetry: {
+                    viewModel.retryPendingMessage(id: pendingMessage.id)
+                  }
+                )
+                .id(pendingMessage.id)
               }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -109,6 +128,14 @@ struct ChatView: View {
         }
         .onChange(of: viewModel.messages.last?.id) { _, messageId in
           scrollToMessage(messageId, with: proxy)
+        }
+        .onChange(of: viewModel.pendingMessages.last?.id) { _, pendingMessageID in
+          guard let pendingMessageID else {
+            return
+          }
+          withAnimation(.snappy(duration: 0.2)) {
+            proxy.scrollTo(pendingMessageID, anchor: .bottom)
+          }
         }
         .onChange(of: isInputFocused) { _, isFocused in
           if isFocused {
@@ -272,6 +299,30 @@ struct ChatView: View {
     } else {
       isSearchFocused = false
     }
+  }
+
+  private func requestDelete(_ note: Note) {
+    messagePendingDeletion = note
+    confirmationAlert = DestructiveConfirmationAlert(
+      title: "이 메시지를\n삭제하겠습니까?",
+      message: "삭제한 메시지는 복구할 수 없습니다.",
+      acknowledgementText: nil
+    ) {
+      deletePendingMessage()
+    }
+  }
+
+  private func deletePendingMessage() {
+    guard let messagePendingDeletion else {
+      return
+    }
+
+    if viewModel.deleteMessage(id: messagePendingDeletion.id) {
+      toast = Toast(message: "메시지가 삭제되었습니다", style: .success, icon: "trash.fill")
+    } else {
+      toast = Toast(message: "메시지 삭제 실패했습니다", style: .failure)
+    }
+    self.messagePendingDeletion = nil
   }
 
   private func binding<Value>(

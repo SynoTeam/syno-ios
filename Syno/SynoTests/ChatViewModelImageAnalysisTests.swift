@@ -101,6 +101,34 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
     XCTAssertEqual(viewModel.messageSections.last?.messages.map(\.content), ["다음 날"])
     XCTAssertEqual(viewModel.messageSections.first?.title, "10월 15일 (목)")
   }
+
+  @MainActor
+  func testFailedMessageRemainsInlineAndCanBeRetried() async throws {
+    let contact = Contact(name: "홍길동", role: "", company: "")
+    let noteRepository = RetriableNoteRepositorySpy(shouldFailSaving: true)
+    let viewModel = ChatViewModel(
+      contact: contact,
+      repository: noteRepository,
+      imageAnalyzer: FailingImageAnalyzer(),
+      imageAnalysisRepository: ImageAnalysisRepositorySpy(),
+      labelTranslator: StaticLabelDictionary(translations: [:])
+    )
+    viewModel.messageText = "전송 실패 메시지"
+
+    viewModel.sendMessage()
+    await Task.yield()
+
+    XCTAssertEqual(viewModel.messages.count, 0)
+    XCTAssertEqual(viewModel.pendingMessages.count, 1)
+    XCTAssertEqual(viewModel.pendingMessages.first?.note.content, "전송 실패 메시지")
+    XCTAssertEqual(viewModel.pendingMessages.first?.status, .failed)
+
+    noteRepository.shouldFailSaving = false
+    viewModel.retryPendingMessage(id: try XCTUnwrap(viewModel.pendingMessages.first?.id))
+
+    XCTAssertTrue(viewModel.pendingMessages.isEmpty)
+    XCTAssertEqual(viewModel.messages.map(\.content), ["전송 실패 메시지"])
+  }
 }
 
 @MainActor
@@ -112,6 +140,31 @@ private final class NoteRepositorySpy: NoteRepository {
   }
 
   func save(_ note: Note) throws {
+    savedNotes.append(note)
+  }
+
+  func delete(id: Note.ID) throws {
+    savedNotes.removeAll { $0.id == id }
+  }
+}
+
+@MainActor
+private final class RetriableNoteRepositorySpy: NoteRepository {
+  var shouldFailSaving: Bool
+  private(set) var savedNotes: [Note] = []
+
+  init(shouldFailSaving: Bool) {
+    self.shouldFailSaving = shouldFailSaving
+  }
+
+  func fetch(contactId: UUID?) throws -> [Note] {
+    savedNotes.filter { $0.contactId == contactId }
+  }
+
+  func save(_ note: Note) throws {
+    if shouldFailSaving {
+      throw TestError.saveFailed
+    }
     savedNotes.append(note)
   }
 
@@ -154,4 +207,5 @@ private actor ImageAnalysisRepositorySpy: NoteImageAnalysisRepository {
 
 private enum TestError: Error {
   case analysisFailed
+  case saveFailed
 }

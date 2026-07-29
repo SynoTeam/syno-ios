@@ -19,6 +19,9 @@ struct ArchiveView: View {
   let noteRepository: any NoteRepository
 
   @State private var selectedTab: Tab = .photos
+  @State private var isSearching = false
+  @State private var searchText = ""
+  @FocusState private var isSearchFocused: Bool
   @State private var noteForSharing: Note?
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
@@ -29,6 +32,10 @@ struct ArchiveView: View {
   var body: some View {
     VStack(spacing: 0) {
       tabPicker
+
+      if isSearching {
+        searchBar
+      }
 
       ScrollView {
         switch selectedTab {
@@ -45,8 +52,13 @@ struct ArchiveView: View {
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        Image(systemName: "magnifyingglass")
-          .foregroundStyle(.gray950)
+        Button {
+          toggleSearch()
+        } label: {
+          Image(systemName: isSearching ? "xmark" : "magnifyingglass")
+            .foregroundStyle(.gray950)
+        }
+        .accessibilityLabel(isSearching ? "검색 닫기" : "검색")
       }
     }
     .sheet(item: $noteForSharing) { note in
@@ -90,9 +102,16 @@ struct ArchiveView: View {
     }
   }
 
+  private var trimmedSearchText: String {
+    searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
   private var photoSections: [ChatViewModel.MessageDaySection] {
     let calendar = Calendar.current
-    let photoNotes = viewModel.messages.filter { $0.imageData != nil }
+    var photoNotes = viewModel.messages.filter { $0.imageData != nil }
+    if !trimmedSearchText.isEmpty {
+      photoNotes = photoNotes.filter { viewModel.matches($0, searchText: trimmedSearchText) }
+    }
     let grouped = Dictionary(grouping: photoNotes) { calendar.startOfDay(for: $0.createdAt) }
     return grouped
       .map { date, notes in
@@ -105,15 +124,23 @@ struct ArchiveView: View {
   }
 
   private var linkNotes: [Note] {
-    viewModel.messages
-      .filter { viewModel.linkPreviews[$0.id] != nil }
-      .sorted { $0.createdAt < $1.createdAt }
+    var notes = viewModel.messages.filter { viewModel.linkPreviews[$0.id] != nil }
+    if !trimmedSearchText.isEmpty {
+      notes = notes.filter { note in
+        guard let preview = viewModel.linkPreviews[note.id] else {
+          return false
+        }
+        return preview.title.localizedStandardContains(trimmedSearchText)
+          || (preview.siteURL.host ?? "").localizedStandardContains(trimmedSearchText)
+      }
+    }
+    return notes.sorted { $0.createdAt < $1.createdAt }
   }
 
   @ViewBuilder
   private var photoGrid: some View {
     if photoSections.isEmpty {
-      emptyState("아직 주고받은 사진이 없습니다")
+      emptyState(trimmedSearchText.isEmpty ? "아직 주고받은 사진이 없습니다" : "검색 결과가 없습니다")
     } else {
       LazyVStack(alignment: .leading, spacing: 16) {
         ForEach(photoSections) { section in
@@ -161,7 +188,7 @@ struct ArchiveView: View {
   @ViewBuilder
   private var linkGrid: some View {
     if linkNotes.isEmpty {
-      emptyState("아직 주고받은 링크가 없습니다")
+      emptyState(trimmedSearchText.isEmpty ? "아직 주고받은 링크가 없습니다" : "검색 결과가 없습니다")
     } else {
       LazyVGrid(columns: linkColumns, spacing: 12) {
         ForEach(linkNotes) { note in
@@ -190,6 +217,46 @@ struct ArchiveView: View {
         }
       }
       .padding(16)
+    }
+  }
+
+  private var searchBar: some View {
+    HStack(spacing: 10) {
+      Image(systemName: "magnifyingglass")
+        .foregroundStyle(.gray400)
+
+      TextField("검색", text: $searchText)
+        .typeStyle(.body)
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        .focused($isSearchFocused)
+
+      if !searchText.isEmpty {
+        Button {
+          searchText = ""
+        } label: {
+          Image(systemName: "xmark.circle.fill")
+            .foregroundStyle(.gray400)
+        }
+        .buttonStyle(.plain)
+      }
+    }
+    .padding(.horizontal, 14)
+    .frame(height: 44)
+    .background(.gray100)
+    .clipShape(RoundedRectangle(cornerRadius: 14))
+    .padding(.horizontal, 16)
+    .padding(.top, 10)
+    .padding(.bottom, 4)
+  }
+
+  private func toggleSearch() {
+    isSearching.toggle()
+    if isSearching {
+      isSearchFocused = true
+    } else {
+      searchText = ""
+      isSearchFocused = false
     }
   }
 

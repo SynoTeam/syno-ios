@@ -17,6 +17,7 @@ struct ChatMessageBubble: View {
   var onShare: (() -> Void)?
   var onShowFullText: (() -> Void)?
   var linkPreview: NoteLinkPreviewResult?
+  var highlightQuery: String?
 
   var body: some View {
     messageStack
@@ -75,7 +76,7 @@ struct ChatMessageBubble: View {
         .clipShape(RoundedRectangle(cornerRadius: 24))
     } else {
       VStack(alignment: .leading, spacing: 0) {
-        Text(note.content)
+        contentText
           .typeStyle(.body)
           .foregroundStyle(.gray900)
           .multilineTextAlignment(.leading)
@@ -109,6 +110,21 @@ struct ChatMessageBubble: View {
 
   private var shouldShowFullTextLink: Bool {
     note.content.count > 180
+  }
+
+  private var contentText: Text {
+    guard
+      let highlightQuery,
+      !highlightQuery.isEmpty
+    else {
+      return Text(note.content)
+    }
+
+    var attributed = AttributedString(note.content)
+    if let range = attributed.range(of: highlightQuery, options: .caseInsensitive) {
+      attributed[range].backgroundColor = .violet200
+    }
+    return Text(attributed)
   }
 
   @ViewBuilder

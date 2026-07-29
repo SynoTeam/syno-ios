@@ -19,11 +19,10 @@ struct NotesEmptyStateView: View {
 
   var body: some View {
     VStack(spacing: 28) {
-      Image(.logo)
+      Image(.emptyList)
         .resizable()
         .aspectRatio(contentMode: .fit)
-        .frame(width: 148, height: 148)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .frame(width: 120, height: 120)
 
       Text(message)
         .typeStyle(.headline)
@@ -32,10 +31,11 @@ struct NotesEmptyStateView: View {
 
       if state == .noContacts, let onAddContact {
         Button("연락처 추가하기", action: onAddContact)
-          .typeStyle(.headline)
-          .foregroundStyle(.white)
-          .frame(maxWidth: .infinity, minHeight: 52)
-          .background(.violet500)
+          .typeStyle(.subheadlineEmphasized)
+          .foregroundStyle(.gray700)
+          .frame(minHeight: 40)
+          .padding(.horizontal, 16)
+          .background(.gray100)
           .clipShape(Capsule())
       }
     }

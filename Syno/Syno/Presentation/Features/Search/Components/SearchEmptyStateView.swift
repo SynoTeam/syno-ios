@@ -10,9 +10,10 @@ struct SearchEmptyStateView: View {
 
   var body: some View {
     VStack(spacing: 18) {
-      Image(systemName: iconName)
-        .font(.system(size: 38, weight: .regular))
-        .foregroundStyle(.gray300)
+      Image(imageName)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 96, height: 96)
 
       Text(message)
         .typeStyle(.headline)
@@ -23,13 +24,12 @@ struct SearchEmptyStateView: View {
     .padding(.horizontal, 24)
   }
 
-  private var iconName: String {
+  private var imageName: ImageResource {
     switch category {
-    case .all:
-      "magnifyingglass"
-    case .text: "text.alignleft"
-    case .photo: "photo"
-    case .link: "link"
+    case .all: .emptySearch
+    case .text: .emptyText
+    case .photo: .emptyPhoto
+    case .link: .emptyLink
     }
   }
 

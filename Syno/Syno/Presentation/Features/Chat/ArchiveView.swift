@@ -140,7 +140,10 @@ struct ArchiveView: View {
   @ViewBuilder
   private var photoGrid: some View {
     if photoSections.isEmpty {
-      emptyState(trimmedSearchText.isEmpty ? "아직 주고받은 사진이 없습니다" : "검색 결과가 없습니다")
+      emptyState(
+        image: trimmedSearchText.isEmpty ? .emptyArchive : .emptyPhoto,
+        message: trimmedSearchText.isEmpty ? "아직 주고받은 사진이 없습니다" : "검색 결과가 없습니다"
+      )
     } else {
       LazyVStack(alignment: .leading, spacing: 16) {
         ForEach(photoSections) { section in
@@ -188,7 +191,10 @@ struct ArchiveView: View {
   @ViewBuilder
   private var linkGrid: some View {
     if linkNotes.isEmpty {
-      emptyState(trimmedSearchText.isEmpty ? "아직 주고받은 링크가 없습니다" : "검색 결과가 없습니다")
+      emptyState(
+        image: trimmedSearchText.isEmpty ? .emptyArchive : .emptyLink,
+        message: trimmedSearchText.isEmpty ? "아직 주고받은 링크가 없습니다" : "검색 결과가 없습니다"
+      )
     } else {
       LazyVGrid(columns: linkColumns, spacing: 12) {
         ForEach(linkNotes) { note in
@@ -260,11 +266,18 @@ struct ArchiveView: View {
     }
   }
 
-  private func emptyState(_ message: String) -> some View {
-    Text(message)
-      .typeStyle(.subheadline)
-      .foregroundStyle(.gray400)
-      .frame(maxWidth: .infinity)
+  private func emptyState(image: ImageResource, message: String) -> some View {
+    VStack(spacing: 16) {
+      Image(image)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 88, height: 88)
+
+      Text(message)
+        .typeStyle(.subheadline)
+        .foregroundStyle(.gray400)
+    }
+    .frame(maxWidth: .infinity)
       .padding(.top, 80)
   }
 

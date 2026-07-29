@@ -185,11 +185,10 @@ struct ContactsView: View {
   
   private var emptyState: some View {
     VStack(spacing: 28) {
-      Image(.logo)
+      Image(.emptyList)
         .resizable()
         .aspectRatio(contentMode: .fit)
-        .frame(width: 148, height: 148)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .frame(width: 120, height: 120)
       
       Text("환영합니다!\n연락처를 추가해보세요.")
         .typeStyle(.headline)

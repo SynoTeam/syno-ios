@@ -14,8 +14,34 @@ struct ChatMessageBubble: View {
   var pendingStatus: ChatViewModel.PendingMessage.Status?
   var onRetry: (() -> Void)?
   var onDelete: (() -> Void)?
+  var onShare: (() -> Void)?
+  var onShowFullText: (() -> Void)?
 
   var body: some View {
+    messageStack
+    .frame(maxWidth: .infinity, alignment: .trailing)
+    .contextMenu {
+      Button {
+        UIPasteboard.general.string = note.content
+      } label: {
+        Label("복사하기", systemImage: "doc.on.doc")
+      }
+
+      if let onShare {
+        Button(action: onShare) {
+          Label("공유하기", systemImage: "square.and.arrow.up")
+        }
+      }
+
+      if let onDelete {
+        Button(role: .destructive, action: onDelete) {
+          Label("삭제하기", systemImage: "trash")
+        }
+      }
+    }
+  }
+
+  private var messageStack: some View {
     VStack(alignment: .trailing, spacing: 4) {
       messageContent
 
@@ -28,19 +54,7 @@ struct ChatMessageBubble: View {
       }
     }
     .frame(maxWidth: 280, alignment: .trailing)
-    .contextMenu {
-      Button {
-        UIPasteboard.general.string = note.content
-      } label: {
-        Label("복사하기", systemImage: "doc.on.doc")
-      }
-
-      if let onDelete {
-        Button(role: .destructive, action: onDelete) {
-          Label("삭제하기", systemImage: "trash")
-        }
-      }
-    }
+    .contentShape(Rectangle())
   }
 
   @ViewBuilder
@@ -55,15 +69,27 @@ struct ChatMessageBubble: View {
         .frame(width: 220, height: 220)
         .clipShape(RoundedRectangle(cornerRadius: 24))
     } else {
-      Text(note.content)
-        .typeStyle(.body)
-        .foregroundStyle(.gray900)
-        .multilineTextAlignment(.leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.gray5)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+      VStack(alignment: .trailing, spacing: 6) {
+        Text(note.content)
+          .typeStyle(.body)
+          .foregroundStyle(.gray900)
+          .multilineTextAlignment(.leading)
+
+        if shouldShowFullTextLink, let onShowFullText {
+          Button("전체보기", action: onShowFullText)
+            .typeStyle(.footnoteEmphasized)
+            .foregroundStyle(.violet500)
+        }
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 12)
+      .background(.gray5)
+      .clipShape(RoundedRectangle(cornerRadius: 24))
     }
+  }
+
+  private var shouldShowFullTextLink: Bool {
+    note.content.count > 180
   }
 
   @ViewBuilder

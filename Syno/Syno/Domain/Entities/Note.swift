@@ -8,7 +8,7 @@
 import Foundation
 
 /// 연락처에 남긴 메모를 나타내는 도메인 모델입니다.
-struct Note: Identifiable, Equatable {
+struct Note: Identifiable, Equatable, Hashable {
   let id: UUID
   var contactId: UUID?
   var contactName: String

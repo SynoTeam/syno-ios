@@ -13,11 +13,14 @@ struct ChatView: View {
   @State private var viewModel: ChatViewModel
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var isMessageSearchPresented = false
-  @State private var messagePendingDeletion: Note?
-  @State private var confirmationAlert: DestructiveConfirmationAlert?
+  @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
+  @State private var noteForSharing: Note?
+  @State private var fullTextNote: Note?
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
+
+  private let noteRepository: any NoteRepository
 
   init(
     contact: Contact,
@@ -26,6 +29,7 @@ struct ChatView: View {
     imageAnalysisRepository: any NoteImageAnalysisRepository,
     labelTranslator: any LabelTranslating
   ) {
+    noteRepository = repository
     _viewModel = State(
       initialValue: ChatViewModel(
         contact: contact,
@@ -76,7 +80,44 @@ struct ChatView: View {
     } message: {
       Text(viewModel.persistenceError ?? "")
     }
-    .destructiveConfirmationAlert(item: $confirmationAlert)
+    .sheet(item: $noteForSharing) { note in
+      NoteShareRecipientPickerSheet(
+        note: note,
+        currentContactID: viewModel.contact.id,
+        repository: noteRepository
+      ) {
+        toast = Toast(message: "노트가 공유되었습니다", style: .success, icon: "square.and.arrow.up")
+      }
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
+    }
+    .fullScreenCover(item: $fullTextNote) { note in
+      FullTextMessageView(
+        note: note,
+        currentContactID: viewModel.contact.id,
+        repository: noteRepository,
+        onDelete: { note in
+          let didDelete = deleteMessage(note)
+          if didDelete {
+            toast = Toast(message: "메시지가 삭제되었습니다", style: .success, icon: "trash.fill")
+          }
+          return didDelete
+        }
+      )
+    }
+    .navigationDestination(item: $notePendingDeletion) { note in
+      ChatNoteDeletionView(
+        viewModel: viewModel,
+        initiallySelectedNoteID: note.id
+      ) { deletedCount in
+        notePendingDeletion = nil
+        toast = Toast(
+          message: "메시지 \(deletedCount)개가 삭제되었습니다",
+          style: .success,
+          icon: "trash.fill"
+        )
+      }
+    }
   }
 
   private var messagesScrollView: some View {
@@ -99,7 +140,9 @@ struct ChatView: View {
                 ForEach(section.messages) { message in
                   ChatMessageBubble(
                     note: message,
-                    onDelete: { requestDelete(message) }
+                    onDelete: { requestDelete(message) },
+                    onShare: { noteForSharing = message },
+                    onShowFullText: { fullTextNote = message }
                   )
                     .id(message.id)
                 }
@@ -302,27 +345,11 @@ struct ChatView: View {
   }
 
   private func requestDelete(_ note: Note) {
-    messagePendingDeletion = note
-    confirmationAlert = DestructiveConfirmationAlert(
-      title: "이 메시지를\n삭제하겠습니까?",
-      message: "삭제한 메시지는 복구할 수 없습니다.",
-      acknowledgementText: nil
-    ) {
-      deletePendingMessage()
-    }
+    notePendingDeletion = note
   }
 
-  private func deletePendingMessage() {
-    guard let messagePendingDeletion else {
-      return
-    }
-
-    if viewModel.deleteMessage(id: messagePendingDeletion.id) {
-      toast = Toast(message: "메시지가 삭제되었습니다", style: .success, icon: "trash.fill")
-    } else {
-      toast = Toast(message: "메시지 삭제 실패했습니다", style: .failure)
-    }
-    self.messagePendingDeletion = nil
+  private func deleteMessage(_ note: Note) -> Bool {
+    viewModel.deleteMessage(id: note.id)
   }
 
   private func binding<Value>(

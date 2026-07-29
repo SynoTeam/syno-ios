@@ -151,15 +151,33 @@ final class ChatViewModel {
 
   @discardableResult
   func deleteMessage(id: Note.ID) -> Bool {
-    do {
-      try repository.delete(id: id)
-      messages.removeAll { $0.id == id }
+    deleteMessages(ids: [id])
+  }
+
+  @discardableResult
+  func deleteMessages(ids: Set<Note.ID>) -> Bool {
+    var deletedIds: Set<Note.ID> = []
+    var didFail = false
+
+    for id in ids {
+      do {
+        try repository.delete(id: id)
+        deletedIds.insert(id)
+      } catch {
+        didFail = true
+      }
+    }
+
+    messages.removeAll { deletedIds.contains($0.id) }
+    for id in deletedIds {
       imageAnalyses[id] = nil
-      persistenceError = nil
-      return true
-    } catch {
+    }
+
+    guard !didFail else {
       return false
     }
+    persistenceError = nil
+    return true
   }
 
   func sendImage(from item: PhotosPickerItem?) async {

@@ -8,7 +8,7 @@
 import Foundation
 
 /// 연락처에 남긴 메모를 나타내는 도메인 모델입니다.
-struct Note: Identifiable, Equatable {
+struct Note: Identifiable, Equatable, Hashable {
   let id: UUID
   var contactId: UUID?
   var contactName: String
@@ -31,6 +31,11 @@ struct Note: Identifiable, Equatable {
     }
 
     return Self.yearMonthDayFormatter.string(from: createdAt)
+  }
+
+  /// 날짜와 무관하게 시각만 표시합니다. 날짜별로 묶어 보여주는 채팅 화면에서 사용합니다.
+  var clockTimeText: String {
+    Self.timeFormatter.string(from: createdAt)
   }
 
   var contact: Contact {

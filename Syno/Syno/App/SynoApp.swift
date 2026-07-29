@@ -20,6 +20,8 @@ struct SynoApp: App {
   private let accountResetService: AccountResetService
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  private let linkPreviewFetcher: any NoteLinkPreviewFetching
+  private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
 
   init() {
@@ -31,7 +33,8 @@ struct SynoApp: App {
         StoredNote.self,
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
-        StoredNoteImageAnalysis.self
+        StoredNoteImageAnalysis.self,
+        StoredNoteLinkPreview.self
       ])
       let configuration = ModelConfiguration(
         schema: schema,
@@ -55,6 +58,8 @@ struct SynoApp: App {
         modelContainer: container
       )
       noteImageAnalysisRepository = imageAnalysisRepository
+      linkPreviewFetcher = URLSessionLinkPreviewFetcher()
+      noteLinkPreviewRepository = SwiftDataNoteLinkPreviewRepository(modelContainer: container)
       let staticLabelDictionary = StaticLabelDictionary()
       labelTranslator = staticLabelDictionary
       searchIndexBackfillService = SearchIndexBackfillService(
@@ -88,6 +93,8 @@ struct SynoApp: App {
         searchIndex: searchIndex,
         noteImageAnalyzer: noteImageAnalyzer,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        noteLinkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         accountResetService: accountResetService
       )

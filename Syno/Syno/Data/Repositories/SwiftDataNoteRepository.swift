@@ -66,6 +66,14 @@ final class SwiftDataNoteRepository: NoteRepository {
         predicate: #Predicate { $0.id == id }
       )
       if let storedNote = try modelContext.fetch(descriptor).first {
+        let previews = try modelContext.fetch(FetchDescriptor<StoredNoteLinkPreview>())
+        for preview in previews where preview.noteId == id {
+          modelContext.delete(preview)
+        }
+        let analyses = try modelContext.fetch(FetchDescriptor<StoredNoteImageAnalysis>())
+        for analysis in analyses where analysis.noteId == id {
+          modelContext.delete(analysis)
+        }
         modelContext.delete(storedNote)
         try modelContext.save()
         if let searchIndex {

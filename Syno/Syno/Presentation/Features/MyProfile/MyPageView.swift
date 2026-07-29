@@ -13,6 +13,8 @@ struct MyPageView: View {
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let linkPreviewFetcher: any NoteLinkPreviewFetching
+  let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
   let existingGroups: [String]
   let accountResetService: AccountResetService
@@ -27,6 +29,8 @@ struct MyPageView: View {
     noteRepository: any NoteRepository,
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching,
+    noteLinkPreviewRepository: any NoteLinkPreviewRepository,
     labelTranslator: any LabelTranslating,
     existingGroups: [String] = [],
     accountResetService: AccountResetService,
@@ -36,6 +40,8 @@ struct MyPageView: View {
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.linkPreviewFetcher = linkPreviewFetcher
+    self.noteLinkPreviewRepository = noteLinkPreviewRepository
     self.labelTranslator = labelTranslator
     self.existingGroups = existingGroups
     self.accountResetService = accountResetService
@@ -170,6 +176,8 @@ struct MyPageView: View {
         repository: noteRepository,
         imageAnalyzer: noteImageAnalyzer,
         imageAnalysisRepository: noteImageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator
       )
     } label: {
@@ -230,6 +238,8 @@ private extension View {
     noteRepository: PreviewRepositories.note,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+    noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator,
     accountResetService: PreviewRepositories.accountReset
   )

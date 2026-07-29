@@ -8,16 +8,55 @@ import UIKit
 @MainActor
 @Observable
 final class ChatViewModel {
+  struct PendingMessage: Identifiable {
+    enum Status: Equatable {
+      case sending
+      case failed
+    }
+
+    let id: UUID
+    let note: Note
+    var status: Status
+  }
+
+  struct MessageDaySection: Identifiable {
+    let date: Date
+    let messages: [Note]
+
+    var id: Date { date }
+
+    var title: String {
+      let isCurrentYear = Calendar.current.isDate(date, equalTo: Date(), toGranularity: .year)
+      let formatter = isCurrentYear ? Self.monthDayFormatter : Self.yearMonthDayFormatter
+      return formatter.string(from: date)
+    }
+
+    private static let monthDayFormatter = makeFormatter("M월 d일 (E)")
+    private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일 (E)")
+
+    private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+      let formatter = DateFormatter()
+      formatter.locale = Locale(identifier: "ko_KR")
+      formatter.calendar = Calendar(identifier: .gregorian)
+      formatter.dateFormat = dateFormat
+      return formatter
+    }
+  }
+
   private(set) var messages: [Note] = []
+  private(set) var pendingMessages: [PendingMessage] = []
   var messageText = ""
   var messageSearchText = ""
   private(set) var persistenceError: String?
   private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
+  private(set) var linkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
   private let imageAnalyzer: any NoteImageAnalyzing
   private let imageAnalysisRepository: any NoteImageAnalysisRepository
+  private let linkPreviewFetcher: any NoteLinkPreviewFetching
+  private let linkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
@@ -29,12 +68,16 @@ final class ChatViewModel {
     repository: any NoteRepository,
     imageAnalyzer: any NoteImageAnalyzing,
     imageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
+    linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating
   ) {
     self.contact = contact
     self.repository = repository
     self.imageAnalyzer = imageAnalyzer
     self.imageAnalysisRepository = imageAnalysisRepository
+    self.linkPreviewFetcher = linkPreviewFetcher
+    self.linkPreviewRepository = linkPreviewRepository
     self.labelTranslator = labelTranslator
   }
 
@@ -55,6 +98,23 @@ final class ChatViewModel {
     }
   }
 
+  /// 같은 날짜에 작성된 메시지를 하나의 섹션으로 묶어 시간순으로 반환합니다.
+  var messageSections: [MessageDaySection] {
+    let calendar = Calendar.current
+    let groupedMessages = Dictionary(grouping: messages) { message in
+      calendar.startOfDay(for: message.createdAt)
+    }
+
+    return groupedMessages
+      .map { date, messages in
+        MessageDaySection(
+          date: date,
+          messages: messages.sorted { $0.createdAt < $1.createdAt }
+        )
+      }
+      .sorted { $0.date < $1.date }
+  }
+
   func loadMessages() async {
     do {
       messages = try repository.fetch(contactId: contact.id)
@@ -68,8 +128,11 @@ final class ChatViewModel {
       let messageIds = Set(messages.map(\.id))
       imageAnalyses = try await imageAnalysisRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
+      linkPreviews = try await linkPreviewRepository.fetchAll()
+        .filter { messageIds.contains($0.key) }
     } catch {
       imageAnalyses = [:]
+      linkPreviews = [:]
       logger.debug(
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
@@ -83,9 +146,49 @@ final class ChatViewModel {
     }
 
     let note = makeNote(content: trimmedText)
-    save(note) {
-      messageText = ""
+    enqueueMessage(note)
+    messageText = ""
+  }
+
+  func retryPendingMessage(id: PendingMessage.ID) {
+    guard let index = pendingMessages.firstIndex(where: { $0.id == id }) else {
+      return
     }
+
+    pendingMessages[index].status = .sending
+    persistPendingMessage(id: id)
+  }
+
+  @discardableResult
+  func deleteMessage(id: Note.ID) -> Bool {
+    deleteMessages(ids: [id])
+  }
+
+  @discardableResult
+  func deleteMessages(ids: Set<Note.ID>) -> Bool {
+    var deletedIds: Set<Note.ID> = []
+    var didFail = false
+
+    for id in ids {
+      do {
+        try repository.delete(id: id)
+        deletedIds.insert(id)
+      } catch {
+        didFail = true
+      }
+    }
+
+    messages.removeAll { deletedIds.contains($0.id) }
+    for id in deletedIds {
+      imageAnalyses[id] = nil
+      linkPreviews[id] = nil
+    }
+
+    guard !didFail else {
+      return false
+    }
+    persistenceError = nil
+    return true
   }
 
   func sendImage(from item: PhotosPickerItem?) async {
@@ -158,11 +261,59 @@ final class ChatViewModel {
       .joined(separator: "\n")
   }
 
+  private func enqueueMessage(_ note: Note) {
+    let pendingMessage = PendingMessage(id: UUID(), note: note, status: .sending)
+    pendingMessages.append(pendingMessage)
+
+    Task { @MainActor in
+      persistPendingMessage(id: pendingMessage.id)
+    }
+  }
+
+  private func fetchLinkPreviewIfNeeded(for note: Note) {
+    guard let url = firstURL(in: note.content) else { return }
+
+    Task { @MainActor in
+      do {
+        let result = try await linkPreviewFetcher.fetchPreview(for: url)
+        try await linkPreviewRepository.save(noteId: note.id, result: result, fetchedAt: Date())
+        linkPreviews[note.id] = result
+      } catch {
+        logger.debug("Link preview unavailable: \(error.localizedDescription, privacy: .public)")
+      }
+    }
+  }
+
+  private func firstURL(in text: String) -> URL? {
+    let range = NSRange(text.startIndex..., in: text)
+    return (try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue))?
+      .firstMatch(in: text, range: range)?
+      .url
+  }
+
+  private func persistPendingMessage(id: PendingMessage.ID) {
+    guard let index = pendingMessages.firstIndex(where: { $0.id == id }) else {
+      return
+    }
+
+    let note = pendingMessages[index].note
+    do {
+      try repository.save(note)
+      messages.append(note)
+      fetchLinkPreviewIfNeeded(for: note)
+      pendingMessages.removeAll { $0.id == id }
+      persistenceError = nil
+    } catch {
+      pendingMessages[index].status = .failed
+    }
+  }
+
   @discardableResult
   private func save(_ note: Note, onSuccess: () -> Void = {}) -> Bool {
     do {
       try repository.save(note)
       messages.append(note)
+      fetchLinkPreviewIfNeeded(for: note)
       onSuccess()
       persistenceError = nil
       return true

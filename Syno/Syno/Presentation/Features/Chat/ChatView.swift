@@ -12,23 +12,37 @@ import SwiftUI
 struct ChatView: View {
   @State private var viewModel: ChatViewModel
   @State private var selectedPhotoItem: PhotosPickerItem?
+  @State private var isShowingPhotosPicker = false
+  @State private var isShowingCamera = false
   @State private var isMessageSearchPresented = false
+  @State private var isShowingArchive = false
+  @State private var notePendingDeletion: Note?
+  @State private var toast: Toast?
+  @State private var noteForSharing: Note?
+  @State private var fullTextNote: Note?
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
+
+  private let noteRepository: any NoteRepository
 
   init(
     contact: Contact,
     repository: any NoteRepository,
     imageAnalyzer: any NoteImageAnalyzing,
     imageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
+    linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating
   ) {
+    noteRepository = repository
     _viewModel = State(
       initialValue: ChatViewModel(
         contact: contact,
         repository: repository,
         imageAnalyzer: imageAnalyzer,
         imageAnalysisRepository: imageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        linkPreviewRepository: linkPreviewRepository,
         labelTranslator: labelTranslator
       )
     )
@@ -40,18 +54,29 @@ struct ChatView: View {
       messageInputBar
     }
     .background(Color.gray50)
+    .toast(item: $toast)
     .navigationTitle(viewModel.contact.name)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      ToolbarItemGroup(placement: .topBarTrailing) {
         Button {
           toggleMessageSearch()
         } label: {
           Image(systemName: isMessageSearchPresented ? "xmark" : "magnifyingglass")
         }
         .accessibilityLabel(isMessageSearchPresented ? "메시지 검색 닫기" : "메시지 검색")
+
+        Button {
+          isShowingArchive = true
+        } label: {
+          Image(systemName: "line.3.horizontal")
+        }
+        .accessibilityLabel("아카이브")
       }
+    }
+    .navigationDestination(isPresented: $isShowingArchive) {
+      ArchiveView(viewModel: viewModel, noteRepository: noteRepository)
     }
     .tint(.gray950)
     .scrollDismissesKeyboard(.interactively)
@@ -60,6 +85,14 @@ struct ChatView: View {
         await viewModel.sendImage(from: selectedPhotoItem)
         self.selectedPhotoItem = nil
       }
+    }
+    .photosPicker(isPresented: $isShowingPhotosPicker, selection: $selectedPhotoItem, matching: .images)
+    .sheet(isPresented: $isShowingCamera) {
+      CameraPickerView { image in
+        guard let data = image.jpegData(compressionQuality: 0.9) else { return }
+        Task { await viewModel.sendImageData(data) }
+      }
+      .ignoresSafeArea()
     }
     .task {
       await viewModel.loadMessages()
@@ -71,6 +104,46 @@ struct ChatView: View {
       Button("확인", action: viewModel.clearPersistenceError)
     } message: {
       Text(viewModel.persistenceError ?? "")
+    }
+    .sheet(item: $noteForSharing) { note in
+      NoteShareRecipientPickerSheet(
+        note: note,
+        currentContactID: viewModel.contact.id,
+        repository: noteRepository
+      ) {
+        toast = Toast(message: "노트가 공유되었습니다", style: .success, icon: "square.and.arrow.up")
+      }
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
+    }
+    .sheet(item: $fullTextNote) { note in
+      FullTextMessageView(
+        note: note,
+        currentContactID: viewModel.contact.id,
+        repository: noteRepository,
+        onDelete: { note in
+          let didDelete = deleteMessage(note)
+          if didDelete {
+            toast = Toast(message: "메시지가 삭제되었습니다", style: .success, icon: "trash.fill")
+          }
+          return didDelete
+        }
+      )
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
+    }
+    .navigationDestination(item: $notePendingDeletion) { note in
+      ChatNoteDeletionView(
+        viewModel: viewModel,
+        initiallySelectedNoteID: note.id
+      ) { deletedCount in
+        notePendingDeletion = nil
+        toast = Toast(
+          message: "메시지 \(deletedCount)개가 삭제되었습니다",
+          style: .success,
+          icon: "trash.fill"
+        )
+      }
     }
   }
 
@@ -84,13 +157,34 @@ struct ChatView: View {
         }
 
         ScrollView {
-          if viewModel.messages.isEmpty {
+          if viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty {
             ChatEmptyStateView()
           } else {
             LazyVStack(alignment: .trailing, spacing: 12) {
-              ForEach(viewModel.messages) { message in
-                ChatMessageBubble(note: message)
-                  .id(message.id)
+              ForEach(viewModel.messageSections) { section in
+                ChatDateDivider(title: section.title)
+
+                ForEach(section.messages) { message in
+                  ChatMessageBubble(
+                    note: message,
+                    onDelete: { requestDelete(message) },
+                    onShare: { noteForSharing = message },
+                    onShowFullText: { fullTextNote = message },
+                    linkPreview: viewModel.linkPreviews[message.id]
+                  )
+                    .id(message.id)
+                }
+              }
+
+              ForEach(viewModel.pendingMessages) { pendingMessage in
+                ChatMessageBubble(
+                  note: pendingMessage.note,
+                  pendingStatus: pendingMessage.status,
+                  onRetry: {
+                    viewModel.retryPendingMessage(id: pendingMessage.id)
+                  }
+                )
+                .id(pendingMessage.id)
               }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -105,6 +199,14 @@ struct ChatView: View {
         }
         .onChange(of: viewModel.messages.last?.id) { _, messageId in
           scrollToMessage(messageId, with: proxy)
+        }
+        .onChange(of: viewModel.pendingMessages.last?.id) { _, pendingMessageID in
+          guard let pendingMessageID else {
+            return
+          }
+          withAnimation(.snappy(duration: 0.2)) {
+            proxy.scrollTo(pendingMessageID, anchor: .bottom)
+          }
         }
         .onChange(of: isInputFocused) { _, isFocused in
           if isFocused {
@@ -190,8 +292,20 @@ struct ChatView: View {
   }
 
   private var messageInputBar: some View {
-    HStack(spacing: 10) {
-      PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+    HStack(alignment: .bottom, spacing: 10) {
+      Menu {
+        Button {
+          isShowingCamera = true
+        } label: {
+          Label("카메라", systemImage: "camera")
+        }
+
+        Button {
+          isShowingPhotosPicker = true
+        } label: {
+          Label("앨범", systemImage: "photo")
+        }
+      } label: {
         Image(systemName: "plus")
           .font(.system(size: 22, weight: .regular))
           .foregroundStyle(.gray700)
@@ -199,14 +313,12 @@ struct ChatView: View {
           .background(.gray100)
           .clipShape(Circle())
       }
-      .accessibilityLabel("Add Photo")
+      .accessibilityLabel("메모 추가")
 
       TextField("메모 입력", text: binding(\.messageText), axis: .vertical)
         .typeStyle(.body)
-        .lineLimit(1...4)
+        .lineLimit(1...6)
         .focused($isInputFocused)
-        .submitLabel(.send)
-        .onSubmit(viewModel.sendMessage)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.gray100)
@@ -272,6 +384,14 @@ struct ChatView: View {
     }
   }
 
+  private func requestDelete(_ note: Note) {
+    notePendingDeletion = note
+  }
+
+  private func deleteMessage(_ note: Note) -> Bool {
+    viewModel.deleteMessage(id: note.id)
+  }
+
   private func binding<Value>(
     _ keyPath: ReferenceWritableKeyPath<ChatViewModel, Value>
   ) -> Binding<Value> {
@@ -293,6 +413,29 @@ struct ChatView: View {
   }
 }
 
+private struct ChatDateDivider: View {
+  let title: String
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Rectangle()
+        .fill(Color.gray200)
+        .frame(height: 1)
+
+      Text(title)
+        .typeStyle(.caption1)
+        .foregroundStyle(.gray400)
+        .fixedSize(horizontal: true, vertical: false)
+
+      Rectangle()
+        .fill(Color.gray200)
+        .frame(height: 1)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 8)
+  }
+}
+
 #Preview {
   NavigationStack {
     ChatView(
@@ -304,6 +447,8 @@ struct ChatView: View {
       repository: PreviewRepositories.note,
       imageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       imageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+      linkPreviewRepository: PreviewRepositories.noteLinkPreview,
       labelTranslator: PreviewRepositories.labelTranslator
     )
   }

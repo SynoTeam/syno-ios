@@ -17,6 +17,8 @@ struct RootView: View {
   let searchIndex: any SearchIndexing
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let linkPreviewFetcher: any NoteLinkPreviewFetching
+  let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
   let accountResetService: AccountResetService
 
@@ -29,6 +31,8 @@ struct RootView: View {
         searchIndex: searchIndex,
         noteImageAnalyzer: noteImageAnalyzer,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        noteLinkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         accountResetService: accountResetService
       )
@@ -48,6 +52,8 @@ struct RootView: View {
     searchIndex: PreviewRepositories.searchIndex,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+    noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator,
     accountResetService: PreviewRepositories.accountReset
   )

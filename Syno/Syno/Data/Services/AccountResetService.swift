@@ -23,6 +23,7 @@ final class AccountResetService {
       try modelContext.delete(model: StoredContactEmbedding.self)
       try modelContext.delete(model: StoredNoteEmbedding.self)
       try modelContext.delete(model: StoredNoteImageAnalysis.self)
+      try modelContext.delete(model: StoredNoteLinkPreview.self)
       try modelContext.save()
     } catch {
       modelContext.rollback()
@@ -36,6 +37,7 @@ final class AccountResetService {
       try modelContext.delete(model: StoredContactEmbedding.self)
       try modelContext.delete(model: StoredNoteEmbedding.self)
       try modelContext.delete(model: StoredNoteImageAnalysis.self)
+      try modelContext.delete(model: StoredNoteLinkPreview.self)
       try modelContext.delete(model: StoredGroup.self)
       try modelContext.delete(model: StoredContact.self)
       try modelContext.delete(model: StoredNote.self)

@@ -12,6 +12,7 @@ enum PreviewRepositories {
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
         StoredNoteImageAnalysis.self,
+        StoredNoteLinkPreview.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
       )
     } catch {
@@ -29,6 +30,10 @@ enum PreviewRepositories {
 
   static let noteImageAnalysis: any NoteImageAnalysisRepository =
     SwiftDataNoteImageAnalysisRepository(modelContainer: container)
+
+  static let linkPreviewFetcher: any NoteLinkPreviewFetching = URLSessionLinkPreviewFetcher()
+  static let noteLinkPreview: any NoteLinkPreviewRepository =
+    SwiftDataNoteLinkPreviewRepository(modelContainer: container)
 
   static let contact: any ContactRepository =
     SwiftDataContactRepository(

@@ -20,6 +20,8 @@ struct NotesView: View {
   let contactRepository: any ContactRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let linkPreviewFetcher: any NoteLinkPreviewFetching
+  let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
 
   var body: some View {
@@ -134,6 +136,8 @@ struct NotesView: View {
               repository: noteRepository,
               imageAnalyzer: noteImageAnalyzer,
               imageAnalysisRepository: noteImageAnalysisRepository,
+              linkPreviewFetcher: linkPreviewFetcher,
+              linkPreviewRepository: noteLinkPreviewRepository,
               labelTranslator: labelTranslator
             )
           } label: {
@@ -247,6 +251,8 @@ private struct StoredNoteChangeToken: Equatable {
     contactRepository: PreviewRepositories.contact,
     noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+    linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+    noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator
   )
     .modelContainer(for: [StoredNote.self, StoredContact.self, StoredGroup.self], inMemory: true)

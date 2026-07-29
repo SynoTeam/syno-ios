@@ -16,6 +16,7 @@ struct ChatMessageBubble: View {
   var onDelete: (() -> Void)?
   var onShare: (() -> Void)?
   var onShowFullText: (() -> Void)?
+  var linkPreview: NoteLinkPreviewResult?
 
   var body: some View {
     messageStack
@@ -45,6 +46,10 @@ struct ChatMessageBubble: View {
     VStack(alignment: .trailing, spacing: 4) {
       messageContent
 
+      if let linkPreview {
+        LinkPreviewCard(preview: linkPreview)
+      }
+
       Text(note.clockTimeText)
         .typeStyle(.caption1)
         .foregroundStyle(.gray500)
@@ -69,16 +74,30 @@ struct ChatMessageBubble: View {
         .frame(width: 220, height: 220)
         .clipShape(RoundedRectangle(cornerRadius: 24))
     } else {
-      VStack(alignment: .trailing, spacing: 6) {
+      VStack(alignment: .leading, spacing: 0) {
         Text(note.content)
           .typeStyle(.body)
           .foregroundStyle(.gray900)
           .multilineTextAlignment(.leading)
+          .lineLimit(shouldShowFullTextLink ? 10 : nil)
 
         if shouldShowFullTextLink, let onShowFullText {
-          Button("전체보기", action: onShowFullText)
-            .typeStyle(.footnoteEmphasized)
-            .foregroundStyle(.violet500)
+          Divider()
+            .padding(.vertical, 10)
+
+          Button(action: onShowFullText) {
+            HStack {
+              Text("전체보기")
+                .typeStyle(.footnoteEmphasized)
+                .foregroundStyle(.gray900)
+
+              Spacer()
+
+              Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.gray400)
+            }
+          }
         }
       }
       .padding(.horizontal, 16)
@@ -116,5 +135,44 @@ struct ChatMessageBubble: View {
         }
       }
     }
+  }
+}
+
+private struct LinkPreviewCard: View {
+  let preview: NoteLinkPreviewResult
+
+  var body: some View {
+    Link(destination: preview.siteURL) {
+      VStack(alignment: .leading, spacing: 0) {
+        if let imageURL = preview.imageURL {
+          AsyncImage(url: imageURL) { image in
+            image.resizable().aspectRatio(contentMode: .fill)
+          } placeholder: {
+            Color.gray100
+          }
+          .frame(maxWidth: .infinity)
+          .frame(height: 120)
+          .clipped()
+        }
+
+        VStack(alignment: .leading, spacing: 4) {
+          Text(preview.title)
+            .typeStyle(.footnoteEmphasized)
+            .foregroundStyle(.gray900)
+            .lineLimit(2)
+            .multilineTextAlignment(.leading)
+          Text(preview.siteURL.host ?? preview.siteURL.absoluteString)
+            .typeStyle(.caption1)
+            .foregroundStyle(.violet500)
+            .underline()
+            .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+      }
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+    .buttonStyle(.plain)
   }
 }

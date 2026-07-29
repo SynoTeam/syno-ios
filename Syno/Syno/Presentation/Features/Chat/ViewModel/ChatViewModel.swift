@@ -49,11 +49,14 @@ final class ChatViewModel {
   var messageSearchText = ""
   private(set) var persistenceError: String?
   private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
+  private(set) var linkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
   private let imageAnalyzer: any NoteImageAnalyzing
   private let imageAnalysisRepository: any NoteImageAnalysisRepository
+  private let linkPreviewFetcher: any NoteLinkPreviewFetching
+  private let linkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
@@ -65,12 +68,16 @@ final class ChatViewModel {
     repository: any NoteRepository,
     imageAnalyzer: any NoteImageAnalyzing,
     imageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
+    linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating
   ) {
     self.contact = contact
     self.repository = repository
     self.imageAnalyzer = imageAnalyzer
     self.imageAnalysisRepository = imageAnalysisRepository
+    self.linkPreviewFetcher = linkPreviewFetcher
+    self.linkPreviewRepository = linkPreviewRepository
     self.labelTranslator = labelTranslator
   }
 
@@ -121,8 +128,11 @@ final class ChatViewModel {
       let messageIds = Set(messages.map(\.id))
       imageAnalyses = try await imageAnalysisRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
+      linkPreviews = try await linkPreviewRepository.fetchAll()
+        .filter { messageIds.contains($0.key) }
     } catch {
       imageAnalyses = [:]
+      linkPreviews = [:]
       logger.debug(
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
@@ -171,6 +181,7 @@ final class ChatViewModel {
     messages.removeAll { deletedIds.contains($0.id) }
     for id in deletedIds {
       imageAnalyses[id] = nil
+      linkPreviews[id] = nil
     }
 
     guard !didFail else {
@@ -259,6 +270,27 @@ final class ChatViewModel {
     }
   }
 
+  private func fetchLinkPreviewIfNeeded(for note: Note) {
+    guard let url = firstURL(in: note.content) else { return }
+
+    Task { @MainActor in
+      do {
+        let result = try await linkPreviewFetcher.fetchPreview(for: url)
+        try await linkPreviewRepository.save(noteId: note.id, result: result, fetchedAt: Date())
+        linkPreviews[note.id] = result
+      } catch {
+        logger.debug("Link preview unavailable: \(error.localizedDescription, privacy: .public)")
+      }
+    }
+  }
+
+  private func firstURL(in text: String) -> URL? {
+    let range = NSRange(text.startIndex..., in: text)
+    return (try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue))?
+      .firstMatch(in: text, range: range)?
+      .url
+  }
+
   private func persistPendingMessage(id: PendingMessage.ID) {
     guard let index = pendingMessages.firstIndex(where: { $0.id == id }) else {
       return
@@ -268,6 +300,7 @@ final class ChatViewModel {
     do {
       try repository.save(note)
       messages.append(note)
+      fetchLinkPreviewIfNeeded(for: note)
       pendingMessages.removeAll { $0.id == id }
       persistenceError = nil
     } catch {
@@ -280,6 +313,7 @@ final class ChatViewModel {
     do {
       try repository.save(note)
       messages.append(note)
+      fetchLinkPreviewIfNeeded(for: note)
       onSuccess()
       persistenceError = nil
       return true

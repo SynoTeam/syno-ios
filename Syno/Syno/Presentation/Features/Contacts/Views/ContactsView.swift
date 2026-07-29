@@ -18,6 +18,8 @@ struct ContactsView: View {
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  private let linkPreviewFetcher: any NoteLinkPreviewFetching
+  private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
   private let accountResetService: AccountResetService
   
@@ -27,6 +29,8 @@ struct ContactsView: View {
     noteRepository: any NoteRepository,
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching,
+    noteLinkPreviewRepository: any NoteLinkPreviewRepository,
     labelTranslator: any LabelTranslating,
     accountResetService: AccountResetService
   ) {
@@ -34,6 +38,8 @@ struct ContactsView: View {
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.linkPreviewFetcher = linkPreviewFetcher
+    self.noteLinkPreviewRepository = noteLinkPreviewRepository
     self.labelTranslator = labelTranslator
     self.accountResetService = accountResetService
     _viewModel = State(
@@ -57,6 +63,8 @@ struct ContactsView: View {
               noteRepository: noteRepository,
               noteImageAnalyzer: noteImageAnalyzer,
               noteImageAnalysisRepository: noteImageAnalysisRepository,
+              linkPreviewFetcher: linkPreviewFetcher,
+              noteLinkPreviewRepository: noteLinkPreviewRepository,
               labelTranslator: labelTranslator,
               existingGroups: viewModel.existingGroups,
               accountResetService: accountResetService,
@@ -119,6 +127,8 @@ struct ContactsView: View {
         noteRepository: noteRepository,
         noteImageAnalyzer: noteImageAnalyzer,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        noteLinkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         viewModel: viewModel,
         existingGroups: viewModel.existingGroups,
@@ -241,6 +251,8 @@ struct ContactsView: View {
       noteRepository: PreviewRepositories.note,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+      noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
       labelTranslator: PreviewRepositories.labelTranslator,
       accountResetService: PreviewRepositories.accountReset
     )

@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// 긴 메시지의 전체 내용을 표시하는 풀스크린 화면입니다.
+/// 긴 메시지의 전체 내용을 표시하는 라지 시트 화면입니다.
 struct FullTextMessageView: View {
   @Environment(\.dismiss) private var dismiss
   let note: Note
@@ -21,13 +21,20 @@ struct FullTextMessageView: View {
           .foregroundStyle(.gray950)
           .frame(maxWidth: .infinity, alignment: .leading)
           .padding(20)
+          .background(.white)
+          .clipShape(RoundedRectangle(cornerRadius: 20))
+          .padding(.horizontal, 16)
+          .padding(.top, 16)
+          .padding(.bottom, 28)
       }
       .background(Color.gray50)
       .navigationTitle("메시지 전체보기")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
-          Button("닫기") { dismiss() }
+          Button(action: { dismiss() }) {
+            Image(systemName: "xmark")
+          }
         }
 
         ToolbarItem(placement: .topBarTrailing) {
@@ -50,7 +57,7 @@ struct FullTextMessageView: View {
               Label("삭제하기", systemImage: "trash")
             }
           } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "ellipsis")
           }
         }
       }

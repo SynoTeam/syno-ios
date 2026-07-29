@@ -116,6 +116,7 @@ final class AccountResetServiceTests: XCTestCase {
       StoredContactEmbedding.self,
       StoredNoteEmbedding.self,
       StoredNoteImageAnalysis.self,
+      StoredNoteLinkPreview.self,
       configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
   }

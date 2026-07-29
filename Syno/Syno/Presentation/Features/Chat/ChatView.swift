@@ -27,6 +27,8 @@ struct ChatView: View {
     repository: any NoteRepository,
     imageAnalyzer: any NoteImageAnalyzing,
     imageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
+    linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating
   ) {
     noteRepository = repository
@@ -36,6 +38,8 @@ struct ChatView: View {
         repository: repository,
         imageAnalyzer: imageAnalyzer,
         imageAnalysisRepository: imageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        linkPreviewRepository: linkPreviewRepository,
         labelTranslator: labelTranslator
       )
     )
@@ -91,7 +95,7 @@ struct ChatView: View {
       .presentationDetents([.large])
       .presentationDragIndicator(.visible)
     }
-    .fullScreenCover(item: $fullTextNote) { note in
+    .sheet(item: $fullTextNote) { note in
       FullTextMessageView(
         note: note,
         currentContactID: viewModel.contact.id,
@@ -104,6 +108,8 @@ struct ChatView: View {
           return didDelete
         }
       )
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
     }
     .navigationDestination(item: $notePendingDeletion) { note in
       ChatNoteDeletionView(
@@ -142,7 +148,8 @@ struct ChatView: View {
                     note: message,
                     onDelete: { requestDelete(message) },
                     onShare: { noteForSharing = message },
-                    onShowFullText: { fullTextNote = message }
+                    onShowFullText: { fullTextNote = message },
+                    linkPreview: viewModel.linkPreviews[message.id]
                   )
                     .id(message.id)
                 }
@@ -407,6 +414,8 @@ private struct ChatDateDivider: View {
       repository: PreviewRepositories.note,
       imageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       imageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+      linkPreviewRepository: PreviewRepositories.noteLinkPreview,
       labelTranslator: PreviewRepositories.labelTranslator
     )
   }

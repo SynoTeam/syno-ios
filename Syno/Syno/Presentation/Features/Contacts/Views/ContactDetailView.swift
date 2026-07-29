@@ -14,6 +14,8 @@ struct ContactDetailView: View {
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
+  let linkPreviewFetcher: any NoteLinkPreviewFetching
+  let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
   let viewModel: ContactsViewModel?
   let existingGroups: [String]
@@ -178,6 +180,8 @@ struct ContactDetailView: View {
         repository: noteRepository,
         imageAnalyzer: noteImageAnalyzer,
         imageAnalysisRepository: noteImageAnalysisRepository,
+        linkPreviewFetcher: linkPreviewFetcher,
+        linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator
       )
     } label: {
@@ -237,6 +241,8 @@ private extension View {
       noteRepository: PreviewRepositories.note,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
+      linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
+      noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
       labelTranslator: PreviewRepositories.labelTranslator,
       viewModel: nil,
       existingGroups: [],

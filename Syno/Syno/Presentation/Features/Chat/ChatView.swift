@@ -15,6 +15,7 @@ struct ChatView: View {
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
   @State private var isMessageSearchPresented = false
+  @State private var isShowingArchive = false
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
   @State private var noteForSharing: Note?
@@ -58,14 +59,24 @@ struct ChatView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      ToolbarItemGroup(placement: .topBarTrailing) {
         Button {
           toggleMessageSearch()
         } label: {
           Image(systemName: isMessageSearchPresented ? "xmark" : "magnifyingglass")
         }
         .accessibilityLabel(isMessageSearchPresented ? "메시지 검색 닫기" : "메시지 검색")
+
+        Button {
+          isShowingArchive = true
+        } label: {
+          Image(systemName: "line.3.horizontal")
+        }
+        .accessibilityLabel("아카이브")
       }
+    }
+    .navigationDestination(isPresented: $isShowingArchive) {
+      ArchiveView(viewModel: viewModel, noteRepository: noteRepository)
     }
     .tint(.gray950)
     .scrollDismissesKeyboard(.interactively)

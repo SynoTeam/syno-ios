@@ -138,7 +138,7 @@ struct ChatMessageBubble: View {
   }
 }
 
-private struct LinkPreviewCard: View {
+struct LinkPreviewCard: View {
   let preview: NoteLinkPreviewResult
 
   var body: some View {

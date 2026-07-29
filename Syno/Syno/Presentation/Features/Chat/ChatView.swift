@@ -12,6 +12,8 @@ import SwiftUI
 struct ChatView: View {
   @State private var viewModel: ChatViewModel
   @State private var selectedPhotoItem: PhotosPickerItem?
+  @State private var isShowingPhotosPicker = false
+  @State private var isShowingCamera = false
   @State private var isMessageSearchPresented = false
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
@@ -72,6 +74,14 @@ struct ChatView: View {
         await viewModel.sendImage(from: selectedPhotoItem)
         self.selectedPhotoItem = nil
       }
+    }
+    .photosPicker(isPresented: $isShowingPhotosPicker, selection: $selectedPhotoItem, matching: .images)
+    .sheet(isPresented: $isShowingCamera) {
+      CameraPickerView { image in
+        guard let data = image.jpegData(compressionQuality: 0.9) else { return }
+        Task { await viewModel.sendImageData(data) }
+      }
+      .ignoresSafeArea()
     }
     .task {
       await viewModel.loadMessages()
@@ -272,7 +282,19 @@ struct ChatView: View {
 
   private var messageInputBar: some View {
     HStack(alignment: .bottom, spacing: 10) {
-      PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+      Menu {
+        Button {
+          isShowingCamera = true
+        } label: {
+          Label("카메라", systemImage: "camera")
+        }
+
+        Button {
+          isShowingPhotosPicker = true
+        } label: {
+          Label("앨범", systemImage: "photo")
+        }
+      } label: {
         Image(systemName: "plus")
           .font(.system(size: 22, weight: .regular))
           .foregroundStyle(.gray700)
@@ -280,7 +302,7 @@ struct ChatView: View {
           .background(.gray100)
           .clipShape(Circle())
       }
-      .accessibilityLabel("Add Photo")
+      .accessibilityLabel("메모 추가")
 
       TextField("메모 입력", text: binding(\.messageText), axis: .vertical)
         .typeStyle(.body)

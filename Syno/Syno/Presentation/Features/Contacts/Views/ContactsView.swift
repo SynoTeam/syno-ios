@@ -5,6 +5,7 @@
 //  Created by 이승진 on 7/14/26.
 //
 
+import Contacts
 import SwiftUI
 
 struct ContactsView: View {
@@ -14,6 +15,7 @@ struct ContactsView: View {
   @State private var toast: Toast?
   @State private var contactPendingDeletion: Contact?
   @State private var selectedContact: Contact?
+  @State private var isShowingContactImportPicker = false
   
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
@@ -152,24 +154,40 @@ struct ContactsView: View {
       )
       viewModel.clearPersistenceError()
     }
+    .sheet(isPresented: $isShowingContactImportPicker) {
+      DeviceContactMultiPickerView { cnContacts in
+        importDeviceContacts(cnContacts)
+      }
+      .ignoresSafeArea()
+    }
     .toast(item: $toast)
   }
-  
+
   private var header: some View {
     HStack {
       Text("Contacts")
         .typeStyle(.header)
         .foregroundStyle(.gray950)
-      
+
       Spacer()
-      
-      NavigationLink {
-        AddContactView(existingGroups: viewModel.existingGroups) { contact in
-          guard viewModel.addContact(contact) else {
-            return false
+
+      Menu {
+        NavigationLink {
+          AddContactView(existingGroups: viewModel.existingGroups) { contact in
+            guard viewModel.addContact(contact) else {
+              return false
+            }
+            isAllCollapsed = false
+            return true
           }
-          isAllCollapsed = false
-          return true
+        } label: {
+          Label("새 연락처 추가", systemImage: "person.badge.plus")
+        }
+
+        Button {
+          isShowingContactImportPicker = true
+        } label: {
+          Label("연락처 가져오기", systemImage: "square.and.arrow.down")
         }
       } label: {
         Image(systemName: "plus")
@@ -185,11 +203,10 @@ struct ContactsView: View {
   
   private var emptyState: some View {
     VStack(spacing: 28) {
-      Image(.logo)
+      Image(.emptyList)
         .resizable()
         .aspectRatio(contentMode: .fit)
-        .frame(width: 148, height: 148)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .frame(width: 120, height: 120)
       
       Text("환영합니다!\n연락처를 추가해보세요.")
         .typeStyle(.headline)
@@ -200,6 +217,24 @@ struct ContactsView: View {
     .padding(.top, 116)
   }
   
+  private func importDeviceContacts(_ cnContacts: [CNContact]) {
+    guard !cnContacts.isEmpty else {
+      return
+    }
+
+    let result = viewModel.importDeviceContacts(cnContacts)
+    isAllCollapsed = viewModel.regularContacts.isEmpty
+
+    if result.imported > 0 {
+      let message = result.skipped > 0
+        ? "\(result.imported)명을 가져왔습니다. (\(result.skipped)명은 중복되어 건너뜀)"
+        : "\(result.imported)명을 가져왔습니다."
+      toast = Toast(message: message, style: .success, icon: "square.and.arrow.down.fill")
+    } else {
+      toast = Toast(message: "가져올 새 연락처가 없습니다.", style: .failure)
+    }
+  }
+
   private func requestDelete(contact: Contact) {
     contactPendingDeletion = contact
   }

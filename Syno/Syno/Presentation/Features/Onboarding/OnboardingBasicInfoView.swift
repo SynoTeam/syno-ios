@@ -21,10 +21,10 @@ struct OnboardingBasicInfoView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       Text("기본 정보를 알려주세요")
-        .typeStyle(.header)
+        .typeStyle(.title2Emphasized)
         .foregroundStyle(.gray950)
-        .padding(.top, 76)
-        .padding(.bottom, 72)
+        .padding(.top, 36)
+        .padding(.bottom, 46)
 
       VStack(alignment: .leading, spacing: 32) {
         onboardingTextField(
@@ -53,7 +53,7 @@ struct OnboardingBasicInfoView: View {
         Text("확인")
           .typeStyle(.headline)
           .foregroundStyle(.white)
-          .frame(maxWidth: .infinity, minHeight: 58)
+          .frame(maxWidth: .infinity, minHeight: 60)
           .background(viewModel.canSubmit ? .violet500 : .violet200)
           .clipShape(Capsule())
           .contentShape(Capsule())
@@ -84,16 +84,16 @@ struct OnboardingBasicInfoView: View {
   ) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       Text(title)
-        .typeStyle(.subheadline)
+        .typeStyle(.subheadlineEmphasized)
         .foregroundStyle(.gray500)
 
       TextField(placeholder, text: text)
         .typeStyle(.body)
         .foregroundStyle(.gray950)
-        .frame(height: 58)
+        .frame(height: 62)
         .padding(.horizontal, 24)
         .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .focused($focusedField, equals: field)
         .submitLabel(submitLabel)
         .onSubmit(onSubmit)

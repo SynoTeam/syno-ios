@@ -11,11 +11,10 @@ import SwiftUI
 struct ChatEmptyStateView: View {
   var body: some View {
     VStack(spacing: 20) {
-      Image(.logo)
+      Image(.emptyList)
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(width: 120, height: 120)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
 
       Text("아직 남긴 기록이 없습니다.\n아래 입력창에서 메모를 남겨보세요.")
         .typeStyle(.headline)

@@ -19,12 +19,9 @@ struct ChatView: View {
   @State private var isShowingArchive = false
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
-  @State private var noteForSharing: Note?
   @State private var fullTextNote: Note?
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
-
-  private let noteRepository: any NoteRepository
 
   init(
     contact: Contact,
@@ -35,7 +32,6 @@ struct ChatView: View {
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating
   ) {
-    noteRepository = repository
     _viewModel = State(
       initialValue: ChatViewModel(
         contact: contact,
@@ -77,7 +73,7 @@ struct ChatView: View {
       }
     }
     .navigationDestination(isPresented: $isShowingArchive) {
-      ArchiveView(viewModel: viewModel, noteRepository: noteRepository)
+      ArchiveView(viewModel: viewModel)
     }
     .tint(.gray950)
     .scrollDismissesKeyboard(.interactively)
@@ -106,22 +102,9 @@ struct ChatView: View {
     } message: {
       Text(viewModel.persistenceError ?? "")
     }
-    .sheet(item: $noteForSharing) { note in
-      NoteShareRecipientPickerSheet(
-        note: note,
-        currentContactID: viewModel.contact.id,
-        repository: noteRepository
-      ) {
-        toast = Toast(message: "노트가 공유되었습니다", style: .success, icon: "square.and.arrow.up")
-      }
-      .presentationDetents([.large])
-      .presentationDragIndicator(.visible)
-    }
     .sheet(item: $fullTextNote) { note in
       FullTextMessageView(
         note: note,
-        currentContactID: viewModel.contact.id,
-        repository: noteRepository,
         onDelete: { note in
           let didDelete = deleteMessage(note)
           if didDelete {
@@ -167,7 +150,6 @@ struct ChatView: View {
                   ChatMessageBubble(
                     note: message,
                     onDelete: { requestDelete(message) },
-                    onShare: { noteForSharing = message },
                     onShowFullText: { fullTextNote = message },
                     linkPreview: viewModel.linkPreviews[message.id],
                     highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil

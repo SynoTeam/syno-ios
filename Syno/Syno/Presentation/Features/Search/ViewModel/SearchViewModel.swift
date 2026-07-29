@@ -20,6 +20,7 @@ final class SearchViewModel {
   @ObservationIgnored private let searchIndex: any SearchIndexing
   @ObservationIgnored private let noteImageAnalysisRepository:
     any NoteImageAnalysisRepository
+  @ObservationIgnored private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   @ObservationIgnored private let labelTranslator: any LabelTranslating
   @ObservationIgnored private let userDefaults: UserDefaults
   @ObservationIgnored private var searchTask: Task<Void, Never>?
@@ -31,12 +32,14 @@ final class SearchViewModel {
     modelContext: ModelContext,
     searchIndex: any SearchIndexing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    noteLinkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating,
     userDefaults: UserDefaults = .standard
   ) {
     self.modelContext = modelContext
     self.searchIndex = searchIndex
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.noteLinkPreviewRepository = noteLinkPreviewRepository
     self.labelTranslator = labelTranslator
     self.userDefaults = userDefaults
     recentSearches = userDefaults.stringArray(forKey: Self.recentSearchesKey) ?? []
@@ -50,9 +53,13 @@ final class SearchViewModel {
     switch selectedCategory {
     case .all:
       results
-    case .contacts, .notes:
+    case .text, .photo, .link:
       results.filter { $0.category == selectedCategory }
     }
+  }
+
+  func results(for category: SearchCategory) -> [SearchResult] {
+    results.filter { $0.category == category }
   }
 
   func updateQuery(_ query: String) {
@@ -136,11 +143,6 @@ final class SearchViewModel {
     }
 
     do {
-      let storedContacts = try modelContext.fetch(
-        FetchDescriptor<StoredContact>(
-          sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
-      )
       let storedNotes = try modelContext.fetch(
         FetchDescriptor<StoredNote>(
           sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -148,22 +150,15 @@ final class SearchViewModel {
       )
       let imageAnalyses =
         (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
+      let linkPreviews = (try? await noteLinkPreviewRepository.fetchAll()) ?? [:]
 
-      let keywordContacts = storedContacts.filter {
-        searchableText(for: $0).localizedStandardContains(searchTerm)
-      }
       let keywordNotes = storedNotes.filter {
         searchableText(
           for: $0,
           analysis: imageAnalyses[$0.id]
         ).localizedStandardContains(searchTerm)
       }
-      let keywordContactIds = Set(keywordContacts.map(\.id))
       let keywordNoteIds = Set(keywordNotes.map(\.id))
-      let semanticContactDocuments = storedContacts.compactMap { storedContact in
-        keywordContactIds.contains(storedContact.id) ? nil :
-          SearchDocument.contact(id: storedContact.id, text: semanticText(for: storedContact))
-      }
       let semanticNoteDocuments = storedNotes.compactMap { storedNote in
         keywordNoteIds.contains(storedNote.id) ? nil :
           SearchDocument.note(
@@ -176,18 +171,11 @@ final class SearchViewModel {
       }
       let scores = await searchIndex.scores(
         for: searchTerm,
-        documents: semanticContactDocuments + semanticNoteDocuments
+        documents: semanticNoteDocuments
       )
       guard !Task.isCancelled, searchTerm == normalizedQuery else { return }
       let minimumDerivedScore = searchTerm.count > 1 ? 0.15 : 1
 
-      let matchedContacts = storedContacts.filter { storedContact in
-        keywordContactIds.contains(storedContact.id)
-          || scores[
-            SearchDocumentKey(kind: .contact, sourceId: storedContact.id),
-            default: 0
-          ] >= minimumDerivedScore
-      }
       let matchedNotes = storedNotes.filter { storedNote in
         keywordNoteIds.contains(storedNote.id)
           || scores[
@@ -196,34 +184,30 @@ final class SearchViewModel {
           ] >= minimumDerivedScore
       }
 
-      var contactsById = Dictionary(
-        uniqueKeysWithValues: matchedContacts.map { ($0.id, $0.contact) }
-      )
-      let missingContactIds = Set(matchedNotes.compactMap(\.contactId))
-        .subtracting(contactsById.keys)
+      let referencedContactIds = Set(matchedNotes.compactMap(\.contactId))
+      var contactsById: [UUID: Contact] = [:]
 
-      if !missingContactIds.isEmpty {
-        let additionalContacts = try modelContext.fetch(
+      if !referencedContactIds.isEmpty {
+        let referencedContacts = try modelContext.fetch(
           FetchDescriptor<StoredContact>(
-            predicate: #Predicate { missingContactIds.contains($0.id) }
+            predicate: #Predicate { referencedContactIds.contains($0.id) }
           )
         )
 
-        for storedContact in additionalContacts {
+        for storedContact in referencedContacts {
           contactsById[storedContact.id] = storedContact.contact
         }
       }
 
-      let contactResults = matchedContacts.map {
-        SearchResult.contact($0.contact, createdAt: $0.createdAt)
-      }
       let noteResults = matchedNotes.map { storedNote in
         let note = storedNote.note
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
-        return SearchResult.note(note, contact: contact)
+        if note.imageData != nil { return SearchResult.photo(note, contact: contact) }
+        if let preview = linkPreviews[note.id] { return SearchResult.link(note, contact: contact, preview: preview) }
+        return SearchResult.text(note, contact: contact)
       }
 
-      results = (contactResults + noteResults).sorted {
+      results = noteResults.sorted {
         $0.sortDate > $1.sortDate
       }
       isSearching = false
@@ -231,18 +215,6 @@ final class SearchViewModel {
       results = []
       isSearching = false
     }
-  }
-
-  private func searchableText(for contact: StoredContact) -> String {
-    [
-      contact.name,
-      contact.role,
-      contact.company,
-      contact.email,
-      contact.phone,
-      contact.group,
-      contact.note
-    ].joined(separator: "\n")
   }
 
   private func searchableText(
@@ -259,17 +231,6 @@ final class SearchViewModel {
     return components
       .filter { !$0.isEmpty }
       .joined(separator: "\n")
-  }
-
-  private func semanticText(for contact: StoredContact) -> String {
-    [
-      contact.role,
-      contact.company,
-      contact.email,
-      contact.phone,
-      contact.group,
-      contact.note
-    ].joined(separator: "\n")
   }
 
   private func semanticText(

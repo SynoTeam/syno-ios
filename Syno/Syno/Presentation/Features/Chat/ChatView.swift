@@ -15,6 +15,7 @@ struct ChatView: View {
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
   @State private var isMessageSearchPresented = false
+  @State private var currentMatchIndex = 0
   @State private var isShowingArchive = false
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
@@ -151,9 +152,7 @@ struct ChatView: View {
     ScrollViewReader { proxy in
       VStack(spacing: 0) {
         if isMessageSearchPresented {
-          messageSearchPanel { messageId in
-            scrollToMessage(messageId, with: proxy)
-          }
+          messageSearchBar
         }
 
         ScrollView {
@@ -170,7 +169,8 @@ struct ChatView: View {
                     onDelete: { requestDelete(message) },
                     onShare: { noteForSharing = message },
                     onShowFullText: { fullTextNote = message },
-                    linkPreview: viewModel.linkPreviews[message.id]
+                    linkPreview: viewModel.linkPreviews[message.id],
+                    highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil
                   )
                     .id(message.id)
                 }
@@ -194,6 +194,11 @@ struct ChatView: View {
           }
         }
         .scrollDismissesKeyboard(.interactively)
+        .overlay(alignment: .bottom) {
+          if isMessageSearchPresented, !viewModel.messageSearchResults.isEmpty {
+            matchNavigator(with: proxy)
+          }
+        }
         .onAppear {
           scrollToLatestMessage(with: proxy, animated: false)
         }
@@ -213,82 +218,98 @@ struct ChatView: View {
             scrollToLatestMessageAfterKeyboardAppears(with: proxy)
           }
         }
+        .onChange(of: viewModel.messageSearchText) { _, _ in
+          currentMatchIndex = max(0, viewModel.messageSearchResults.count - 1)
+          scrollToCurrentMatch(with: proxy)
+        }
       }
     }
   }
 
-  private func messageSearchPanel(
-    onSelect: @escaping (Note.ID) -> Void
-  ) -> some View {
-    VStack(spacing: 8) {
-      HStack(spacing: 10) {
-        Image(systemName: "magnifyingglass")
-          .foregroundStyle(.gray400)
+  private var messageSearchBar: some View {
+    HStack(spacing: 10) {
+      Image(systemName: "magnifyingglass")
+        .foregroundStyle(.gray400)
 
-        TextField("이 채팅에서 검색", text: binding(\.messageSearchText))
-          .typeStyle(.body)
-          .textInputAutocapitalization(.never)
-          .autocorrectionDisabled()
-          .focused($isSearchFocused)
+      TextField("이 채팅에서 검색", text: binding(\.messageSearchText))
+        .typeStyle(.body)
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        .focused($isSearchFocused)
 
-        if !viewModel.messageSearchText.isEmpty {
-          Button {
-            viewModel.messageSearchText = ""
-          } label: {
-            Image(systemName: "xmark.circle.fill")
-              .foregroundStyle(.gray400)
-          }
-          .buttonStyle(.plain)
-          .accessibilityLabel("검색어 지우기")
+      if !viewModel.messageSearchText.isEmpty {
+        Button {
+          viewModel.messageSearchText = ""
+        } label: {
+          Image(systemName: "xmark.circle.fill")
+            .foregroundStyle(.gray400)
         }
-      }
-      .padding(.horizontal, 14)
-      .frame(height: 44)
-      .background(.gray100)
-      .clipShape(RoundedRectangle(cornerRadius: 14))
-
-      if !viewModel.messageSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-        if viewModel.messageSearchResults.isEmpty {
-          Text("일치하는 메시지가 없습니다.")
-            .typeStyle(.footnote)
-            .foregroundStyle(.gray500)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-        } else {
-          ScrollView {
-            LazyVStack(spacing: 0) {
-              ForEach(viewModel.messageSearchResults) { message in
-                Button {
-                  onSelect(message.id)
-                  isSearchFocused = false
-                } label: {
-                  HStack {
-                    Text(message.content)
-                      .typeStyle(.footnote)
-                      .foregroundStyle(.gray900)
-                      .lineLimit(1)
-
-                    Spacer()
-
-                    Text(message.timeText)
-                      .typeStyle(.caption1)
-                      .foregroundStyle(.gray400)
-                  }
-                  .padding(.horizontal, 12)
-                  .frame(minHeight: 42)
-                  .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-              }
-            }
-          }
-          .frame(maxHeight: 168)
-        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("검색어 지우기")
       }
     }
     .padding(.horizontal, 14)
+    .frame(height: 44)
+    .background(.gray100)
+    .clipShape(RoundedRectangle(cornerRadius: 14))
+    .padding(.horizontal, 14)
     .padding(.vertical, 10)
     .background(.white)
+  }
+
+  private func matchNavigator(with proxy: ScrollViewProxy) -> some View {
+    HStack(spacing: 16) {
+      Text("\(currentMatchIndex + 1)/\(viewModel.messageSearchResults.count)")
+        .typeStyle(.footnoteEmphasized)
+        .foregroundStyle(.white)
+
+      HStack(spacing: 4) {
+        Button {
+          goToPreviousMatch(with: proxy)
+        } label: {
+          Image(systemName: "chevron.up")
+            .frame(width: 28, height: 28)
+        }
+        .disabled(currentMatchIndex <= 0)
+
+        Button {
+          goToNextMatch(with: proxy)
+        } label: {
+          Image(systemName: "chevron.down")
+            .frame(width: 28, height: 28)
+        }
+        .disabled(currentMatchIndex >= viewModel.messageSearchResults.count - 1)
+      }
+      .foregroundStyle(.white)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 8)
+    .background(Color.gray900)
+    .clipShape(Capsule())
+    .padding(.bottom, 12)
+  }
+
+  private func goToPreviousMatch(with proxy: ScrollViewProxy) {
+    guard currentMatchIndex > 0 else {
+      return
+    }
+    currentMatchIndex -= 1
+    scrollToCurrentMatch(with: proxy)
+  }
+
+  private func goToNextMatch(with proxy: ScrollViewProxy) {
+    guard currentMatchIndex < viewModel.messageSearchResults.count - 1 else {
+      return
+    }
+    currentMatchIndex += 1
+    scrollToCurrentMatch(with: proxy)
+  }
+
+  private func scrollToCurrentMatch(with proxy: ScrollViewProxy) {
+    guard viewModel.messageSearchResults.indices.contains(currentMatchIndex) else {
+      return
+    }
+    scrollToMessage(viewModel.messageSearchResults[currentMatchIndex].id, with: proxy)
   }
 
   private var messageInputBar: some View {
@@ -375,6 +396,7 @@ struct ChatView: View {
   private func toggleMessageSearch() {
     isMessageSearchPresented.toggle()
     viewModel.messageSearchText = ""
+    currentMatchIndex = 0
     isInputFocused = false
 
     if isMessageSearchPresented {

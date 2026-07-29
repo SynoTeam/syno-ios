@@ -39,6 +39,7 @@ struct SearchView: View {
         modelContext: modelContext,
         searchIndex: searchIndex,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
+        noteLinkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator
       )
     )
@@ -64,7 +65,7 @@ struct SearchView: View {
       Image(systemName: "magnifyingglass")
         .foregroundStyle(.gray400)
 
-      TextField("연락처와 메모 검색", text: queryBinding)
+      TextField("텍스트, 사진, 링크 검색", text: queryBinding)
         .typeStyle(.body)
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
@@ -100,26 +101,29 @@ struct SearchView: View {
   }
 
   private var categoryPicker: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: 0) {
       ForEach(SearchCategory.allCases) { category in
         Button {
           viewModel.selectedCategory = category
         } label: {
-          Text(category.title)
-            .typeStyle(.subheadline)
-            .foregroundStyle(viewModel.selectedCategory == category ? .gray25 : .gray500)
-            .padding(.horizontal, 16)
-            .frame(height: 34)
-            .background(viewModel.selectedCategory == category ? .gray800 : .white)
-            .clipShape(Capsule())
+          VStack(spacing: 8) {
+            Text(category.title)
+              .typeStyle(viewModel.selectedCategory == category ? .calloutEmphasized : .callout)
+              .foregroundStyle(viewModel.selectedCategory == category ? .violet600 : .gray950)
+
+            Rectangle()
+              .fill(viewModel.selectedCategory == category ? Color.violet400 : Color.clear)
+              .frame(height: 2)
+          }
+          .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
       }
-
-      Spacer()
     }
-    .padding(.horizontal, 16)
-    .padding(.bottom, 10)
+    .padding(.top, 4)
+    .overlay(alignment: .bottom) {
+      Divider()
+    }
   }
 
   @ViewBuilder
@@ -146,21 +150,30 @@ struct SearchView: View {
     }
   }
 
+  private let photoColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
+  private let linkColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
   private var resultsList: some View {
     ScrollView {
-      LazyVStack(spacing: 12) {
-        ForEach(viewModel.filteredResults) { result in
-          NavigationLink {
-            destination(for: result)
-          } label: {
-            SearchResultRow(result: result)
-          }
-          .buttonStyle(.plain)
-          .simultaneousGesture(
-            TapGesture().onEnded {
-              viewModel.commitCurrentQuery()
+      LazyVStack(alignment: .leading, spacing: 20) {
+        if viewModel.selectedCategory == .all {
+          ForEach([SearchCategory.text, .photo, .link], id: \.self) { category in
+            let categoryResults = viewModel.results(for: category)
+            if !categoryResults.isEmpty {
+              sectionCard(
+                category: category,
+                results: Array(categoryResults.prefix(3)),
+                showMore: categoryResults.count > 3
+              )
             }
-          )
+          }
+        } else {
+          VStack(alignment: .leading, spacing: 12) {
+            resultsGrid(for: viewModel.selectedCategory, results: viewModel.filteredResults)
+          }
+          .padding(16)
+          .background(.white)
+          .clipShape(RoundedRectangle(cornerRadius: 20))
         }
       }
       .padding(.horizontal, 16)
@@ -170,23 +183,80 @@ struct SearchView: View {
     .scrollDismissesKeyboard(.interactively)
   }
 
+  private func sectionCard(category: SearchCategory, results: [SearchResult], showMore: Bool) -> some View {
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(spacing: 6) {
+        Image(systemName: sectionIconName(for: category))
+          .font(.system(size: 16, weight: .medium))
+          .foregroundStyle(.gray300)
+        Text(category.title).typeStyle(.subheadlineEmphasized).foregroundStyle(.gray500)
+      }
+      resultsGrid(for: category, results: results)
+
+      if showMore {
+        VStack(spacing: 12) {
+          Divider()
+            .background(Color.gray100)
+          
+          Button("더 보기") { viewModel.selectedCategory = category }
+            .typeStyle(.calloutEmphasized)
+            .foregroundStyle(.gray500)
+            .frame(maxWidth: .infinity)
+        }
+      }
+    }
+    .padding(16)
+    .background(.white)
+    .clipShape(RoundedRectangle(cornerRadius: 20))
+  }
+
+  @ViewBuilder
+  private func resultsGrid(for category: SearchCategory, results: [SearchResult]) -> some View {
+    switch category {
+    case .text:
+      VStack(spacing: 8) {
+        ForEach(results) { resultLink($0) }
+      }
+    case .photo:
+      LazyVGrid(columns: photoColumns, spacing: 4) {
+        ForEach(results) { resultLink($0) }
+      }
+    case .link:
+      LazyVGrid(columns: linkColumns, spacing: 12) {
+        ForEach(results) { resultLink($0) }
+      }
+    case .all:
+      EmptyView()
+    }
+  }
+
+  private func sectionIconName(for category: SearchCategory) -> String {
+    switch category {
+    case .all: "magnifyingglass"
+    case .text: "message.fill"
+    case .photo: "photo"
+    case .link: "link"
+    }
+  }
+
+  private func resultLink(_ result: SearchResult) -> some View {
+    NavigationLink {
+      destination(for: result)
+    } label: {
+      SearchResultRow(result: result)
+    }
+    .buttonStyle(.plain)
+    .simultaneousGesture(
+      TapGesture().onEnded {
+        viewModel.commitCurrentQuery()
+      }
+    )
+  }
+
   @ViewBuilder
   private func destination(for result: SearchResult) -> some View {
     switch result {
-    case .contact(let contact, _):
-      ContactDetailView(
-        contact: contact,
-        noteRepository: noteRepository,
-        noteImageAnalyzer: noteImageAnalyzer,
-        noteImageAnalysisRepository: noteImageAnalysisRepository,
-        linkPreviewFetcher: linkPreviewFetcher,
-        noteLinkPreviewRepository: noteLinkPreviewRepository,
-        labelTranslator: labelTranslator,
-        viewModel: nil,
-        existingGroups: [],
-        onDeleted: {}
-      )
-    case .note(_, let contact):
+    case let .text(_, contact), let .photo(_, contact), let .link(_, contact, _):
       ChatView(
         contact: contact,
         repository: noteRepository,

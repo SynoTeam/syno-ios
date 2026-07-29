@@ -90,12 +90,13 @@ final class ChatViewModel {
     guard !searchText.isEmpty else {
       return []
     }
-    return messages.filter {
-      searchableText(
-        for: $0,
-        analysis: imageAnalyses[$0.id]
-      ).localizedStandardContains(searchText)
-    }
+    return messages.filter { matches($0, searchText: searchText) }
+  }
+
+  /// 노트 본문과 사진 OCR/라벨을 대상으로 검색어 일치 여부를 반환합니다.
+  func matches(_ note: Note, searchText: String) -> Bool {
+    searchableText(for: note, analysis: imageAnalyses[note.id])
+      .localizedStandardContains(searchText)
   }
 
   /// 같은 날짜에 작성된 메시지를 하나의 섹션으로 묶어 시간순으로 반환합니다.

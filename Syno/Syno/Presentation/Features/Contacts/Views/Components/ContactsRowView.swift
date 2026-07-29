@@ -35,7 +35,7 @@ struct ContactsRowView: View {
     .padding(.horizontal, style.horizontalPadding)
     .padding(.vertical, style.verticalPadding)
     .frame(maxWidth: .infinity, minHeight: 60)
-    .background(style.backgroundColor)
+    .background(backgroundView)
     .clipShape(RoundedRectangle(cornerRadius: style.cornerRadius))
   }
 
@@ -80,15 +80,6 @@ struct ContactsRowView: View {
     case me
     case contact
 
-    var backgroundColor: AnyShapeStyle {
-      switch self {
-      case .me:
-        AnyShapeStyle(LinearGradient.gradient02)
-      case .contact:
-        AnyShapeStyle(Color.white)
-      }
-    }
-
     var nameColor: Color {
       switch self {
       case .me:
@@ -132,6 +123,19 @@ struct ContactsRowView: View {
       case .contact:
         0
       }
+    }
+  }
+  
+  @ViewBuilder
+  private var backgroundView: some View {
+    switch style {
+    case .me:
+      Image(.bgProfile)
+        .resizable()
+        .scaledToFill()
+      
+    case .contact:
+      Color.white
     }
   }
 }

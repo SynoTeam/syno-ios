@@ -5,6 +5,7 @@
 //  Created by 이승진 on 7/16/26.
 //
 
+import Contacts
 import Foundation
 import Observation
 
@@ -81,6 +82,58 @@ final class ContactsViewModel {
     }
   }
   
+  /// 기기 연락처 여러 개를 한 번에 가져옵니다. 기존 연락처와 전화번호가 같으면 건너뜁니다.
+  func importDeviceContacts(_ cnContacts: [CNContact]) -> (imported: Int, skipped: Int) {
+    var knownPhones = Set(contacts.map(normalizedPhone).filter { !$0.isEmpty })
+    var imported = 0
+    var skipped = 0
+
+    for cnContact in cnContacts {
+      let contact = Self.makeContact(from: cnContact)
+      let phone = normalizedPhone(contact.phone)
+
+      if !phone.isEmpty, knownPhones.contains(phone) {
+        skipped += 1
+        continue
+      }
+
+      if addContact(contact) {
+        imported += 1
+        if !phone.isEmpty {
+          knownPhones.insert(phone)
+        }
+      } else {
+        skipped += 1
+      }
+    }
+
+    return (imported, skipped)
+  }
+
+  private func normalizedPhone(_ contact: Contact) -> String {
+    normalizedPhone(contact.phone)
+  }
+
+  private func normalizedPhone(_ phone: String) -> String {
+    phone.filter(\.isNumber)
+  }
+
+  private static func makeContact(from cnContact: CNContact) -> Contact {
+    let name = "\(cnContact.familyName)\(cnContact.givenName)"
+      .trimmingCharacters(in: .whitespaces)
+    let fallbackName = cnContact.organizationName.isEmpty ? "이름 없음" : cnContact.organizationName
+
+    return Contact(
+      name: name.isEmpty ? fallbackName : name,
+      role: cnContact.jobTitle,
+      company: cnContact.organizationName,
+      email: cnContact.emailAddresses.first?.value as String? ?? "",
+      phone: cnContact.phoneNumbers.first?.value.stringValue ?? "",
+      url: cnContact.urlAddresses.first?.value as String? ?? "",
+      profileImageData: cnContact.imageData
+    )
+  }
+
   @discardableResult
   func deleteContact(id: Contact.ID) -> Bool {
     deleteContacts(ids: [id]) != nil

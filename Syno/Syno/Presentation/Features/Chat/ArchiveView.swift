@@ -16,13 +16,11 @@ struct ArchiveView: View {
   }
 
   let viewModel: ChatViewModel
-  let noteRepository: any NoteRepository
 
   @State private var selectedTab: Tab = .photos
   @State private var isSearching = false
   @State private var searchText = ""
   @FocusState private var isSearchFocused: Bool
-  @State private var noteForSharing: Note?
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
 
@@ -60,17 +58,6 @@ struct ArchiveView: View {
         }
         .accessibilityLabel(isSearching ? "검색 닫기" : "검색")
       }
-    }
-    .sheet(item: $noteForSharing) { note in
-      NoteShareRecipientPickerSheet(
-        note: note,
-        currentContactID: viewModel.contact.id,
-        repository: noteRepository
-      ) {
-        toast = Toast(message: "노트가 공유되었습니다", style: .success, icon: "square.and.arrow.up")
-      }
-      .presentationDetents([.large])
-      .presentationDragIndicator(.visible)
     }
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
@@ -167,9 +154,7 @@ struct ArchiveView: View {
                       Label("복사하기", systemImage: "doc.on.doc")
                     }
 
-                    Button {
-                      noteForSharing = note
-                    } label: {
+                    ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
                       Label("공유하기", systemImage: "square.and.arrow.up")
                     }
 
@@ -207,9 +192,7 @@ struct ArchiveView: View {
                   Label("복사하기", systemImage: "doc.on.doc")
                 }
 
-                Button {
-                  noteForSharing = note
-                } label: {
+                ShareLink(item: preview.siteURL) {
                   Label("공유하기", systemImage: "square.and.arrow.up")
                 }
 

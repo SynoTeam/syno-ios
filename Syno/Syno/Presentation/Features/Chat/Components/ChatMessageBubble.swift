@@ -14,7 +14,6 @@ struct ChatMessageBubble: View {
   var pendingStatus: ChatViewModel.PendingMessage.Status?
   var onRetry: (() -> Void)?
   var onDelete: (() -> Void)?
-  var onShare: (() -> Void)?
   var onShowFullText: (() -> Void)?
   var linkPreview: NoteLinkPreviewResult?
   var highlightQuery: String?
@@ -29,11 +28,7 @@ struct ChatMessageBubble: View {
         Label("복사하기", systemImage: "doc.on.doc")
       }
 
-      if let onShare {
-        Button(action: onShare) {
-          Label("공유하기", systemImage: "square.and.arrow.up")
-        }
-      }
+      shareLink
 
       if let onDelete {
         Button(role: .destructive, action: onDelete) {
@@ -110,6 +105,23 @@ struct ChatMessageBubble: View {
 
   private var shouldShowFullTextLink: Bool {
     note.content.count > 180
+  }
+
+  @ViewBuilder
+  private var shareLink: some View {
+    if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
+      ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
+        Label("공유하기", systemImage: "square.and.arrow.up")
+      }
+    } else if let linkPreview {
+      ShareLink(item: linkPreview.siteURL) {
+        Label("공유하기", systemImage: "square.and.arrow.up")
+      }
+    } else {
+      ShareLink(item: note.content) {
+        Label("공유하기", systemImage: "square.and.arrow.up")
+      }
+    }
   }
 
   private var contentText: Text {

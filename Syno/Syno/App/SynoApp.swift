@@ -36,8 +36,14 @@ struct SynoApp: App {
         StoredNoteImageAnalysis.self,
         StoredNoteLinkPreview.self
       ])
+      guard let appGroupContainerURL = FileManager.default.containerURL(
+        forSecurityApplicationGroupIdentifier: "group.com.synoteam.Syno"
+      ) else {
+        fatalError("App Group container unavailable: group.com.synoteam.Syno")
+      }
       let configuration = ModelConfiguration(
         schema: schema,
+        url: appGroupContainerURL.appendingPathComponent("Syno.sqlite"),
         cloudKitDatabase: .private("iCloud.com.synoteam.Syno")
       )
       let container = try ModelContainer(

@@ -5,11 +5,8 @@ import UIKit
 struct FullTextMessageView: View {
   @Environment(\.dismiss) private var dismiss
   let note: Note
-  let currentContactID: Contact.ID
-  let repository: any NoteRepository
   let onDelete: (Note) -> Bool
 
-  @State private var isShowingShareSheet = false
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
 
@@ -45,9 +42,7 @@ struct FullTextMessageView: View {
               Label("복사하기", systemImage: "doc.on.doc")
             }
 
-            Button {
-              isShowingShareSheet = true
-            } label: {
+            ShareLink(item: note.content) {
               Label("공유하기", systemImage: "square.and.arrow.up")
             }
 
@@ -61,17 +56,6 @@ struct FullTextMessageView: View {
           }
         }
       }
-    }
-    .sheet(isPresented: $isShowingShareSheet) {
-      NoteShareRecipientPickerSheet(
-        note: note,
-        currentContactID: currentContactID,
-        repository: repository
-      ) {
-        toast = Toast(message: "노트가 공유되었습니다", style: .success, icon: "square.and.arrow.up")
-      }
-      .presentationDetents([.large])
-      .presentationDragIndicator(.visible)
     }
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)

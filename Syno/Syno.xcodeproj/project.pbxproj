@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3CDFBB4F301A732800C7637C /* SynoShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3CDFBB45301A732800C7637C /* SynoShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		3CDFBB4D301A732800C7637C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3CDFBB44301A732800C7637C;
+			remoteInfo = SynoShareExtension;
+		};
 		7A0000043000000000000004 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
@@ -16,8 +27,23 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		3CDFBB54301A732800C7637C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				3CDFBB4F301A732800C7637C /* SynoShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		3C15409A2FEFC4CE00E89F11 /* Syno.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Syno.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CDFBB45301A732800C7637C /* SynoShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SynoShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A0000013000000000000001 /* SynoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -28,6 +54,13 @@
 				Info.plist,
 			);
 			target = 3C1540992FEFC4CE00E89F11 /* Syno */;
+		};
+		3CDFBB53301A732800C7637C /* Exceptions for "SynoShareExtension" folder in "SynoShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3CDFBB44301A732800C7637C /* SynoShareExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -40,6 +73,14 @@
 			path = Syno;
 			sourceTree = "<group>";
 		};
+		3CDFBB46301A732800C7637C /* SynoShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3CDFBB53301A732800C7637C /* Exceptions for "SynoShareExtension" folder in "SynoShareExtension" target */,
+			);
+			path = SynoShareExtension;
+			sourceTree = "<group>";
+		};
 		7A0000023000000000000002 /* SynoTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SynoTests;
@@ -49,6 +90,13 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		3C1540972FEFC4CE00E89F11 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3CDFBB42301A732800C7637C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -70,6 +118,7 @@
 			children = (
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
 				7A0000023000000000000002 /* SynoTests */,
+				3CDFBB46301A732800C7637C /* SynoShareExtension */,
 				3C15409B2FEFC4CE00E89F11 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -79,6 +128,7 @@
 			children = (
 				3C15409A2FEFC4CE00E89F11 /* Syno.app */,
 				7A0000013000000000000001 /* SynoTests.xctest */,
+				3CDFBB45301A732800C7637C /* SynoShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -93,10 +143,12 @@
 				3C1540962FEFC4CE00E89F11 /* Sources */,
 				3C1540972FEFC4CE00E89F11 /* Frameworks */,
 				3C1540982FEFC4CE00E89F11 /* Resources */,
+				3CDFBB54301A732800C7637C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				3CDFBB4E301A732800C7637C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
@@ -107,6 +159,28 @@
 			productName = Syno;
 			productReference = 3C15409A2FEFC4CE00E89F11 /* Syno.app */;
 			productType = "com.apple.product-type.application";
+		};
+		3CDFBB44301A732800C7637C /* SynoShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3CDFBB50301A732800C7637C /* Build configuration list for PBXNativeTarget "SynoShareExtension" */;
+			buildPhases = (
+				3CDFBB41301A732800C7637C /* Sources */,
+				3CDFBB42301A732800C7637C /* Frameworks */,
+				3CDFBB43301A732800C7637C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3CDFBB46301A732800C7637C /* SynoShareExtension */,
+			);
+			name = SynoShareExtension;
+			packageProductDependencies = (
+			);
+			productName = SynoShareExtension;
+			productReference = 3CDFBB45301A732800C7637C /* SynoShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		7A0000053000000000000005 /* SynoTests */ = {
 			isa = PBXNativeTarget;
@@ -152,6 +226,9 @@
 							};
 						};
 					};
+					3CDFBB44301A732800C7637C = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					7A0000053000000000000005 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 3C1540992FEFC4CE00E89F11;
@@ -174,12 +251,20 @@
 			targets = (
 				3C1540992FEFC4CE00E89F11 /* Syno */,
 				7A0000053000000000000005 /* SynoTests */,
+				3CDFBB44301A732800C7637C /* SynoShareExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		3C1540982FEFC4CE00E89F11 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3CDFBB43301A732800C7637C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -203,6 +288,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3CDFBB41301A732800C7637C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7A0000073000000000000007 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -213,6 +305,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3CDFBB4E301A732800C7637C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3CDFBB44301A732800C7637C /* SynoShareExtension */;
+			targetProxy = 3CDFBB4D301A732800C7637C /* PBXContainerItemProxy */;
+		};
 		7A0000093000000000000009 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 3C1540992FEFC4CE00E89F11 /* Syno */;
@@ -412,6 +509,64 @@
 			};
 			name = Release;
 		};
+		3CDFBB51301A732800C7637C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SynoShareExtension/SynoShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D8KHM6Q8SA;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SynoShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SynoShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.Syno.SynoShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3CDFBB52301A732800C7637C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SynoShareExtension/SynoShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D8KHM6Q8SA;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SynoShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SynoShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.Syno.SynoShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		7A00000A300000000000000A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -475,6 +630,15 @@
 			buildConfigurations = (
 				3C1540A62FEFC4D000E89F11 /* Debug */,
 				3C1540A72FEFC4D000E89F11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3CDFBB50301A732800C7637C /* Build configuration list for PBXNativeTarget "SynoShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3CDFBB51301A732800C7637C /* Debug */,
+				3CDFBB52301A732800C7637C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

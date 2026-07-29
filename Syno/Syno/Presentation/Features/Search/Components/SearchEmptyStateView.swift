@@ -27,10 +27,9 @@ struct SearchEmptyStateView: View {
     switch category {
     case .all:
       "magnifyingglass"
-    case .contacts:
-      "person.crop.circle"
-    case .notes:
-      "note.text"
+    case .text: "text.alignleft"
+    case .photo: "photo"
+    case .link: "link"
     }
   }
 
@@ -38,10 +37,7 @@ struct SearchEmptyStateView: View {
     switch category {
     case .all:
       "검색 결과가 없습니다."
-    case .contacts:
-      "일치하는 연락처가 없습니다."
-    case .notes:
-      "일치하는 메모가 없습니다."
+    case .text, .photo, .link: "일치하는 노트가 없습니다."
     }
   }
 }

@@ -49,7 +49,7 @@ final class SearchViewModelImageKeywordTests: XCTestCase {
 
     XCTAssertFalse(viewModel.isSearching)
     XCTAssertEqual(viewModel.filteredResults.count, 1)
-    XCTAssertEqual(viewModel.filteredResults.first?.category, .notes)
+    XCTAssertEqual(viewModel.filteredResults.first?.category, .photo)
 
     viewModel.updateQuery("unmapped_label")
     try await Task.sleep(for: .milliseconds(500))

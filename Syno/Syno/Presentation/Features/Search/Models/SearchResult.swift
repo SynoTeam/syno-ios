@@ -6,32 +6,28 @@
 import Foundation
 
 enum SearchResult: Identifiable {
-  case contact(Contact, createdAt: Date)
-  case note(Note, contact: Contact)
+  case text(Note, contact: Contact)
+  case photo(Note, contact: Contact)
+  case link(Note, contact: Contact, preview: NoteLinkPreviewResult)
 
   var id: String {
     switch self {
-    case .contact(let contact, _):
-      "contact-\(contact.id.uuidString)"
-    case .note(let note, _):
+    case let .text(note, _), let .photo(note, _), let .link(note, _, _):
       "note-\(note.id.uuidString)"
     }
   }
 
   var category: SearchCategory {
     switch self {
-    case .contact:
-      .contacts
-    case .note:
-      .notes
+    case .text: .text
+    case .photo: .photo
+    case .link: .link
     }
   }
 
   var sortDate: Date {
     switch self {
-    case .contact(_, let createdAt):
-      createdAt
-    case .note(let note, _):
+    case let .text(note, _), let .photo(note, _), let .link(note, _, _):
       note.createdAt
     }
   }

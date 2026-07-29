@@ -5,8 +5,9 @@
 
 enum SearchCategory: String, CaseIterable, Identifiable {
   case all
-  case contacts
-  case notes
+  case text
+  case photo
+  case link
 
   var id: Self {
     self
@@ -16,10 +17,9 @@ enum SearchCategory: String, CaseIterable, Identifiable {
     switch self {
     case .all:
       "전체"
-    case .contacts:
-      "연락처"
-    case .notes:
-      "메모"
+    case .text: "텍스트"
+    case .photo: "사진"
+    case .link: "링크"
     }
   }
 }

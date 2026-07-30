@@ -13,9 +13,7 @@
 		<string>Pretendard-Regular.otf</string>
 		<string>Pretendard-SemiBold.otf</string>
 	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

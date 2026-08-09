@@ -20,6 +20,8 @@ struct RootView: View {
   let linkPreviewFetcher: any NoteLinkPreviewFetching
   let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
+  let noteVoiceTranscriber: any NoteVoiceTranscribing
+  let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   let accountResetService: AccountResetService
 
   var body: some View {
@@ -34,6 +36,8 @@ struct RootView: View {
         linkPreviewFetcher: linkPreviewFetcher,
         noteLinkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
+        noteVoiceTranscriber: noteVoiceTranscriber,
+        noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
         accountResetService: accountResetService
       )
     } else {
@@ -55,6 +59,8 @@ struct RootView: View {
     linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
     noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator,
+    noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+    noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
     accountResetService: PreviewRepositories.accountReset
   )
 }

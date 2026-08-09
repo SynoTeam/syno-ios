@@ -17,6 +17,8 @@ struct SearchView: View {
   private let linkPreviewFetcher: any NoteLinkPreviewFetching
   private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
+  private let noteVoiceTranscriber: any NoteVoiceTranscribing
+  private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
 
   init(
     modelContext: ModelContext,
@@ -26,7 +28,9 @@ struct SearchView: View {
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     linkPreviewFetcher: any NoteLinkPreviewFetching,
     noteLinkPreviewRepository: any NoteLinkPreviewRepository,
-    labelTranslator: any LabelTranslating
+    labelTranslator: any LabelTranslating,
+    noteVoiceTranscriber: any NoteVoiceTranscribing,
+    noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   ) {
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
@@ -34,12 +38,15 @@ struct SearchView: View {
     self.linkPreviewFetcher = linkPreviewFetcher
     self.noteLinkPreviewRepository = noteLinkPreviewRepository
     self.labelTranslator = labelTranslator
+    self.noteVoiceTranscriber = noteVoiceTranscriber
+    self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     _viewModel = State(
       initialValue: SearchViewModel(
         modelContext: modelContext,
         searchIndex: searchIndex,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
         noteLinkPreviewRepository: noteLinkPreviewRepository,
+        noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
         labelTranslator: labelTranslator
       )
     )
@@ -157,7 +164,7 @@ struct SearchView: View {
     ScrollView {
       LazyVStack(alignment: .leading, spacing: 20) {
         if viewModel.selectedCategory == .all {
-          ForEach([SearchCategory.text, .photo, .link], id: \.self) { category in
+          ForEach([SearchCategory.text, .photo, .link, .voice], id: \.self) { category in
             let categoryResults = viewModel.results(for: category)
             if !categoryResults.isEmpty {
               sectionCard(
@@ -225,6 +232,10 @@ struct SearchView: View {
       LazyVGrid(columns: linkColumns, spacing: 12) {
         ForEach(results) { resultLink($0) }
       }
+    case .voice:
+      VStack(spacing: 8) {
+        ForEach(results) { resultLink($0) }
+      }
     case .all:
       EmptyView()
     }
@@ -236,6 +247,7 @@ struct SearchView: View {
     case .text: "message.fill"
     case .photo: "photo"
     case .link: "link"
+    case .voice: "waveform"
     }
   }
 
@@ -256,7 +268,7 @@ struct SearchView: View {
   @ViewBuilder
   private func destination(for result: SearchResult) -> some View {
     switch result {
-    case let .text(_, contact), let .photo(_, contact), let .link(_, contact, _):
+    case let .text(_, contact), let .photo(_, contact), let .link(_, contact, _), let .voice(_, contact, _):
       ChatView(
         contact: contact,
         repository: noteRepository,
@@ -264,7 +276,9 @@ struct SearchView: View {
         imageAnalysisRepository: noteImageAnalysisRepository,
         linkPreviewFetcher: linkPreviewFetcher,
         linkPreviewRepository: noteLinkPreviewRepository,
-        labelTranslator: labelTranslator
+        labelTranslator: labelTranslator,
+        voiceTranscriber: noteVoiceTranscriber,
+        voiceTranscriptRepository: noteVoiceTranscriptRepository
       )
     }
   }
@@ -286,7 +300,9 @@ struct SearchView: View {
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
       linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
       noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
-      labelTranslator: PreviewRepositories.labelTranslator
+      labelTranslator: PreviewRepositories.labelTranslator,
+      noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+      noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript
     )
   }
 }

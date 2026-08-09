@@ -6,11 +6,13 @@ struct ArchiveView: View {
   private enum Tab: CaseIterable {
     case photos
     case links
+    case voiceMemos
 
     var title: String {
       switch self {
       case .photos: "사진"
       case .links: "링크"
+      case .voiceMemos: "음성"
       }
     }
   }
@@ -41,6 +43,8 @@ struct ArchiveView: View {
           photoGrid
         case .links:
           linkGrid
+        case .voiceMemos:
+          voiceMemoGrid
         }
       }
     }
@@ -122,6 +126,28 @@ struct ArchiveView: View {
       }
     }
     return notes.sorted { $0.createdAt < $1.createdAt }
+  }
+
+  private var voiceMemoNotes: [Note] {
+    viewModel.messages.filter { $0.voiceMemoData != nil }.filter { note in
+      guard !trimmedSearchText.isEmpty else { return true }
+      let transcript: String
+      if case let .transcribed(result) = viewModel.voiceMemoStates[note.id] { transcript = result.text } else { transcript = "" }
+      return note.content.localizedStandardContains(trimmedSearchText) || transcript.localizedStandardContains(trimmedSearchText)
+    }.sorted { $0.createdAt < $1.createdAt }
+  }
+
+  @ViewBuilder private var voiceMemoGrid: some View {
+    if voiceMemoNotes.isEmpty {
+      emptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "아직 주고받은 음성 메모가 없습니다" : "검색 결과가 없습니다")
+    } else {
+      LazyVStack(alignment: .leading, spacing: 12) {
+        ForEach(voiceMemoNotes) { note in
+          VoiceMemoCard(note: note)
+            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") } }
+        }
+      }.padding(16)
+    }
   }
 
   @ViewBuilder

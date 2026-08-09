@@ -17,6 +17,8 @@ struct ContactDetailView: View {
   let linkPreviewFetcher: any NoteLinkPreviewFetching
   let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
+  let noteVoiceTranscriber: any NoteVoiceTranscribing
+  let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   let viewModel: ContactsViewModel?
   let existingGroups: [String]
   let onDeleted: () -> Void
@@ -182,7 +184,9 @@ struct ContactDetailView: View {
         imageAnalysisRepository: noteImageAnalysisRepository,
         linkPreviewFetcher: linkPreviewFetcher,
         linkPreviewRepository: noteLinkPreviewRepository,
-        labelTranslator: labelTranslator
+        labelTranslator: labelTranslator,
+        voiceTranscriber: noteVoiceTranscriber,
+        voiceTranscriptRepository: noteVoiceTranscriptRepository
       )
     } label: {
       Text("메모하기")
@@ -244,6 +248,8 @@ private extension View {
       linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
       noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
       labelTranslator: PreviewRepositories.labelTranslator,
+      noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+      noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
       viewModel: nil,
       existingGroups: [],
       onDeleted: {}

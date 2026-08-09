@@ -16,6 +16,8 @@ struct MyPageView: View {
   let linkPreviewFetcher: any NoteLinkPreviewFetching
   let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
+  let noteVoiceTranscriber: any NoteVoiceTranscribing
+  let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   let existingGroups: [String]
   let accountResetService: AccountResetService
   let onSave: (Contact) -> Void
@@ -32,6 +34,8 @@ struct MyPageView: View {
     linkPreviewFetcher: any NoteLinkPreviewFetching,
     noteLinkPreviewRepository: any NoteLinkPreviewRepository,
     labelTranslator: any LabelTranslating,
+    noteVoiceTranscriber: any NoteVoiceTranscribing,
+    noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     existingGroups: [String] = [],
     accountResetService: AccountResetService,
     onSave: @escaping (Contact) -> Void = { _ in }
@@ -43,6 +47,8 @@ struct MyPageView: View {
     self.linkPreviewFetcher = linkPreviewFetcher
     self.noteLinkPreviewRepository = noteLinkPreviewRepository
     self.labelTranslator = labelTranslator
+    self.noteVoiceTranscriber = noteVoiceTranscriber
+    self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.existingGroups = existingGroups
     self.accountResetService = accountResetService
     self.onSave = onSave
@@ -178,7 +184,9 @@ struct MyPageView: View {
         imageAnalysisRepository: noteImageAnalysisRepository,
         linkPreviewFetcher: linkPreviewFetcher,
         linkPreviewRepository: noteLinkPreviewRepository,
-        labelTranslator: labelTranslator
+        labelTranslator: labelTranslator,
+        voiceTranscriber: noteVoiceTranscriber,
+        voiceTranscriptRepository: noteVoiceTranscriptRepository
       )
     } label: {
       Text("메모하기")
@@ -241,6 +249,8 @@ private extension View {
     linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
     noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator,
+    noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+    noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
     accountResetService: PreviewRepositories.accountReset
   )
 }

@@ -20,6 +20,8 @@ struct MainTabView: View {
   private let linkPreviewFetcher: any NoteLinkPreviewFetching
   private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
+  private let noteVoiceTranscriber: any NoteVoiceTranscribing
+  private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   private let accountResetService: AccountResetService
 
   init(
@@ -32,6 +34,8 @@ struct MainTabView: View {
     linkPreviewFetcher: any NoteLinkPreviewFetching,
     noteLinkPreviewRepository: any NoteLinkPreviewRepository,
     labelTranslator: any LabelTranslating,
+    noteVoiceTranscriber: any NoteVoiceTranscribing,
+    noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     accountResetService: AccountResetService
   ) {
     self.userProfile = userProfile
@@ -43,6 +47,8 @@ struct MainTabView: View {
     self.linkPreviewFetcher = linkPreviewFetcher
     self.noteLinkPreviewRepository = noteLinkPreviewRepository
     self.labelTranslator = labelTranslator
+    self.noteVoiceTranscriber = noteVoiceTranscriber
+    self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.accountResetService = accountResetService
   }
   
@@ -59,6 +65,8 @@ struct MainTabView: View {
             linkPreviewFetcher: linkPreviewFetcher,
             noteLinkPreviewRepository: noteLinkPreviewRepository,
             labelTranslator: labelTranslator,
+            noteVoiceTranscriber: noteVoiceTranscriber,
+            noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
             accountResetService: accountResetService
           )
         }
@@ -73,7 +81,9 @@ struct MainTabView: View {
             noteImageAnalysisRepository: noteImageAnalysisRepository,
             linkPreviewFetcher: linkPreviewFetcher,
             noteLinkPreviewRepository: noteLinkPreviewRepository,
-            labelTranslator: labelTranslator
+            labelTranslator: labelTranslator,
+            noteVoiceTranscriber: noteVoiceTranscriber,
+            noteVoiceTranscriptRepository: noteVoiceTranscriptRepository
           )
         }
       }
@@ -88,7 +98,9 @@ struct MainTabView: View {
             noteImageAnalysisRepository: noteImageAnalysisRepository,
             linkPreviewFetcher: linkPreviewFetcher,
             noteLinkPreviewRepository: noteLinkPreviewRepository,
-            labelTranslator: labelTranslator
+            labelTranslator: labelTranslator,
+            noteVoiceTranscriber: noteVoiceTranscriber,
+            noteVoiceTranscriptRepository: noteVoiceTranscriptRepository
           )
         }
       }
@@ -135,6 +147,8 @@ private enum AppTab: Hashable {
     linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
     noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator,
+    noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+    noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
     accountResetService: PreviewRepositories.accountReset
   )
 }

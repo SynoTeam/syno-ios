@@ -16,6 +16,9 @@ struct ChatMessageBubble: View {
   var onDelete: (() -> Void)?
   var onShowFullText: (() -> Void)?
   var linkPreview: NoteLinkPreviewResult?
+  var voiceMemoState: ChatViewModel.VoiceMemoState?
+  var onRetryTranscription: (() -> Void)?
+  var onRetrySend: (() -> Void)?
   var highlightQuery: String?
 
   var body: some View {
@@ -45,6 +48,7 @@ struct ChatMessageBubble: View {
       if let linkPreview {
         LinkPreviewCard(preview: linkPreview)
       }
+      if let voiceMemoState { voiceTranscriptView(voiceMemoState) }
 
       Text(note.clockTimeText)
         .typeStyle(.caption1)
@@ -60,7 +64,9 @@ struct ChatMessageBubble: View {
 
   @ViewBuilder
   private var messageContent: some View {
-    if
+    if note.voiceMemoData != nil {
+      VoiceMemoCard(note: note)
+    } else if
       let imageData = note.imageData,
       let uiImage = UIImage(data: imageData)
     {
@@ -100,6 +106,19 @@ struct ChatMessageBubble: View {
       .padding(.vertical, 12)
       .background(.gray5)
       .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+  }
+
+  @ViewBuilder private func voiceTranscriptView(_ state: ChatViewModel.VoiceMemoState) -> some View {
+    switch state {
+    case .transcribing:
+      HStack { ProgressView().controlSize(.small); Text("STT 변환 중") }.typeStyle(.caption1).foregroundStyle(.gray500).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(.white).clipShape(RoundedRectangle(cornerRadius: 16))
+    case let .transcribed(result):
+      Text(result.text).typeStyle(.footnote).foregroundStyle(.gray800).frame(maxWidth: .infinity, alignment: .leading).padding(12).background(.white).clipShape(RoundedRectangle(cornerRadius: 16))
+    case .transcriptFailed:
+      HStack { Text("STT 변환 실패").foregroundStyle(.errorRed); if let onRetryTranscription { Button("다시 시도", action: onRetryTranscription).foregroundStyle(.violet500) } }.typeStyle(.caption1)
+    case .sendFailed:
+      HStack { Text("전송에 실패했습니다"); if let onRetrySend { Button("다시 시도", action: onRetrySend).foregroundStyle(.violet500) } }.typeStyle(.caption1).foregroundStyle(.errorRed)
     }
   }
 

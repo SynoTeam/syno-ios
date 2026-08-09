@@ -84,6 +84,9 @@ final class StoredNote {
   var contactName: String = ""
   var content: String = ""
   var imageData: Data?
+  var voiceMemoData: Data?
+  var voiceMemoDuration: TimeInterval?
+  var voiceMemoWaveform: [Float]?
   var profileImageData: Data?
   var isFavorite: Bool = false
   var isPinned: Bool = false
@@ -95,6 +98,9 @@ final class StoredNote {
     contactName: String,
     content: String,
     imageData: Data?,
+    voiceMemoData: Data? = nil,
+    voiceMemoDuration: TimeInterval? = nil,
+    voiceMemoWaveform: [Float]? = nil,
     profileImageData: Data?,
     isFavorite: Bool,
     isPinned: Bool = false,
@@ -105,6 +111,9 @@ final class StoredNote {
     self.contactName = contactName
     self.content = content
     self.imageData = imageData
+    self.voiceMemoData = voiceMemoData
+    self.voiceMemoDuration = voiceMemoDuration
+    self.voiceMemoWaveform = voiceMemoWaveform
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isPinned = isPinned

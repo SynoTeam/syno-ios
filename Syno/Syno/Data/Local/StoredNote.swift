@@ -25,6 +25,9 @@ final class StoredNote {
 
   /// 채팅 기록에 첨부된 이미지 데이터입니다.
   var imageData: Data?
+  var voiceMemoData: Data?
+  var voiceMemoDuration: TimeInterval?
+  var voiceMemoWaveform: [Float]?
 
   /// 연락처 프로필 이미지 데이터입니다.
   var profileImageData: Data?
@@ -44,6 +47,9 @@ final class StoredNote {
     contactName: String,
     content: String,
     imageData: Data?,
+    voiceMemoData: Data? = nil,
+    voiceMemoDuration: TimeInterval? = nil,
+    voiceMemoWaveform: [Float]? = nil,
     profileImageData: Data?,
     isFavorite: Bool,
     isPinned: Bool = false,
@@ -54,6 +60,9 @@ final class StoredNote {
     self.contactName = contactName
     self.content = content
     self.imageData = imageData
+    self.voiceMemoData = voiceMemoData
+    self.voiceMemoDuration = voiceMemoDuration
+    self.voiceMemoWaveform = voiceMemoWaveform
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isPinned = isPinned
@@ -67,6 +76,9 @@ final class StoredNote {
       contactName: note.contactName,
       content: note.content,
       imageData: note.imageData,
+      voiceMemoData: note.voiceMemoData,
+      voiceMemoDuration: note.voiceMemoDuration,
+      voiceMemoWaveform: note.voiceMemoWaveform,
       profileImageData: note.profileImageData,
       isFavorite: note.isFavorite,
       isPinned: note.isPinned,
@@ -81,6 +93,9 @@ extension StoredNote {
     contactName = note.contactName
     content = note.content
     imageData = note.imageData
+    voiceMemoData = note.voiceMemoData
+    voiceMemoDuration = note.voiceMemoDuration
+    voiceMemoWaveform = note.voiceMemoWaveform
     profileImageData = note.profileImageData
     isFavorite = note.isFavorite
     isPinned = note.isPinned
@@ -96,6 +111,9 @@ extension StoredNote {
       content: content,
       createdAt: createdAt,
       imageData: imageData,
+      voiceMemoData: voiceMemoData,
+      voiceMemoDuration: voiceMemoDuration,
+      voiceMemoWaveform: voiceMemoWaveform,
       profileImageData: profileImageData,
       isFavorite: isFavorite,
       isPinned: isPinned

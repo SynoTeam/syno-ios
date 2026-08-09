@@ -21,6 +21,7 @@ final class SearchViewModel {
   @ObservationIgnored private let noteImageAnalysisRepository:
     any NoteImageAnalysisRepository
   @ObservationIgnored private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
+  @ObservationIgnored private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   @ObservationIgnored private let labelTranslator: any LabelTranslating
   @ObservationIgnored private let userDefaults: UserDefaults
   @ObservationIgnored private var searchTask: Task<Void, Never>?
@@ -33,6 +34,7 @@ final class SearchViewModel {
     searchIndex: any SearchIndexing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     noteLinkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
+    noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     labelTranslator: any LabelTranslating,
     userDefaults: UserDefaults = .standard
   ) {
@@ -40,6 +42,7 @@ final class SearchViewModel {
     self.searchIndex = searchIndex
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.noteLinkPreviewRepository = noteLinkPreviewRepository
+    self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.labelTranslator = labelTranslator
     self.userDefaults = userDefaults
     recentSearches = userDefaults.stringArray(forKey: Self.recentSearchesKey) ?? []
@@ -53,7 +56,7 @@ final class SearchViewModel {
     switch selectedCategory {
     case .all:
       results
-    case .text, .photo, .link:
+    case .text, .photo, .link, .voice:
       results.filter { $0.category == selectedCategory }
     }
   }
@@ -151,11 +154,13 @@ final class SearchViewModel {
       let imageAnalyses =
         (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
       let linkPreviews = (try? await noteLinkPreviewRepository.fetchAll()) ?? [:]
+      let voiceTranscripts = (try? await noteVoiceTranscriptRepository.fetchAll()) ?? [:]
 
       let keywordNotes = storedNotes.filter {
         searchableText(
           for: $0,
-          analysis: imageAnalyses[$0.id]
+          analysis: imageAnalyses[$0.id],
+          transcript: voiceTranscripts[$0.id]
         ).localizedStandardContains(searchTerm)
       }
       let keywordNoteIds = Set(keywordNotes.map(\.id))
@@ -165,7 +170,8 @@ final class SearchViewModel {
             id: storedNote.id,
             text: semanticText(
               for: storedNote,
-              analysis: imageAnalyses[storedNote.id]
+              analysis: imageAnalyses[storedNote.id],
+              transcript: voiceTranscripts[storedNote.id]
             )
           )
       }
@@ -203,6 +209,7 @@ final class SearchViewModel {
         let note = storedNote.note
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
         if note.imageData != nil { return SearchResult.photo(note, contact: contact) }
+        if note.voiceMemoData != nil { return SearchResult.voice(note, contact: contact, transcript: voiceTranscripts[note.id]) }
         if let preview = linkPreviews[note.id] { return SearchResult.link(note, contact: contact, preview: preview) }
         return SearchResult.text(note, contact: contact)
       }
@@ -219,7 +226,8 @@ final class SearchViewModel {
 
   private func searchableText(
     for note: StoredNote,
-    analysis: NoteImageAnalysisResult?
+    analysis: NoteImageAnalysisResult?,
+    transcript: NoteVoiceTranscriptResult?
   ) -> String {
     var components = [note.contactName, note.content]
     if note.imageData != nil, let analysis {
@@ -228,6 +236,7 @@ final class SearchViewModel {
       )
       components.append(analysis.ocrText)
     }
+    if note.voiceMemoData != nil, let transcript { components.append(transcript.text) }
     return components
       .filter { !$0.isEmpty }
       .joined(separator: "\n")
@@ -235,18 +244,13 @@ final class SearchViewModel {
 
   private func semanticText(
     for note: StoredNote,
-    analysis: NoteImageAnalysisResult?
+    analysis: NoteImageAnalysisResult?,
+    transcript: NoteVoiceTranscriptResult?
   ) -> String {
-    guard note.imageData != nil, let analysis else {
-      return note.content
-    }
-    return (
-      [note.content]
-        + labelTranslator.searchTerms(for: analysis.labels)
-        + [analysis.ocrText]
-    )
-      .filter { !$0.isEmpty }
-      .joined(separator: "\n")
+    var components = [note.content]
+    if note.imageData != nil, let analysis { components += labelTranslator.searchTerms(for: analysis.labels) + [analysis.ocrText] }
+    if note.voiceMemoData != nil, let transcript { components.append(transcript.text) }
+    return components.filter { !$0.isEmpty }.joined(separator: "\n")
   }
 
   private func commit(_ search: String) {

@@ -20,6 +20,7 @@ struct ChatView: View {
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
   @State private var fullTextNote: Note?
+  @State private var voiceRecorder = VoiceRecorder()
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
 
@@ -30,7 +31,9 @@ struct ChatView: View {
     imageAnalysisRepository: any NoteImageAnalysisRepository,
     linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
-    labelTranslator: any LabelTranslating
+    labelTranslator: any LabelTranslating,
+    voiceTranscriber: any NoteVoiceTranscribing,
+    voiceTranscriptRepository: any NoteVoiceTranscriptRepository
   ) {
     _viewModel = State(
       initialValue: ChatViewModel(
@@ -40,7 +43,9 @@ struct ChatView: View {
         imageAnalysisRepository: imageAnalysisRepository,
         linkPreviewFetcher: linkPreviewFetcher,
         linkPreviewRepository: linkPreviewRepository,
-        labelTranslator: labelTranslator
+        labelTranslator: labelTranslator,
+        voiceTranscriber: voiceTranscriber,
+        voiceTranscriptRepository: voiceTranscriptRepository
       )
     )
   }
@@ -152,6 +157,9 @@ struct ChatView: View {
                     onDelete: { requestDelete(message) },
                     onShowFullText: { fullTextNote = message },
                     linkPreview: viewModel.linkPreviews[message.id],
+                    voiceMemoState: viewModel.voiceMemoStates[message.id],
+                    onRetryTranscription: { Task { await viewModel.retryTranscription(for: message) } },
+                    onRetrySend: { Task { await viewModel.retrySend(for: message) } },
                     highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil
                   )
                     .id(message.id)
@@ -318,25 +326,44 @@ struct ChatView: View {
       }
       .accessibilityLabel("메모 추가")
 
-      TextField("메모 입력", text: binding(\.messageText), axis: .vertical)
+      if voiceRecorder.isRecording {
+        HStack(spacing: 8) {
+          HStack(spacing: 1.5) {
+            ForEach(voiceRecorder.levels.indices, id: \.self) { index in
+              Capsule().fill(Color.violet500).frame(width: 2, height: max(8, voiceRecorder.levels[index] * 32))
+                .animation(.easeInOut(duration: 0.15), value: voiceRecorder.levels[index])
+            }
+          }
+          .clipped()
+          .animation(.easeInOut(duration: 0.1), value: voiceRecorder.levels.count)
+          Spacer(minLength: 8)
+          Text(String(format: "%d:%02d", Int(voiceRecorder.duration) / 60, Int(voiceRecorder.duration) % 60)).typeStyle(.footnote)
+        }
+          .padding(.horizontal, 16).frame(maxWidth: .infinity).frame(height: 44).background(.gray100).clipShape(Capsule())
+      } else {
+        TextField("메모 입력", text: binding(\.messageText), axis: .vertical)
         .typeStyle(.body)
         .lineLimit(1...6)
         .focused($isInputFocused)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.gray100)
-        .clipShape(Capsule())
+          .clipShape(Capsule())
+      }
 
-      Button(action: viewModel.sendMessage) {
-        Image(systemName: "arrow.up")
+      Button {
+        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() { Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) } }
+        else if viewModel.canSend { viewModel.sendMessage() }
+        else { Task { _ = await voiceRecorder.start() } }
+      } label: {
+        Image(systemName: voiceRecorder.isRecording ? "stop.fill" : (viewModel.canSend ? "arrow.up" : "mic.fill"))
           .font(.system(size: 20, weight: .bold))
           .foregroundStyle(.white)
           .frame(width: 44, height: 44)
-          .background(viewModel.canSend ? .violet500 : .gray300)
+          .background((viewModel.canSend || voiceRecorder.isRecording) ? .violet500 : .gray300)
           .clipShape(Circle())
       }
-      .disabled(!viewModel.canSend)
-      .accessibilityLabel("Send Note")
+      .accessibilityLabel(voiceRecorder.isRecording ? "녹음 중지" : "메모 보내기 또는 음성 녹음")
     }
     .padding(.horizontal, 14)
     .padding(.top, 10)
@@ -453,7 +480,9 @@ private struct ChatDateDivider: View {
       imageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
       linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
       linkPreviewRepository: PreviewRepositories.noteLinkPreview,
-      labelTranslator: PreviewRepositories.labelTranslator
+      labelTranslator: PreviewRepositories.labelTranslator,
+      voiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+      voiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript
     )
   }
 }

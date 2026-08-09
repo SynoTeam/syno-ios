@@ -23,6 +23,8 @@ struct NotesView: View {
   let linkPreviewFetcher: any NoteLinkPreviewFetching
   let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   let labelTranslator: any LabelTranslating
+  let noteVoiceTranscriber: any NoteVoiceTranscribing
+  let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
 
   var body: some View {
     ScrollView {
@@ -138,7 +140,9 @@ struct NotesView: View {
               imageAnalysisRepository: noteImageAnalysisRepository,
               linkPreviewFetcher: linkPreviewFetcher,
               linkPreviewRepository: noteLinkPreviewRepository,
-              labelTranslator: labelTranslator
+              labelTranslator: labelTranslator,
+              voiceTranscriber: noteVoiceTranscriber,
+              voiceTranscriptRepository: noteVoiceTranscriptRepository
             )
           } label: {
             NoteRowView(note: note)
@@ -253,7 +257,9 @@ private struct StoredNoteChangeToken: Equatable {
     noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,
     linkPreviewFetcher: PreviewRepositories.linkPreviewFetcher,
     noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
-    labelTranslator: PreviewRepositories.labelTranslator
+    labelTranslator: PreviewRepositories.labelTranslator,
+    noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
+    noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript
   )
     .modelContainer(for: [StoredNote.self, StoredContact.self, StoredGroup.self], inMemory: true)
 }

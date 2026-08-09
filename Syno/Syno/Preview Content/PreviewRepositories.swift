@@ -13,6 +13,7 @@ enum PreviewRepositories {
         StoredNoteEmbedding.self,
         StoredNoteImageAnalysis.self,
         StoredNoteLinkPreview.self,
+        StoredNoteVoiceTranscript.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
       )
     } catch {
@@ -30,6 +31,9 @@ enum PreviewRepositories {
 
   static let noteImageAnalysis: any NoteImageAnalysisRepository =
     SwiftDataNoteImageAnalysisRepository(modelContainer: container)
+  static let noteVoiceTranscriber: any NoteVoiceTranscribing = SpeechNoteVoiceTranscriber()
+  static let noteVoiceTranscript: any NoteVoiceTranscriptRepository =
+    SwiftDataNoteVoiceTranscriptRepository(modelContainer: container)
 
   static let linkPreviewFetcher: any NoteLinkPreviewFetching = URLSessionLinkPreviewFetcher()
   static let noteLinkPreview: any NoteLinkPreviewRepository =

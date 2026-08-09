@@ -8,6 +8,12 @@ import UIKit
 @MainActor
 @Observable
 final class ChatViewModel {
+  enum VoiceMemoState: Equatable {
+    case sendFailed
+    case transcribing
+    case transcriptFailed
+    case transcribed(NoteVoiceTranscriptResult)
+  }
   struct PendingMessage: Identifiable {
     enum Status: Equatable {
       case sending
@@ -50,6 +56,7 @@ final class ChatViewModel {
   private(set) var persistenceError: String?
   private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
   private(set) var linkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
+  private(set) var voiceMemoStates: [Note.ID: VoiceMemoState] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
@@ -58,6 +65,8 @@ final class ChatViewModel {
   private let linkPreviewFetcher: any NoteLinkPreviewFetching
   private let linkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
+  private let voiceTranscriber: any NoteVoiceTranscribing
+  private let voiceTranscriptRepository: any NoteVoiceTranscriptRepository
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "ChatViewModel"
@@ -70,7 +79,9 @@ final class ChatViewModel {
     imageAnalysisRepository: any NoteImageAnalysisRepository,
     linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
-    labelTranslator: any LabelTranslating
+    labelTranslator: any LabelTranslating,
+    voiceTranscriber: any NoteVoiceTranscribing,
+    voiceTranscriptRepository: any NoteVoiceTranscriptRepository
   ) {
     self.contact = contact
     self.repository = repository
@@ -79,6 +90,8 @@ final class ChatViewModel {
     self.linkPreviewFetcher = linkPreviewFetcher
     self.linkPreviewRepository = linkPreviewRepository
     self.labelTranslator = labelTranslator
+    self.voiceTranscriber = voiceTranscriber
+    self.voiceTranscriptRepository = voiceTranscriptRepository
   }
 
   var canSend: Bool {
@@ -131,9 +144,15 @@ final class ChatViewModel {
         .filter { messageIds.contains($0.key) }
       linkPreviews = try await linkPreviewRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
+      let transcripts = try await voiceTranscriptRepository.fetchAll()
+      voiceMemoStates = Dictionary(uniqueKeysWithValues: messages.compactMap { note in
+        guard note.voiceMemoData != nil, let transcript = transcripts[note.id] else { return nil }
+        return (note.id, .transcribed(transcript))
+      })
     } catch {
       imageAnalyses = [:]
       linkPreviews = [:]
+      voiceMemoStates = [:]
       logger.debug(
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
@@ -183,6 +202,7 @@ final class ChatViewModel {
     for id in deletedIds {
       imageAnalyses[id] = nil
       linkPreviews[id] = nil
+      voiceMemoStates[id] = nil
     }
 
     guard !didFail else {
@@ -232,18 +252,72 @@ final class ChatViewModel {
     }
   }
 
+  func sendVoiceMemo(audioData: Data, duration: TimeInterval, waveform: [Float]) async {
+    let note = makeNote(content: "무제-\(nextVoiceMemoNumber())", voiceMemoData: audioData, voiceMemoDuration: duration, voiceMemoWaveform: waveform)
+    guard save(note) else { messages.append(note); voiceMemoStates[note.id] = .sendFailed; return }
+    await transcribe(note)
+  }
+
+  func retryTranscription(for note: Note) async {
+    await transcribe(note)
+  }
+
+  func retrySend(for note: Note) async {
+    guard note.voiceMemoData != nil else { return }
+    do {
+      try repository.save(note)
+      voiceMemoStates[note.id] = .transcribing
+      await transcribe(note)
+    } catch { voiceMemoStates[note.id] = .sendFailed }
+  }
+
+  private func transcribe(_ note: Note) async {
+    guard let audioData = note.voiceMemoData else { return }
+    voiceMemoStates[note.id] = .transcribing
+    do {
+      let result = try await voiceTranscriber.transcribe(audioData: audioData)
+      try await voiceTranscriptRepository.save(noteId: note.id, result: result, transcribedAt: Date())
+      voiceMemoStates[note.id] = .transcribed(result)
+      if let firstLine = result.text.split(separator: "\n").first {
+        update(note: note, content: String(firstLine))
+      }
+    } catch {
+      let nsError = error as NSError
+      logger.error(
+        "Voice transcription failed for note \(note.id): \(nsError.domain, privacy: .public) code=\(nsError.code) \(nsError.localizedDescription, privacy: .public)"
+      )
+      voiceMemoStates[note.id] = .transcriptFailed
+    }
+  }
+
   func clearPersistenceError() {
     persistenceError = nil
   }
 
-  private func makeNote(content: String, imageData: Data? = nil) -> Note {
+  private func makeNote(content: String, imageData: Data? = nil, voiceMemoData: Data? = nil, voiceMemoDuration: TimeInterval? = nil, voiceMemoWaveform: [Float]? = nil) -> Note {
     Note(
       contactId: contact.id,
       contactName: contact.name,
       content: content,
       imageData: imageData,
+      voiceMemoData: voiceMemoData,
+      voiceMemoDuration: voiceMemoDuration,
+      voiceMemoWaveform: voiceMemoWaveform,
       profileImageData: contact.profileImageData
     )
+  }
+
+  private func update(note: Note, content: String) {
+    var updated = note
+    updated.content = content
+    do {
+      try repository.save(updated)
+      if let index = messages.firstIndex(where: { $0.id == note.id }) { messages[index] = updated }
+    } catch { handle(error) }
+  }
+
+  private func nextVoiceMemoNumber() -> Int {
+    messages.filter { $0.voiceMemoData != nil }.count + 1
   }
 
   private func searchableText(

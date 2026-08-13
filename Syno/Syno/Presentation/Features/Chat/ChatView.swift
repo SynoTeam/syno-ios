@@ -496,22 +496,11 @@ private struct ChatDateDivider: View {
   let title: String
 
   var body: some View {
-    HStack(spacing: 10) {
-      Rectangle()
-        .fill(Color.gray200)
-        .frame(height: 1)
-
-      Text(title)
-        .typeStyle(.caption1)
-        .foregroundStyle(.gray400)
-        .fixedSize(horizontal: true, vertical: false)
-
-      Rectangle()
-        .fill(Color.gray200)
-        .frame(height: 1)
-    }
-    .frame(maxWidth: .infinity)
-    .padding(.vertical, 8)
+    Text(title)
+      .typeStyle(.caption1)
+      .foregroundStyle(.gray400)
+      .frame(maxWidth: .infinity)
+      .padding(.vertical, 8)
   }
 }
 

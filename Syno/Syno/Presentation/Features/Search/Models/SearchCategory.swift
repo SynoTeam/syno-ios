@@ -9,6 +9,7 @@ enum SearchCategory: String, CaseIterable, Identifiable {
   case photo
   case link
   case voice
+  case file
 
   var id: Self {
     self
@@ -22,6 +23,7 @@ enum SearchCategory: String, CaseIterable, Identifiable {
     case .photo: "사진"
     case .link: "링크"
     case .voice: "음성메모"
+    case .file: "파일"
     }
   }
 }

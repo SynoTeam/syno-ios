@@ -164,7 +164,7 @@ struct SearchView: View {
     ScrollView {
       LazyVStack(alignment: .leading, spacing: 20) {
         if viewModel.selectedCategory == .all {
-          ForEach([SearchCategory.text, .photo, .link, .voice], id: \.self) { category in
+          ForEach([SearchCategory.text, .photo, .link, .voice, .file], id: \.self) { category in
             let categoryResults = viewModel.results(for: category)
             if !categoryResults.isEmpty {
               sectionCard(
@@ -236,6 +236,10 @@ struct SearchView: View {
       VStack(spacing: 8) {
         ForEach(results) { resultLink($0) }
       }
+    case .file:
+      VStack(spacing: 8) {
+        ForEach(results) { resultLink($0) }
+      }
     case .all:
       EmptyView()
     }
@@ -248,6 +252,7 @@ struct SearchView: View {
     case .photo: "photo"
     case .link: "link"
     case .voice: "waveform"
+    case .file: "folder"
     }
   }
 
@@ -268,7 +273,7 @@ struct SearchView: View {
   @ViewBuilder
   private func destination(for result: SearchResult) -> some View {
     switch result {
-    case let .text(_, contact), let .photo(_, contact), let .link(_, contact, _), let .voice(_, contact, _):
+    case let .text(_, contact), let .photo(_, contact), let .link(_, contact, _), let .voice(_, contact, _), let .file(_, contact):
       ChatView(
         contact: contact,
         repository: noteRepository,

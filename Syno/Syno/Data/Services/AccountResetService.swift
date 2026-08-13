@@ -5,6 +5,7 @@
 //  Created by Codex on 7/28/26.
 //
 
+import CoreData
 import Foundation
 import SwiftData
 
@@ -38,6 +39,7 @@ final class AccountResetService {
       try modelContext.delete(model: StoredNoteEmbedding.self)
       try modelContext.delete(model: StoredNoteImageAnalysis.self)
       try modelContext.delete(model: StoredNoteLinkPreview.self)
+      try modelContext.delete(model: StoredNoteVoiceTranscript.self)
       try modelContext.delete(model: StoredGroup.self)
       try modelContext.delete(model: StoredContact.self)
       try modelContext.delete(model: StoredNote.self)
@@ -46,6 +48,51 @@ final class AccountResetService {
     } catch {
       modelContext.rollback()
       throw error
+    }
+  }
+
+  /// 로그아웃/탈퇴 직전에 호출해서, 방금 저장한 변경사항이 CloudKit으로 다 올라갈 때까지 잠깐 기다립니다.
+  /// 이게 없으면: 공유 익스텐션 등으로 뒤늦게 들어와 아직 서버로 안 올라간 데이터가 있을 때,
+  /// 그 업로드(export)와 방금 한 로컬 삭제가 겹쳐서 순서가 꼬이면 서버엔 삭제가 반영이 안 될 수
+  /// 있고, "로그아웃 후 다시 들어왔을 때" 그 데이터가 iCloud에서 다시 내려와 되살아나는 문제가
+  /// 생깁니다. 오프라인 등으로 동기화가 끝나지 않는 경우까지 무기한 기다리면 안 되므로 timeout 이후엔
+  /// 그냥 진행합니다.
+  func waitForPendingCloudKitExport(timeout: TimeInterval = 8) async {
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+      let lock = NSLock()
+      var didResume = false
+      var observer: NSObjectProtocol?
+
+      func finish() {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !didResume else { return }
+        didResume = true
+        if let observer {
+          NotificationCenter.default.removeObserver(observer)
+        }
+        continuation.resume()
+      }
+
+      observer = NotificationCenter.default.addObserver(
+        forName: NSPersistentCloudKitContainer.eventChangedNotification,
+        object: nil,
+        queue: .main
+      ) { notification in
+        guard
+          let event = notification.userInfo?[
+            NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+          ] as? NSPersistentCloudKitContainer.Event,
+          event.type == .export,
+          event.endDate != nil
+        else { return }
+        finish()
+      }
+
+      Task {
+        try? await Task.sleep(for: .seconds(timeout))
+        finish()
+      }
     }
   }
 

@@ -7,6 +7,7 @@
 
 import PhotosUI
 import SwiftUI
+import UIKit
 
 /// 연락처별로 나에게 보내는 형식의 기록을 남기는 채팅 화면입니다.
 struct ChatView: View {
@@ -14,6 +15,8 @@ struct ChatView: View {
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
+  @State private var pendingCameraImage: UIImage?
+  @State private var pendingPhotoConfirmation: PhotoCropRequest?
   @State private var isShowingFilePicker = false
   @State private var isMessageSearchPresented = false
   @State private var currentMatchIndex = 0
@@ -90,17 +93,23 @@ struct ChatView: View {
     .scrollDismissesKeyboard(.interactively)
     .onChange(of: selectedPhotoItem) { _, selectedPhotoItem in
       Task {
-        await viewModel.sendImage(from: selectedPhotoItem)
+        await loadImage(from: selectedPhotoItem)
         self.selectedPhotoItem = nil
       }
     }
     .photosPicker(isPresented: $isShowingPhotosPicker, selection: $selectedPhotoItem, matching: .images)
-    .sheet(isPresented: $isShowingCamera) {
+    .sheet(isPresented: $isShowingCamera, onDismiss: presentPendingCameraImage) {
       CameraPickerView { image in
-        guard let data = image.jpegData(compressionQuality: 0.9) else { return }
-        Task { await viewModel.sendImageData(data) }
+        pendingCameraImage = image
       }
       .ignoresSafeArea()
+    }
+    .sheet(item: $pendingPhotoConfirmation) { request in
+      ChatPhotoConfirmationView(image: request.image) { data in
+        Task { await viewModel.sendImageData(data) }
+      }
+      .presentationDetents([.medium])
+      .presentationDragIndicator(.hidden)
     }
     .sheet(isPresented: $isShowingFilePicker) {
       FileDocumentPicker { url in
@@ -468,6 +477,40 @@ struct ChatView: View {
           }
         }
       )
+    }
+  }
+
+  private func loadImage(from item: PhotosPickerItem?) async {
+    guard let item else {
+      return
+    }
+
+    do {
+      guard
+        let data = try await item.loadTransferable(type: Data.self),
+        let image = UIImage(data: data)
+      else {
+        toast = Toast(message: "사진을 불러오지 못했습니다.", style: .failure)
+        return
+      }
+
+      pendingPhotoConfirmation = PhotoCropRequest(image: image)
+    } catch {
+      toast = Toast(message: "사진을 불러오지 못했습니다.", style: .failure)
+    }
+  }
+
+  private func presentPendingCameraImage() {
+    guard let image = pendingCameraImage else {
+      return
+    }
+
+    pendingCameraImage = nil
+    // 카메라 시트가 완전히 dismiss되기 전에 곧바로 다음 시트를 띄우면 SwiftUI가
+    // presentationDetents를 무시하고 풀사이즈로 띄우는 경우가 있어, dismiss 애니메이션이
+    // 끝난 뒤(약 0.35초) 확인 시트를 띄웁니다.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+      pendingPhotoConfirmation = PhotoCropRequest(image: image)
     }
   }
 

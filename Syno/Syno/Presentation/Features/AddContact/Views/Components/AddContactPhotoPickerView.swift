@@ -149,8 +149,3 @@ struct AddContactPhotoPickerView: View {
     toast = Toast(message: message, style: .failure)
   }
 }
-
-private struct PhotoCropRequest: Identifiable {
-  let id = UUID()
-  let image: UIImage
-}

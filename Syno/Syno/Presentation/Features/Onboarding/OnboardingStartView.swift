@@ -15,16 +15,12 @@ struct OnboardingStartView: View {
     VStack(spacing: 0) {
       Spacer()
 
-      VStack(spacing: 24) {
+
         Image(.logo)
           .resizable()
           .aspectRatio(contentMode: .fit)
-          .frame(width: 112, height: 112)
-
-        Text("나만의 인맥 노트")
-          .typeStyle(.title3Emphasized)
-          .foregroundStyle(.gray800)
-      }
+          .frame(width: 300, height: 300)
+      
 
       Spacer()
 
@@ -46,7 +42,7 @@ struct OnboardingStartView: View {
         .padding(.top, 12)
         .padding(.bottom, 24)
     }
-    .background(Color.gray50)
+    .background(.white)
     .navigationBarBackButtonHidden()
   }
 

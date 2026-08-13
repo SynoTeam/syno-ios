@@ -174,23 +174,25 @@ struct ArchiveView: View {
     } else {
       LazyVStack(alignment: .leading, spacing: 12) {
         ForEach(fileNotes) { note in
-          NavigationLink {
-            FilePreviewView(
-              note: note,
-              downloadState: viewModel.fileDownloadStates[note.id],
-              onRetryDownload: { viewModel.retryFileDownload(for: note) },
-              onDelete: { viewModel.deleteMessage(id: $0.id) }
-            )
-          } label: {
-            FileCard(
-              note: note,
-              downloadState: viewModel.fileDownloadStates[note.id],
-              onRetryDownload: { viewModel.retryFileDownload(for: note) }
-            )
+          // NavigationLink의 label 안에 다운로드 재시도 Button까지 같이 넣으면 탭 히트테스트가
+          // 꼬여서(어느 탭이 어느 컨트롤로 가는지 불명확해짐), FileCard는 순수 표시용으로만 두고
+          // 재시도 배지는 NavigationLink와 형제(ZStack의 별도 레이어)로 둡니다.
+          ZStack(alignment: .bottomTrailing) {
+            NavigationLink {
+              FilePreviewView(viewModel: viewModel, noteID: note.id)
+            } label: {
+              FileCard(note: note, downloadState: viewModel.fileDownloadStates[note.id])
+            }
+            .buttonStyle(.plain)
+
+            if note.fileData == nil {
+              downloadRetryBadge(for: note)
+                .padding(.trailing, 6)
+                .padding(.bottom, 6)
+            }
           }
-          .buttonStyle(.plain)
           .contextMenu {
-            if let fileURL = FileTransferURL.temporaryURL(for: note) {
+            if let fileURL = viewModel.fileTransferURLs[note.id] {
               ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
                 Label("공유하기", systemImage: "square.and.arrow.up")
               }
@@ -325,6 +327,24 @@ struct ArchiveView: View {
     } else {
       searchText = ""
       isSearchFocused = false
+    }
+  }
+
+  @ViewBuilder
+  private func downloadRetryBadge(for note: Note) -> some View {
+    switch viewModel.fileDownloadStates[note.id] {
+    case .checking:
+      FileDownloadBadgeIcon { ProgressView().controlSize(.mini).tint(.gray500) }
+    case .failed, nil:
+      Button(action: { viewModel.retryFileDownload(for: note) }) {
+        FileDownloadBadgeIcon {
+          Image(systemName: "arrow.down")
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(.gray500)
+        }
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("파일 다운로드")
     }
   }
 

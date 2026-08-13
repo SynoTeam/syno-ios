@@ -21,7 +21,7 @@ struct ChatView: View {
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
   @State private var fullTextNote: Note?
-  @State private var filePreviewNote: Note?
+  @State private var filePreviewNoteID: Note.ID?
   @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
   @State private var voiceRecorder = VoiceRecorder()
   @FocusState private var isInputFocused: Bool
@@ -132,13 +132,8 @@ struct ChatView: View {
       .presentationDetents([.large])
       .presentationDragIndicator(.visible)
     }
-    .navigationDestination(item: $filePreviewNote) { note in
-      FilePreviewView(
-        note: note,
-        downloadState: viewModel.fileDownloadStates[note.id],
-        onRetryDownload: { viewModel.retryFileDownload(for: note) },
-        onDelete: deleteMessage
-      )
+    .navigationDestination(item: $filePreviewNoteID) { noteID in
+      FilePreviewView(viewModel: viewModel, noteID: noteID)
     }
     .navigationDestination(item: $notePendingDeletion) { note in
       ChatNoteDeletionView(
@@ -178,12 +173,13 @@ struct ChatView: View {
                     linkPreview: viewModel.linkPreviews[message.id],
                     voiceMemoState: viewModel.voiceMemoStates[message.id],
                     fileDownloadState: viewModel.fileDownloadStates[message.id],
+                    fileTransferURL: viewModel.fileTransferURLs[message.id],
                     fileSendFailed: viewModel.fileSendFailedIds.contains(message.id),
                     onRetryTranscription: { Task { await viewModel.retryTranscription(for: message) } },
                     onRetrySend: { Task { await viewModel.retrySend(for: message) } },
                     onRetryFileDownload: { viewModel.retryFileDownload(for: message) },
                     onRetryFileSend: { viewModel.retrySendFile(for: message) },
-                    onShowFile: { filePreviewNote = message },
+                    onShowFile: { filePreviewNoteID = message.id },
                     highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil
                   )
                     .id(message.id)

@@ -5,15 +5,46 @@ import UniformTypeIdentifiers
 
 struct FilePreviewView: View {
   @Environment(\.dismiss) private var dismiss
-  let note: Note
-  var downloadState: ChatViewModel.FileDownloadState?
-  var onRetryDownload: (() -> Void)?
-  var onDelete: ((Note) -> Bool)?
+  let viewModel: ChatViewModel
+  let noteID: Note.ID
 
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var isQuickLookPresented = false
 
+  private var note: Note? {
+    viewModel.messages.first { $0.id == noteID }
+  }
+
+  private var downloadState: ChatViewModel.FileDownloadState? {
+    viewModel.fileDownloadStates[noteID]
+  }
+
+  private var fileURL: URL? {
+    viewModel.fileTransferURLs[noteID]
+  }
+
   var body: some View {
+    Group {
+      if let note {
+        content(for: note)
+      } else {
+        // 미리보기가 열려있는 동안 노트가 삭제된 경우입니다.
+        Color.clear.onAppear { dismiss() }
+      }
+    }
+    .background(Color.gray50)
+    .navigationTitle("파일")
+    .navigationBarTitleDisplayMode(.inline)
+    .destructiveConfirmationAlert(item: $confirmationAlert)
+    .sheet(isPresented: $isQuickLookPresented) {
+      if let fileURL {
+        QuickLookPreview(url: fileURL)
+          .ignoresSafeArea()
+      }
+    }
+  }
+
+  private func content(for note: Note) -> some View {
     VStack(spacing: 20) {
       Group {
         if let fileURL {
@@ -55,24 +86,14 @@ struct FilePreviewView: View {
         downloadStatus
       }
 
-      actionRow
+      actionRow(for: note)
     }
     .padding(16)
-    .background(Color.gray50)
-    .navigationTitle("파일")
-    .navigationBarTitleDisplayMode(.inline)
-    .destructiveConfirmationAlert(item: $confirmationAlert)
-    .sheet(isPresented: $isQuickLookPresented) {
-      if let fileURL {
-        QuickLookPreview(url: fileURL)
-          .ignoresSafeArea()
-      }
-    }
   }
 
-  private var actionRow: some View {
+  private func actionRow(for note: Note) -> some View {
     HStack {
-      Button(action: { onRetryDownload?() }) {
+      Button(action: { viewModel.retryFileDownload(for: note) }) {
         iconCircle(systemName: "arrow.down")
       }
       .buttonStyle(.plain)
@@ -87,20 +108,20 @@ struct FilePreviewView: View {
       } else {
         iconCircle(systemName: "square.and.arrow.up").opacity(0.35)
       }
-      
+
       Spacer()
 
-      Button(action: copyFileToPasteboard) {
+      Button(action: { copyFileToPasteboard(note) }) {
         iconCircle(systemName: "doc.on.doc")
       }
       .buttonStyle(.plain)
       .disabled(note.fileData == nil)
       .opacity(note.fileData == nil ? 0.35 : 1)
       .accessibilityLabel("복사하기")
-      
+
       Spacer()
 
-      Button(action: requestDeleteConfirmation) {
+      Button(action: { requestDeleteConfirmation(note) }) {
         iconCircle(systemName: "trash")
       }
       .buttonStyle(.plain)
@@ -126,7 +147,7 @@ struct FilePreviewView: View {
       }
   }
 
-  private func copyFileToPasteboard() {
+  private func copyFileToPasteboard(_ note: Note) {
     guard let data = note.fileData else { return }
     let type = note.fileName
       .flatMap { ($0 as NSString).pathExtension.isEmpty ? nil : ($0 as NSString).pathExtension }
@@ -149,17 +170,13 @@ struct FilePreviewView: View {
     }
   }
 
-  private var fileURL: URL? {
-    FileTransferURL.temporaryURL(for: note)
-  }
-
-  private func requestDeleteConfirmation() {
+  private func requestDeleteConfirmation(_ note: Note) {
     confirmationAlert = DestructiveConfirmationAlert(
       title: "이 파일을\n삭제하겠습니까?",
       message: "삭제한 항목은 복구할 수 없습니다.",
       acknowledgementText: nil
     ) {
-      if onDelete?(note) == true { dismiss() }
+      if viewModel.deleteMessage(id: note.id) { dismiss() }
     }
   }
 }
@@ -186,27 +203,50 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
 }
 
 enum FileTransferURL {
-  /// note.fileData를 임시 파일로 써서 URL을 돌려줍니다. 같은 노트에 대해 이미 같은 크기의
-  /// 파일이 디스크에 있으면 다시 쓰지 않습니다 — 이 함수가 SwiftUI body 재평가마다
-  /// (다운로드 폴링 중이면 3초마다) 여러 번 호출될 수 있어서, 매번 큰 파일을 다시 쓰면
-  /// 눈에 띄는 랙이 생깁니다.
-  static func temporaryURL(for note: Note) -> URL? {
+  /// note.fileData를 임시 파일로 씁니다. 디스크 I/O이므로 백그라운드에서 실행되어 메인 스레드(뷰 렌더링)를
+  /// 막지 않습니다. 같은 노트에 대해 이미 같은 크기의 파일이 디스크에 있으면 다시 쓰지 않습니다.
+  static func prepare(for note: Note) async -> URL? {
     guard let data = note.fileData else { return nil }
     let name = note.fileName ?? "file"
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SynoFiles", isDirectory: true)
-    let url = directory.appendingPathComponent("\(note.id.uuidString)-\(name)")
+    let noteID = note.id
+    return await Task.detached(priority: .utility) {
+      let url = fileURL(forNoteID: noteID, name: name)
+      if let existingSize = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
+         existingSize == data.count {
+        return url
+      }
+      do {
+        try FileManager.default.createDirectory(
+          at: directory,
+          withIntermediateDirectories: true
+        )
+        try data.write(to: url, options: .atomic)
+        return url
+      } catch {
+        return nil
+      }
+    }.value
+  }
 
-    if let existingSize = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
-       existingSize == data.count {
-      return url
+  /// 노트가 삭제될 때 그 노트를 위해 만들어둔 임시 파일도 같이 정리합니다.
+  static func removeTemporaryFile(for noteID: Note.ID) {
+    Task.detached(priority: .utility) {
+      guard let files = try? FileManager.default.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: nil
+      ) else { return }
+      let prefix = "\(noteID.uuidString)-"
+      for file in files where file.lastPathComponent.hasPrefix(prefix) {
+        try? FileManager.default.removeItem(at: file)
+      }
     }
+  }
 
-    do {
-      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-      try data.write(to: url, options: .atomic)
-      return url
-    } catch {
-      return nil
-    }
+  private static var directory: URL {
+    FileManager.default.temporaryDirectory.appendingPathComponent("SynoFiles", isDirectory: true)
+  }
+
+  private static func fileURL(forNoteID noteID: Note.ID, name: String) -> URL {
+    directory.appendingPathComponent("\(noteID.uuidString)-\(name)")
   }
 }

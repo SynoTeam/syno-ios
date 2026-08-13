@@ -18,6 +18,7 @@ struct ChatMessageBubble: View {
   var linkPreview: NoteLinkPreviewResult?
   var voiceMemoState: ChatViewModel.VoiceMemoState?
   var fileDownloadState: ChatViewModel.FileDownloadState?
+  var fileTransferURL: URL?
   var fileSendFailed: Bool = false
   var onRetryTranscription: (() -> Void)?
   var onRetrySend: (() -> Void)?
@@ -166,8 +167,8 @@ struct ChatMessageBubble: View {
 
   @ViewBuilder
   private var shareLink: some View {
-    if let fileURL = FileTransferURL.temporaryURL(for: note) {
-      ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
+    if let fileTransferURL {
+      ShareLink(item: fileTransferURL, preview: SharePreview(note.fileName ?? "파일")) {
         Label("공유하기", systemImage: "square.and.arrow.up")
       }
     } else if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {

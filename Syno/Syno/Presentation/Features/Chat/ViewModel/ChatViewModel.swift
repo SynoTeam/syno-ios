@@ -63,6 +63,7 @@ final class ChatViewModel {
   private(set) var voiceMemoStates: [Note.ID: VoiceMemoState] = [:]
   private(set) var fileDownloadStates: [Note.ID: FileDownloadState] = [:]
   private(set) var fileSendFailedIds: Set<Note.ID> = []
+  private(set) var fileTransferURLs: [Note.ID: URL] = [:]
   @ObservationIgnored private var fileDownloadPollTasks: [Note.ID: Task<Void, Never>] = [:]
 
   let contact: Contact
@@ -165,9 +166,19 @@ final class ChatViewModel {
       )
     }
 
-    for note in messages where note.fileName != nil && note.fileData == nil && fileDownloadPollTasks[note.id] == nil {
+    for note in messages
+      where note.fileName != nil
+      && note.fileData == nil
+      // 이미 실패로 끝난 다운로드는 여기서 자동으로 다시 돌리지 않습니다 — 파일이 여러 개 대기 중일 때
+      // 서로 다른 파일의 폴링 루프가 각자 loadMessages()를 호출하면서 방금 실패한 파일을
+      // 다시 .checking으로 되돌려, 실패↔재시도가 무한 반복되고 토스트도 계속 뜨는 문제가 있었습니다.
+      // 실패한 파일은 retryFileDownload(for:)로 사용자가 직접 재시도할 때만 다시 시작합니다.
+      && fileDownloadStates[note.id] == nil
+      && fileDownloadPollTasks[note.id] == nil {
       startPollingFileDownload(for: note)
     }
+
+    prepareFileTransferURLsIfNeeded()
   }
 
   func sendMessage() {
@@ -218,6 +229,8 @@ final class ChatViewModel {
       fileDownloadPollTasks[id] = nil
       fileDownloadStates[id] = nil
       fileSendFailedIds.remove(id)
+      fileTransferURLs[id] = nil
+      FileTransferURL.removeTemporaryFile(for: id)
     }
 
     guard !didFail else {
@@ -274,7 +287,13 @@ final class ChatViewModel {
   }
 
   func sendFile(url: URL) async {
-    guard let data = try? Data(contentsOf: url) else {
+    // ChatViewModel은 @MainActor라서 Data(contentsOf:)를 그대로 부르면 큰 파일 읽는 동안
+    // 메인 스레드(=UI)가 멈춥니다. 백그라운드에서 읽고 결과만 받아옵니다.
+    let data = await Task.detached(priority: .utility) {
+      try? Data(contentsOf: url)
+    }.value
+
+    guard let data else {
       persistenceError = "파일을 읽지 못했습니다. 다시 시도해주세요."
       return
     }
@@ -290,6 +309,7 @@ final class ChatViewModel {
       fileSendFailedIds.insert(note.id)
       return
     }
+    prepareFileTransferURLsIfNeeded()
   }
 
   func retrySendFile(for note: Note) {
@@ -391,6 +411,17 @@ final class ChatViewModel {
       }
       fileDownloadPollTasks[note.id] = nil
       fileDownloadStates[note.id] = .failed
+    }
+  }
+
+  /// fileData가 있는데 아직 공유/미리보기용 임시 파일 URL을 안 만든 노트에 대해 백그라운드로 준비합니다.
+  /// (View에서 body 평가 중에 직접 디스크에 쓰지 않도록, 결과를 여기 캐시에 담아두고 View는 읽기만 합니다.)
+  private func prepareFileTransferURLsIfNeeded() {
+    for note in messages where note.fileData != nil && fileTransferURLs[note.id] == nil {
+      Task { [weak self] in
+        guard let url = await FileTransferURL.prepare(for: note) else { return }
+        self?.fileTransferURLs[note.id] = url
+      }
     }
   }
 

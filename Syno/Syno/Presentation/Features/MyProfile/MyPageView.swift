@@ -60,8 +60,18 @@ struct MyPageView: View {
         VStack(spacing: 20) {
           profileHeader
           contactInfoCard
-          groupInfoCard
-          noteCard
+
+          if !contact.group.isEmpty {
+            groupInfoCard
+          }
+
+          if hasAdditionalInfo {
+            additionalInfoCard
+          }
+
+          if !contact.note.isEmpty {
+            noteCard
+          }
         }
         .padding(.horizontal, 20)
         .padding(.top, 28)
@@ -132,25 +142,63 @@ struct MyPageView: View {
 
   private var contactInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(label: "이메일", value: emailText)
-      profileInfo(label: "전화번호", value: phoneText)
-      profileInfo(label: "URL", value: urlText, lineLimit: 1)
+      profileInfo(icon: .mail, label: "이메일", value: emailText)
+      profileInfo(icon: .phone, label: "전화번호", value: phoneText)
+      profileInfo(icon: .link, label: "URL", value: urlText, lineLimit: 1)
     }
     .profileCard()
   }
 
   private var groupInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(label: "그룹", value: groupText)
+      profileInfo(icon: .person, label: "그룹", value: groupText)
     }
     .profileCard()
   }
 
+  private var hasAdditionalInfo: Bool {
+    !contact.address.isEmpty
+      || contact.birthday != nil
+      || contact.anniversary != nil
+      || !contact.socialLinks.isEmpty
+  }
+
+  private var additionalInfoCard: some View {
+    VStack(alignment: .leading, spacing: 24) {
+      if !contact.address.isEmpty {
+        profileInfo(icon: .location, label: "주소", value: contact.address)
+      }
+      if let birthday = contact.birthday {
+        profileInfo(icon: .calendar, label: "생일", value: formattedDate(birthday))
+      }
+      if let anniversary = contact.anniversary {
+        profileInfo(icon: .calendar, label: "기념일", value: formattedDate(anniversary))
+      }
+      socialLinksInfo
+    }
+    .profileCard()
+  }
+
+  @ViewBuilder
+  private var socialLinksInfo: some View {
+    ForEach(contact.socialLinks, id: \.self) { link in
+      profileInfo(icon: .link, label: link.platform, value: displayValue(link.handle), lineLimit: 1)
+    }
+  }
+
   private var noteCard: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("한 줄 기록")
-        .typeStyle(.caption1)
-        .foregroundStyle(.gray400)
+      HStack(spacing: 4) {
+        Image(.document)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 14, height: 14)
+          .foregroundStyle(.gray400)
+
+        Text("한 줄 기록")
+          .typeStyle(.caption1)
+          .foregroundStyle(.gray400)
+      }
 
       Text(noteText)
         .typeStyle(.caption1)
@@ -161,11 +209,19 @@ struct MyPageView: View {
     .profileCard()
   }
 
-  private func profileInfo(label: String, value: String, lineLimit: Int? = nil) -> some View {
+  private func profileInfo(icon: ImageResource, label: String, value: String, lineLimit: Int? = nil) -> some View {
     VStack(alignment: .leading, spacing: 6) {
-      Text(label)
-        .typeStyle(.footnote)
-        .foregroundStyle(.gray400)
+      HStack(spacing: 4) {
+        Image(icon)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 14, height: 14)
+          .foregroundStyle(.gray400)
+
+        Text(label)
+          .typeStyle(.footnote)
+          .foregroundStyle(.gray400)
+      }
 
       Text(value)
         .typeStyle(.headline)
@@ -173,6 +229,19 @@ struct MyPageView: View {
         .lineLimit(lineLimit)
         .truncationMode(.tail)
     }
+  }
+
+  private static let dateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy.MM.dd"
+    return formatter
+  }()
+
+  private func formattedDate(_ date: Date?) -> String {
+    guard let date else {
+      return "-"
+    }
+    return Self.dateFormatter.string(from: date)
   }
 
   private var memoButton: some View {

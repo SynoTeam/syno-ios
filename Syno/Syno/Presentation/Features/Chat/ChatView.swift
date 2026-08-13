@@ -14,12 +14,15 @@ struct ChatView: View {
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
+  @State private var isShowingFilePicker = false
   @State private var isMessageSearchPresented = false
   @State private var currentMatchIndex = 0
   @State private var isShowingArchive = false
   @State private var notePendingDeletion: Note?
   @State private var toast: Toast?
   @State private var fullTextNote: Note?
+  @State private var filePreviewNote: Note?
+  @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
   @State private var voiceRecorder = VoiceRecorder()
   @FocusState private var isInputFocused: Bool
   @FocusState private var isSearchFocused: Bool
@@ -57,6 +60,9 @@ struct ChatView: View {
     }
     .background(Color.gray50)
     .toast(item: $toast)
+    .onChange(of: viewModel.fileDownloadStates) { _, newStates in
+      handleFileDownloadStateChange(newStates)
+    }
     .navigationTitle(viewModel.contact.name)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
@@ -96,6 +102,11 @@ struct ChatView: View {
       }
       .ignoresSafeArea()
     }
+    .sheet(isPresented: $isShowingFilePicker) {
+      FileDocumentPicker { url in
+        Task { await viewModel.sendFile(url: url) }
+      }
+    }
     .task {
       await viewModel.loadMessages()
     }
@@ -120,6 +131,14 @@ struct ChatView: View {
       )
       .presentationDetents([.large])
       .presentationDragIndicator(.visible)
+    }
+    .navigationDestination(item: $filePreviewNote) { note in
+      FilePreviewView(
+        note: note,
+        downloadState: viewModel.fileDownloadStates[note.id],
+        onRetryDownload: { viewModel.retryFileDownload(for: note) },
+        onDelete: deleteMessage
+      )
     }
     .navigationDestination(item: $notePendingDeletion) { note in
       ChatNoteDeletionView(
@@ -158,8 +177,13 @@ struct ChatView: View {
                     onShowFullText: { fullTextNote = message },
                     linkPreview: viewModel.linkPreviews[message.id],
                     voiceMemoState: viewModel.voiceMemoStates[message.id],
+                    fileDownloadState: viewModel.fileDownloadStates[message.id],
+                    fileSendFailed: viewModel.fileSendFailedIds.contains(message.id),
                     onRetryTranscription: { Task { await viewModel.retryTranscription(for: message) } },
                     onRetrySend: { Task { await viewModel.retrySend(for: message) } },
+                    onRetryFileDownload: { viewModel.retryFileDownload(for: message) },
+                    onRetryFileSend: { viewModel.retrySendFile(for: message) },
+                    onShowFile: { filePreviewNote = message },
                     highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil
                   )
                     .id(message.id)
@@ -316,6 +340,12 @@ struct ChatView: View {
         } label: {
           Label("앨범", systemImage: "photo")
         }
+
+        Button {
+          isShowingFilePicker = true
+        } label: {
+          Label("파일", systemImage: "folder")
+        }
       } label: {
         Image(systemName: "plus")
           .font(.system(size: 22, weight: .regular))
@@ -421,6 +451,28 @@ struct ChatView: View {
 
   private func deleteMessage(_ note: Note) -> Bool {
     viewModel.deleteMessage(id: note.id)
+  }
+
+  /// 다운로드 실패는 특정 버블에 계속 붙어있는 텍스트가 아니라 토스트로 한 번만 알려줍니다.
+  private func handleFileDownloadStateChange(_ states: [Note.ID: ChatViewModel.FileDownloadState]) {
+    for (id, state) in states {
+      guard state == .failed else {
+        toastedFailedFileDownloadIds.remove(id)
+        continue
+      }
+      guard !toastedFailedFileDownloadIds.contains(id) else { continue }
+      toastedFailedFileDownloadIds.insert(id)
+
+      toast = Toast(
+        message: "파일 다운로드 실패했습니다",
+        style: .failure,
+        action: Toast.Action(title: "다시 시도") {
+          if let note = viewModel.messages.first(where: { $0.id == id }) {
+            viewModel.retryFileDownload(for: note)
+          }
+        }
+      )
+    }
   }
 
   private func binding<Value>(

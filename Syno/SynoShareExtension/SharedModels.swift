@@ -87,6 +87,9 @@ final class StoredNote {
   var voiceMemoData: Data?
   var voiceMemoDuration: TimeInterval?
   var voiceMemoWaveform: [Float]?
+  var fileData: Data?
+  var fileName: String?
+  var fileSize: Int?
   var profileImageData: Data?
   var isFavorite: Bool = false
   var isPinned: Bool = false
@@ -101,6 +104,9 @@ final class StoredNote {
     voiceMemoData: Data? = nil,
     voiceMemoDuration: TimeInterval? = nil,
     voiceMemoWaveform: [Float]? = nil,
+    fileData: Data? = nil,
+    fileName: String? = nil,
+    fileSize: Int? = nil,
     profileImageData: Data?,
     isFavorite: Bool,
     isPinned: Bool = false,
@@ -114,6 +120,9 @@ final class StoredNote {
     self.voiceMemoData = voiceMemoData
     self.voiceMemoDuration = voiceMemoDuration
     self.voiceMemoWaveform = voiceMemoWaveform
+    self.fileData = fileData
+    self.fileName = fileName
+    self.fileSize = fileSize
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isPinned = isPinned

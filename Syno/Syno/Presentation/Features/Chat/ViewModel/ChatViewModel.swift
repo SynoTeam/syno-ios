@@ -14,6 +14,10 @@ final class ChatViewModel {
     case transcriptFailed
     case transcribed(NoteVoiceTranscriptResult)
   }
+  enum FileDownloadState: Equatable {
+    case checking
+    case failed
+  }
   struct PendingMessage: Identifiable {
     enum Status: Equatable {
       case sending
@@ -57,6 +61,9 @@ final class ChatViewModel {
   private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
   private(set) var linkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
   private(set) var voiceMemoStates: [Note.ID: VoiceMemoState] = [:]
+  private(set) var fileDownloadStates: [Note.ID: FileDownloadState] = [:]
+  private(set) var fileSendFailedIds: Set<Note.ID> = []
+  @ObservationIgnored private var fileDownloadPollTasks: [Note.ID: Task<Void, Never>] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
@@ -157,6 +164,10 @@ final class ChatViewModel {
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
     }
+
+    for note in messages where note.fileName != nil && note.fileData == nil && fileDownloadPollTasks[note.id] == nil {
+      startPollingFileDownload(for: note)
+    }
   }
 
   func sendMessage() {
@@ -203,6 +214,10 @@ final class ChatViewModel {
       imageAnalyses[id] = nil
       linkPreviews[id] = nil
       voiceMemoStates[id] = nil
+      fileDownloadPollTasks[id]?.cancel()
+      fileDownloadPollTasks[id] = nil
+      fileDownloadStates[id] = nil
+      fileSendFailedIds.remove(id)
     }
 
     guard !didFail else {
@@ -258,6 +273,40 @@ final class ChatViewModel {
     await transcribe(note)
   }
 
+  func sendFile(url: URL) async {
+    guard let data = try? Data(contentsOf: url) else {
+      persistenceError = "파일을 읽지 못했습니다. 다시 시도해주세요."
+      return
+    }
+
+    let note = makeNote(
+      content: url.lastPathComponent,
+      fileData: data,
+      fileName: url.lastPathComponent,
+      fileSize: data.count
+    )
+    guard save(note) else {
+      messages.append(note)
+      fileSendFailedIds.insert(note.id)
+      return
+    }
+  }
+
+  func retrySendFile(for note: Note) {
+    guard note.fileName != nil else { return }
+    do {
+      try repository.save(note)
+      fileSendFailedIds.remove(note.id)
+    } catch {
+      fileSendFailedIds.insert(note.id)
+    }
+  }
+
+  func retryFileDownload(for note: Note) {
+    guard note.fileName != nil, note.fileData == nil else { return }
+    startPollingFileDownload(for: note)
+  }
+
   func retryTranscription(for note: Note) async {
     await transcribe(note)
   }
@@ -294,7 +343,7 @@ final class ChatViewModel {
     persistenceError = nil
   }
 
-  private func makeNote(content: String, imageData: Data? = nil, voiceMemoData: Data? = nil, voiceMemoDuration: TimeInterval? = nil, voiceMemoWaveform: [Float]? = nil) -> Note {
+  private func makeNote(content: String, imageData: Data? = nil, voiceMemoData: Data? = nil, voiceMemoDuration: TimeInterval? = nil, voiceMemoWaveform: [Float]? = nil, fileData: Data? = nil, fileName: String? = nil, fileSize: Int? = nil) -> Note {
     Note(
       contactId: contact.id,
       contactName: contact.name,
@@ -303,6 +352,9 @@ final class ChatViewModel {
       voiceMemoData: voiceMemoData,
       voiceMemoDuration: voiceMemoDuration,
       voiceMemoWaveform: voiceMemoWaveform,
+      fileData: fileData,
+      fileName: fileName,
+      fileSize: fileSize,
       profileImageData: contact.profileImageData
     )
   }
@@ -314,6 +366,32 @@ final class ChatViewModel {
       try repository.save(updated)
       if let index = messages.firstIndex(where: { $0.id == note.id }) { messages[index] = updated }
     } catch { handle(error) }
+  }
+
+  private func startPollingFileDownload(for note: Note) {
+    fileDownloadPollTasks[note.id]?.cancel()
+    fileDownloadStates[note.id] = .checking
+
+    fileDownloadPollTasks[note.id] = Task { @MainActor [weak self] in
+      guard let self else { return }
+      for _ in 0..<10 {
+        try? await Task.sleep(for: .seconds(3))
+        guard !Task.isCancelled else { return }
+        await loadMessages()
+        guard let refreshed = messages.first(where: { $0.id == note.id }) else {
+          fileDownloadPollTasks[note.id] = nil
+          fileDownloadStates[note.id] = nil
+          return
+        }
+        if refreshed.fileData != nil {
+          fileDownloadPollTasks[note.id] = nil
+          fileDownloadStates[note.id] = nil
+          return
+        }
+      }
+      fileDownloadPollTasks[note.id] = nil
+      fileDownloadStates[note.id] = .failed
+    }
   }
 
   private func nextVoiceMemoNumber() -> Int {

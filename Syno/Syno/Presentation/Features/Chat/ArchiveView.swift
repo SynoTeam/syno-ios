@@ -7,12 +7,14 @@ struct ArchiveView: View {
     case photos
     case links
     case voiceMemos
+    case files
 
     var title: String {
       switch self {
       case .photos: "사진"
       case .links: "링크"
       case .voiceMemos: "음성"
+      case .files: "파일"
       }
     }
   }
@@ -25,6 +27,7 @@ struct ArchiveView: View {
   @FocusState private var isSearchFocused: Bool
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
+  @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
 
   private let photoColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
   private let linkColumns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
@@ -45,6 +48,8 @@ struct ArchiveView: View {
           linkGrid
         case .voiceMemos:
           voiceMemoGrid
+        case .files:
+          fileList
         }
       }
     }
@@ -65,6 +70,9 @@ struct ArchiveView: View {
     }
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
+    .onChange(of: viewModel.fileDownloadStates) { _, newStates in
+      handleFileDownloadStateChange(newStates)
+    }
   }
 
   private var tabPicker: some View {
@@ -137,6 +145,13 @@ struct ArchiveView: View {
     }.sorted { $0.createdAt < $1.createdAt }
   }
 
+  private var fileNotes: [Note] {
+    viewModel.messages.filter { $0.fileName != nil }.filter { note in
+      guard !trimmedSearchText.isEmpty else { return true }
+      return (note.fileName ?? note.content).localizedStandardContains(trimmedSearchText)
+    }.sorted { $0.createdAt < $1.createdAt }
+  }
+
   @ViewBuilder private var voiceMemoGrid: some View {
     if voiceMemoNotes.isEmpty {
       emptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "아직 주고받은 음성 메모가 없습니다" : "검색 결과가 없습니다")
@@ -147,6 +162,44 @@ struct ArchiveView: View {
             .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") } }
         }
       }.padding(16)
+    }
+  }
+
+  @ViewBuilder private var fileList: some View {
+    if fileNotes.isEmpty {
+      emptyState(
+        image: .emptyArchive,
+        message: trimmedSearchText.isEmpty ? "아직 주고받은 파일이 없습니다" : "검색 결과가 없습니다"
+      )
+    } else {
+      LazyVStack(alignment: .leading, spacing: 12) {
+        ForEach(fileNotes) { note in
+          NavigationLink {
+            FilePreviewView(
+              note: note,
+              downloadState: viewModel.fileDownloadStates[note.id],
+              onRetryDownload: { viewModel.retryFileDownload(for: note) },
+              onDelete: { viewModel.deleteMessage(id: $0.id) }
+            )
+          } label: {
+            FileCard(
+              note: note,
+              downloadState: viewModel.fileDownloadStates[note.id],
+              onRetryDownload: { viewModel.retryFileDownload(for: note) }
+            )
+          }
+          .buttonStyle(.plain)
+          .contextMenu {
+            if let fileURL = FileTransferURL.temporaryURL(for: note) {
+              ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
+                Label("공유하기", systemImage: "square.and.arrow.up")
+              }
+            }
+            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") }
+          }
+        }
+      }
+      .padding(16)
     }
   }
 
@@ -301,6 +354,28 @@ struct ArchiveView: View {
       } else {
         toast = Toast(message: "삭제에 실패했습니다", style: .failure)
       }
+    }
+  }
+
+  /// 다운로드 실패는 특정 카드에 계속 붙어있는 텍스트가 아니라 토스트로 한 번만 알려줍니다.
+  private func handleFileDownloadStateChange(_ states: [Note.ID: ChatViewModel.FileDownloadState]) {
+    for (id, state) in states {
+      guard state == .failed else {
+        toastedFailedFileDownloadIds.remove(id)
+        continue
+      }
+      guard !toastedFailedFileDownloadIds.contains(id) else { continue }
+      toastedFailedFileDownloadIds.insert(id)
+
+      toast = Toast(
+        message: "파일 다운로드 실패했습니다",
+        style: .failure,
+        action: Toast.Action(title: "다시 시도") {
+          if let note = viewModel.messages.first(where: { $0.id == id }) {
+            viewModel.retryFileDownload(for: note)
+          }
+        }
+      )
     }
   }
 }

@@ -56,7 +56,7 @@ final class SearchViewModel {
     switch selectedCategory {
     case .all:
       results
-    case .text, .photo, .link, .voice:
+    case .text, .photo, .link, .voice, .file:
       results.filter { $0.category == selectedCategory }
     }
   }
@@ -208,6 +208,7 @@ final class SearchViewModel {
       let noteResults = matchedNotes.map { storedNote in
         let note = storedNote.note
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
+        if note.fileName != nil { return SearchResult.file(note, contact: contact) }
         if note.imageData != nil { return SearchResult.photo(note, contact: contact) }
         if note.voiceMemoData != nil { return SearchResult.voice(note, contact: contact, transcript: voiceTranscripts[note.id]) }
         if let preview = linkPreviews[note.id] { return SearchResult.link(note, contact: contact, preview: preview) }
@@ -229,7 +230,7 @@ final class SearchViewModel {
     analysis: NoteImageAnalysisResult?,
     transcript: NoteVoiceTranscriptResult?
   ) -> String {
-    var components = [note.contactName, note.content]
+    var components = [note.contactName, note.content, note.fileName ?? ""]
     if note.imageData != nil, let analysis {
       components.append(
         contentsOf: labelTranslator.searchTerms(for: analysis.labels)
@@ -247,7 +248,7 @@ final class SearchViewModel {
     analysis: NoteImageAnalysisResult?,
     transcript: NoteVoiceTranscriptResult?
   ) -> String {
-    var components = [note.content]
+    var components = [note.content, note.fileName ?? ""]
     if note.imageData != nil, let analysis { components += labelTranslator.searchTerms(for: analysis.labels) + [analysis.ocrText] }
     if note.voiceMemoData != nil, let transcript { components.append(transcript.text) }
     return components.filter { !$0.isEmpty }.joined(separator: "\n")

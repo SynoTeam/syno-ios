@@ -17,18 +17,25 @@ struct ChatMessageBubble: View {
   var onShowFullText: (() -> Void)?
   var linkPreview: NoteLinkPreviewResult?
   var voiceMemoState: ChatViewModel.VoiceMemoState?
+  var fileDownloadState: ChatViewModel.FileDownloadState?
+  var fileSendFailed: Bool = false
   var onRetryTranscription: (() -> Void)?
   var onRetrySend: (() -> Void)?
+  var onRetryFileDownload: (() -> Void)?
+  var onRetryFileSend: (() -> Void)?
+  var onShowFile: (() -> Void)?
   var highlightQuery: String?
 
   var body: some View {
     messageStack
     .frame(maxWidth: .infinity, alignment: .trailing)
     .contextMenu {
-      Button {
-        UIPasteboard.general.string = note.content
-      } label: {
-        Label("복사하기", systemImage: "doc.on.doc")
+      if note.fileName == nil {
+        Button {
+          UIPasteboard.general.string = note.content
+        } label: {
+          Label("복사하기", systemImage: "doc.on.doc")
+        }
       }
 
       shareLink
@@ -49,6 +56,7 @@ struct ChatMessageBubble: View {
         LinkPreviewCard(preview: linkPreview)
       }
       if let voiceMemoState { voiceTranscriptView(voiceMemoState) }
+      if fileSendFailed { transferFailedView(title: "전송 실패", onRetry: onRetryFileSend) }
 
       Text(note.clockTimeText)
         .typeStyle(.caption1)
@@ -66,6 +74,13 @@ struct ChatMessageBubble: View {
   private var messageContent: some View {
     if note.voiceMemoData != nil {
       VoiceMemoCard(note: note)
+    } else if note.fileName != nil {
+      FileCard(
+        note: note,
+        downloadState: fileDownloadState,
+        onRetryDownload: onRetryFileDownload,
+        onOpen: onShowFile
+      )
     } else if
       let imageData = note.imageData,
       let uiImage = UIImage(data: imageData)
@@ -122,13 +137,40 @@ struct ChatMessageBubble: View {
     }
   }
 
+  private func transferFailedView(title: String, onRetry: (() -> Void)?) -> some View {
+    HStack(spacing: 8) {
+      Text(title)
+        .typeStyle(.caption1Emphasized)
+        .foregroundStyle(.errorRed)
+
+      if let onRetry {
+        Button(action: onRetry) {
+          Circle()
+            .fill(.bgError01)
+            .frame(width: 24, height: 24)
+            .overlay {
+              Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.errorRed)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("다시 시도")
+      }
+    }
+  }
+
   private var shouldShowFullTextLink: Bool {
     note.content.count > 180
   }
 
   @ViewBuilder
   private var shareLink: some View {
-    if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
+    if let fileURL = FileTransferURL.temporaryURL(for: note) {
+      ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
+        Label("공유하기", systemImage: "square.and.arrow.up")
+      }
+    } else if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
       ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
         Label("공유하기", systemImage: "square.and.arrow.up")
       }

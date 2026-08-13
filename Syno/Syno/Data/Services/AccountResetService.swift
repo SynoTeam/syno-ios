@@ -49,11 +49,11 @@ final class AccountResetService {
     }
   }
 
-  /// 노트 원본 이미지가 차지하는 총 저장공간을 바이트 단위로 반환합니다.
+  /// 노트 원본 미디어(사진/음성/파일)가 차지하는 총 저장공간을 바이트 단위로 반환합니다.
   func noteStorageUsage() throws -> Int64 {
     let notes = try modelContext.fetch(FetchDescriptor<StoredNote>())
     return notes.reduce(into: Int64(0)) { total, note in
-      total += Int64(note.imageData?.count ?? 0)
+      total += mediaByteCount(for: note)
     }
   }
 
@@ -71,10 +71,14 @@ final class AccountResetService {
     var bytesByContactID: [UUID: Int64] = [:]
 
     for note in notes {
-      guard let contactID = note.contactId, let imageData = note.imageData else {
+      guard let contactID = note.contactId else {
         continue
       }
-      bytesByContactID[contactID, default: 0] += Int64(imageData.count)
+      let bytes = mediaByteCount(for: note)
+      guard bytes > 0 else {
+        continue
+      }
+      bytesByContactID[contactID, default: 0] += bytes
     }
 
     return bytesByContactID.compactMap { contactID, bytes in
@@ -110,13 +114,25 @@ final class AccountResetService {
 
   private func deleteMedia(from notes: [StoredNote]) throws {
     do {
-      for note in notes where note.imageData != nil {
+      for note in notes {
         note.imageData = nil
+        note.voiceMemoData = nil
+        // 파일은 fileData만 지우면 fileName은 남아서 "아직 iCloud에서 안 받아온 파일"처럼
+        // 보여 다운로드를 계속 재시도하게 되므로, 첨부 자체를 지운다는 의미로 같이 비웁니다.
+        note.fileData = nil
+        note.fileName = nil
+        note.fileSize = nil
       }
       try modelContext.save()
     } catch {
       modelContext.rollback()
       throw error
     }
+  }
+
+  private func mediaByteCount(for note: StoredNote) -> Int64 {
+    Int64(note.imageData?.count ?? 0)
+      + Int64(note.voiceMemoData?.count ?? 0)
+      + Int64(note.fileData?.count ?? 0)
   }
 }

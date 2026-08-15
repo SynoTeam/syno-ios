@@ -30,6 +30,8 @@ struct SearchEmptyStateView: View {
     case .text: .emptyText
     case .photo: .emptyPhoto
     case .link: .emptyLink
+    case .voice: .emptyArchive
+    case .file: .emptyArchive
     }
   }
 
@@ -37,7 +39,7 @@ struct SearchEmptyStateView: View {
     switch category {
     case .all:
       "검색 결과가 없습니다."
-    case .text, .photo, .link: "일치하는 노트가 없습니다."
+    case .text, .photo, .link, .voice, .file: "일치하는 노트가 없습니다."
     }
   }
 }

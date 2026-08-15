@@ -23,6 +23,8 @@ struct SynoApp: App {
   private let linkPreviewFetcher: any NoteLinkPreviewFetching
   private let noteLinkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
+  private let noteVoiceTranscriber: any NoteVoiceTranscribing
+  private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
 
   init() {
     do {
@@ -34,7 +36,8 @@ struct SynoApp: App {
         StoredContactEmbedding.self,
         StoredNoteEmbedding.self,
         StoredNoteImageAnalysis.self,
-        StoredNoteLinkPreview.self
+        StoredNoteLinkPreview.self,
+        StoredNoteVoiceTranscript.self
       ])
       guard let appGroupContainerURL = FileManager.default.containerURL(
         forSecurityApplicationGroupIdentifier: "group.com.synoteam.Syno"
@@ -64,6 +67,8 @@ struct SynoApp: App {
         modelContainer: container
       )
       noteImageAnalysisRepository = imageAnalysisRepository
+      noteVoiceTranscriber = SpeechNoteVoiceTranscriber()
+      noteVoiceTranscriptRepository = SwiftDataNoteVoiceTranscriptRepository(modelContainer: container)
       linkPreviewFetcher = URLSessionLinkPreviewFetcher()
       noteLinkPreviewRepository = SwiftDataNoteLinkPreviewRepository(modelContainer: container)
       let staticLabelDictionary = StaticLabelDictionary()
@@ -102,6 +107,8 @@ struct SynoApp: App {
         linkPreviewFetcher: linkPreviewFetcher,
         noteLinkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
+        noteVoiceTranscriber: noteVoiceTranscriber,
+        noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
         accountResetService: accountResetService
       )
       .task {

@@ -168,3 +168,9 @@ struct PhotoCropView: View {
     return croppedImage.jpegData(compressionQuality: 0.9)
   }
 }
+
+/// 카메라/앨범에서 고른 이미지를 ``PhotoCropView``로 넘길 때 쓰는 식별 가능한 요청입니다.
+struct PhotoCropRequest: Identifiable {
+  let id = UUID()
+  let image: UIImage
+}

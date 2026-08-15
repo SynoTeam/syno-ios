@@ -15,6 +15,12 @@ struct Note: Identifiable, Equatable, Hashable {
   var content: String
   var createdAt: Date
   var imageData: Data?
+  var voiceMemoData: Data?
+  var voiceMemoDuration: TimeInterval?
+  var voiceMemoWaveform: [Float]?
+  var fileData: Data?
+  var fileName: String?
+  var fileSize: Int?
   var profileImageData: Data?
   var isFavorite: Bool
   var isPinned: Bool
@@ -55,6 +61,12 @@ struct Note: Identifiable, Equatable, Hashable {
     content: String,
     createdAt: Date = Date(),
     imageData: Data? = nil,
+    voiceMemoData: Data? = nil,
+    voiceMemoDuration: TimeInterval? = nil,
+    voiceMemoWaveform: [Float]? = nil,
+    fileData: Data? = nil,
+    fileName: String? = nil,
+    fileSize: Int? = nil,
     profileImageData: Data? = nil,
     isFavorite: Bool = false,
     isPinned: Bool = false
@@ -65,6 +77,12 @@ struct Note: Identifiable, Equatable, Hashable {
     self.content = content
     self.createdAt = createdAt
     self.imageData = imageData
+    self.voiceMemoData = voiceMemoData
+    self.voiceMemoDuration = voiceMemoDuration
+    self.voiceMemoWaveform = voiceMemoWaveform
+    self.fileData = fileData
+    self.fileName = fileName
+    self.fileSize = fileSize
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isPinned = isPinned

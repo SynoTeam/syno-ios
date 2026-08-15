@@ -63,7 +63,12 @@ struct SettingsView: View {
 
   private var appInfoSection: some View {
     settingsCard(title: "앱 정보") {
-      infoRow(title: "약관 및 정책", value: "준비 중")
+      navigationRow(title: "서비스 이용약관") {
+        LegalDocumentView(title: "서비스 이용약관", content: Constants.AppInfo.termsOfService)
+      }
+      navigationRow(title: "개인정보 처리방침") {
+        LegalDocumentView(title: "개인정보 처리방침", content: Constants.AppInfo.privacyPolicy)
+      }
       infoRow(title: "현재 버전", value: appVersion)
     }
   }
@@ -103,6 +108,29 @@ struct SettingsView: View {
     .padding(20)
     .background(.white)
     .clipShape(RoundedRectangle(cornerRadius: 16))
+  }
+
+  private func navigationRow<Destination: View>(
+    title: String,
+    @ViewBuilder destination: () -> Destination
+  ) -> some View {
+    NavigationLink {
+      destination()
+    } label: {
+      HStack(spacing: 12) {
+        Text(title)
+          .typeStyle(.calloutEmphasized)
+          .foregroundStyle(.gray800)
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundStyle(.gray300)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
   }
 
   private func infoRow(title: String, value: String) -> some View {
@@ -170,6 +198,9 @@ struct SettingsView: View {
           toast = Toast(message: "임시 데이터가 삭제되었습니다", style: .success)
         case .logout:
           try accountResetService.resetAllData()
+          // 삭제가 iCloud로 다 올라간 다음에 로그아웃을 마쳐야, 나중에 다시 들어왔을 때
+          // 덜 지워진 채로 서버에 남아있던 데이터가 되살아나는 걸 막을 수 있습니다.
+          await accountResetService.waitForPendingCloudKitExport()
         }
       } catch {
         toast = Toast(message: "데이터를 삭제하지 못했습니다. 다시 시도해주세요.", style: .failure)

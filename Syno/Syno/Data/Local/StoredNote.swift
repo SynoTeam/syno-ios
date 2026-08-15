@@ -25,6 +25,12 @@ final class StoredNote {
 
   /// 채팅 기록에 첨부된 이미지 데이터입니다.
   var imageData: Data?
+  var voiceMemoData: Data?
+  var voiceMemoDuration: TimeInterval?
+  var voiceMemoWaveform: [Float]?
+  var fileData: Data?
+  var fileName: String?
+  var fileSize: Int?
 
   /// 연락처 프로필 이미지 데이터입니다.
   var profileImageData: Data?
@@ -44,6 +50,12 @@ final class StoredNote {
     contactName: String,
     content: String,
     imageData: Data?,
+    voiceMemoData: Data? = nil,
+    voiceMemoDuration: TimeInterval? = nil,
+    voiceMemoWaveform: [Float]? = nil,
+    fileData: Data? = nil,
+    fileName: String? = nil,
+    fileSize: Int? = nil,
     profileImageData: Data?,
     isFavorite: Bool,
     isPinned: Bool = false,
@@ -54,6 +66,12 @@ final class StoredNote {
     self.contactName = contactName
     self.content = content
     self.imageData = imageData
+    self.voiceMemoData = voiceMemoData
+    self.voiceMemoDuration = voiceMemoDuration
+    self.voiceMemoWaveform = voiceMemoWaveform
+    self.fileData = fileData
+    self.fileName = fileName
+    self.fileSize = fileSize
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isPinned = isPinned
@@ -67,6 +85,12 @@ final class StoredNote {
       contactName: note.contactName,
       content: note.content,
       imageData: note.imageData,
+      voiceMemoData: note.voiceMemoData,
+      voiceMemoDuration: note.voiceMemoDuration,
+      voiceMemoWaveform: note.voiceMemoWaveform,
+      fileData: note.fileData,
+      fileName: note.fileName,
+      fileSize: note.fileSize,
       profileImageData: note.profileImageData,
       isFavorite: note.isFavorite,
       isPinned: note.isPinned,
@@ -81,6 +105,12 @@ extension StoredNote {
     contactName = note.contactName
     content = note.content
     imageData = note.imageData
+    voiceMemoData = note.voiceMemoData
+    voiceMemoDuration = note.voiceMemoDuration
+    voiceMemoWaveform = note.voiceMemoWaveform
+    fileData = note.fileData
+    fileName = note.fileName
+    fileSize = note.fileSize
     profileImageData = note.profileImageData
     isFavorite = note.isFavorite
     isPinned = note.isPinned
@@ -96,6 +126,12 @@ extension StoredNote {
       content: content,
       createdAt: createdAt,
       imageData: imageData,
+      voiceMemoData: voiceMemoData,
+      voiceMemoDuration: voiceMemoDuration,
+      voiceMemoWaveform: voiceMemoWaveform,
+      fileData: fileData,
+      fileName: fileName,
+      fileSize: fileSize,
       profileImageData: profileImageData,
       isFavorite: isFavorite,
       isPinned: isPinned

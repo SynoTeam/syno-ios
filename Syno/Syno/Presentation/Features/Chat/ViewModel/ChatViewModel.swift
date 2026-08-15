@@ -1,13 +1,22 @@
 import Foundation
 import Observation
 import OSLog
-import PhotosUI
 import SwiftUI
 import UIKit
 
 @MainActor
 @Observable
 final class ChatViewModel {
+  enum VoiceMemoState: Equatable {
+    case sendFailed
+    case transcribing
+    case transcriptFailed
+    case transcribed(NoteVoiceTranscriptResult)
+  }
+  enum FileDownloadState: Equatable {
+    case checking
+    case failed
+  }
   struct PendingMessage: Identifiable {
     enum Status: Equatable {
       case sending
@@ -50,6 +59,11 @@ final class ChatViewModel {
   private(set) var persistenceError: String?
   private var imageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
   private(set) var linkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
+  private(set) var voiceMemoStates: [Note.ID: VoiceMemoState] = [:]
+  private(set) var fileDownloadStates: [Note.ID: FileDownloadState] = [:]
+  private(set) var fileSendFailedIds: Set<Note.ID> = []
+  private(set) var fileTransferURLs: [Note.ID: URL] = [:]
+  @ObservationIgnored private var fileDownloadPollTasks: [Note.ID: Task<Void, Never>] = [:]
 
   let contact: Contact
   private let repository: any NoteRepository
@@ -58,6 +72,8 @@ final class ChatViewModel {
   private let linkPreviewFetcher: any NoteLinkPreviewFetching
   private let linkPreviewRepository: any NoteLinkPreviewRepository
   private let labelTranslator: any LabelTranslating
+  private let voiceTranscriber: any NoteVoiceTranscribing
+  private let voiceTranscriptRepository: any NoteVoiceTranscriptRepository
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "ChatViewModel"
@@ -70,7 +86,9 @@ final class ChatViewModel {
     imageAnalysisRepository: any NoteImageAnalysisRepository,
     linkPreviewFetcher: any NoteLinkPreviewFetching = NoopNoteLinkPreviewFetcher(),
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
-    labelTranslator: any LabelTranslating
+    labelTranslator: any LabelTranslating,
+    voiceTranscriber: any NoteVoiceTranscribing,
+    voiceTranscriptRepository: any NoteVoiceTranscriptRepository
   ) {
     self.contact = contact
     self.repository = repository
@@ -79,6 +97,8 @@ final class ChatViewModel {
     self.linkPreviewFetcher = linkPreviewFetcher
     self.linkPreviewRepository = linkPreviewRepository
     self.labelTranslator = labelTranslator
+    self.voiceTranscriber = voiceTranscriber
+    self.voiceTranscriptRepository = voiceTranscriptRepository
   }
 
   var canSend: Bool {
@@ -131,13 +151,33 @@ final class ChatViewModel {
         .filter { messageIds.contains($0.key) }
       linkPreviews = try await linkPreviewRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
+      let transcripts = try await voiceTranscriptRepository.fetchAll()
+      voiceMemoStates = Dictionary(uniqueKeysWithValues: messages.compactMap { note in
+        guard note.voiceMemoData != nil, let transcript = transcripts[note.id] else { return nil }
+        return (note.id, .transcribed(transcript))
+      })
     } catch {
       imageAnalyses = [:]
       linkPreviews = [:]
+      voiceMemoStates = [:]
       logger.debug(
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
     }
+
+    for note in messages
+      where note.fileName != nil
+      && note.fileData == nil
+      // 이미 실패로 끝난 다운로드는 여기서 자동으로 다시 돌리지 않습니다 — 파일이 여러 개 대기 중일 때
+      // 서로 다른 파일의 폴링 루프가 각자 loadMessages()를 호출하면서 방금 실패한 파일을
+      // 다시 .checking으로 되돌려, 실패↔재시도가 무한 반복되고 토스트도 계속 뜨는 문제가 있었습니다.
+      // 실패한 파일은 retryFileDownload(for:)로 사용자가 직접 재시도할 때만 다시 시작합니다.
+      && fileDownloadStates[note.id] == nil
+      && fileDownloadPollTasks[note.id] == nil {
+      startPollingFileDownload(for: note)
+    }
+
+    prepareFileTransferURLsIfNeeded()
   }
 
   func sendMessage() {
@@ -183,6 +223,13 @@ final class ChatViewModel {
     for id in deletedIds {
       imageAnalyses[id] = nil
       linkPreviews[id] = nil
+      voiceMemoStates[id] = nil
+      fileDownloadPollTasks[id]?.cancel()
+      fileDownloadPollTasks[id] = nil
+      fileDownloadStates[id] = nil
+      fileSendFailedIds.remove(id)
+      fileTransferURLs[id] = nil
+      FileTransferURL.removeTemporaryFile(for: id)
     }
 
     guard !didFail else {
@@ -190,22 +237,6 @@ final class ChatViewModel {
     }
     persistenceError = nil
     return true
-  }
-
-  func sendImage(from item: PhotosPickerItem?) async {
-    guard let item else {
-      return
-    }
-
-    do {
-      let rawImageData = try await item.loadTransferable(type: Data.self)
-      guard let rawImageData else {
-        return
-      }
-      await sendImageData(rawImageData)
-    } catch {
-      handle(error)
-    }
   }
 
   func sendImageData(_ rawImageData: Data) async {
@@ -232,18 +263,153 @@ final class ChatViewModel {
     }
   }
 
+  func sendVoiceMemo(audioData: Data, duration: TimeInterval, waveform: [Float]) async {
+    let note = makeNote(content: "무제-\(nextVoiceMemoNumber())", voiceMemoData: audioData, voiceMemoDuration: duration, voiceMemoWaveform: waveform)
+    guard save(note) else { messages.append(note); voiceMemoStates[note.id] = .sendFailed; return }
+    await transcribe(note)
+  }
+
+  func sendFile(url: URL) async {
+    // ChatViewModel은 @MainActor라서 Data(contentsOf:)를 그대로 부르면 큰 파일 읽는 동안
+    // 메인 스레드(=UI)가 멈춥니다. 백그라운드에서 읽고 결과만 받아옵니다.
+    let data = await Task.detached(priority: .utility) {
+      try? Data(contentsOf: url)
+    }.value
+
+    guard let data else {
+      persistenceError = "파일을 읽지 못했습니다. 다시 시도해주세요."
+      return
+    }
+
+    let note = makeNote(
+      content: url.lastPathComponent,
+      fileData: data,
+      fileName: url.lastPathComponent,
+      fileSize: data.count
+    )
+    guard save(note) else {
+      messages.append(note)
+      fileSendFailedIds.insert(note.id)
+      return
+    }
+    prepareFileTransferURLsIfNeeded()
+  }
+
+  func retrySendFile(for note: Note) {
+    guard note.fileName != nil else { return }
+    do {
+      try repository.save(note)
+      fileSendFailedIds.remove(note.id)
+    } catch {
+      fileSendFailedIds.insert(note.id)
+    }
+  }
+
+  func retryFileDownload(for note: Note) {
+    guard note.fileName != nil, note.fileData == nil else { return }
+    startPollingFileDownload(for: note)
+  }
+
+  func retryTranscription(for note: Note) async {
+    await transcribe(note)
+  }
+
+  func retrySend(for note: Note) async {
+    guard note.voiceMemoData != nil else { return }
+    do {
+      try repository.save(note)
+      voiceMemoStates[note.id] = .transcribing
+      await transcribe(note)
+    } catch { voiceMemoStates[note.id] = .sendFailed }
+  }
+
+  private func transcribe(_ note: Note) async {
+    guard let audioData = note.voiceMemoData else { return }
+    voiceMemoStates[note.id] = .transcribing
+    do {
+      let result = try await voiceTranscriber.transcribe(audioData: audioData)
+      try await voiceTranscriptRepository.save(noteId: note.id, result: result, transcribedAt: Date())
+      voiceMemoStates[note.id] = .transcribed(result)
+      if let firstLine = result.text.split(separator: "\n").first {
+        update(note: note, content: String(firstLine))
+      }
+    } catch {
+      let nsError = error as NSError
+      logger.error(
+        "Voice transcription failed for note \(note.id): \(nsError.domain, privacy: .public) code=\(nsError.code) \(nsError.localizedDescription, privacy: .public)"
+      )
+      voiceMemoStates[note.id] = .transcriptFailed
+    }
+  }
+
   func clearPersistenceError() {
     persistenceError = nil
   }
 
-  private func makeNote(content: String, imageData: Data? = nil) -> Note {
+  private func makeNote(content: String, imageData: Data? = nil, voiceMemoData: Data? = nil, voiceMemoDuration: TimeInterval? = nil, voiceMemoWaveform: [Float]? = nil, fileData: Data? = nil, fileName: String? = nil, fileSize: Int? = nil) -> Note {
     Note(
       contactId: contact.id,
       contactName: contact.name,
       content: content,
       imageData: imageData,
+      voiceMemoData: voiceMemoData,
+      voiceMemoDuration: voiceMemoDuration,
+      voiceMemoWaveform: voiceMemoWaveform,
+      fileData: fileData,
+      fileName: fileName,
+      fileSize: fileSize,
       profileImageData: contact.profileImageData
     )
+  }
+
+  private func update(note: Note, content: String) {
+    var updated = note
+    updated.content = content
+    do {
+      try repository.save(updated)
+      if let index = messages.firstIndex(where: { $0.id == note.id }) { messages[index] = updated }
+    } catch { handle(error) }
+  }
+
+  private func startPollingFileDownload(for note: Note) {
+    fileDownloadPollTasks[note.id]?.cancel()
+    fileDownloadStates[note.id] = .checking
+
+    fileDownloadPollTasks[note.id] = Task { @MainActor [weak self] in
+      guard let self else { return }
+      for _ in 0..<10 {
+        try? await Task.sleep(for: .seconds(3))
+        guard !Task.isCancelled else { return }
+        await loadMessages()
+        guard let refreshed = messages.first(where: { $0.id == note.id }) else {
+          fileDownloadPollTasks[note.id] = nil
+          fileDownloadStates[note.id] = nil
+          return
+        }
+        if refreshed.fileData != nil {
+          fileDownloadPollTasks[note.id] = nil
+          fileDownloadStates[note.id] = nil
+          return
+        }
+      }
+      fileDownloadPollTasks[note.id] = nil
+      fileDownloadStates[note.id] = .failed
+    }
+  }
+
+  /// fileData가 있는데 아직 공유/미리보기용 임시 파일 URL을 안 만든 노트에 대해 백그라운드로 준비합니다.
+  /// (View에서 body 평가 중에 직접 디스크에 쓰지 않도록, 결과를 여기 캐시에 담아두고 View는 읽기만 합니다.)
+  private func prepareFileTransferURLsIfNeeded() {
+    for note in messages where note.fileData != nil && fileTransferURLs[note.id] == nil {
+      Task { [weak self] in
+        guard let url = await FileTransferURL.prepare(for: note) else { return }
+        self?.fileTransferURLs[note.id] = url
+      }
+    }
+  }
+
+  private func nextVoiceMemoNumber() -> Int {
+    messages.filter { $0.voiceMemoData != nil }.count + 1
   }
 
   private func searchableText(

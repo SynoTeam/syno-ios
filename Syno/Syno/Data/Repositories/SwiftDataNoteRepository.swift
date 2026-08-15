@@ -74,6 +74,10 @@ final class SwiftDataNoteRepository: NoteRepository {
         for analysis in analyses where analysis.noteId == id {
           modelContext.delete(analysis)
         }
+        let transcripts = try modelContext.fetch(FetchDescriptor<StoredNoteVoiceTranscript>())
+        for transcript in transcripts where transcript.noteId == id {
+          modelContext.delete(transcript)
+        }
         modelContext.delete(storedNote)
         try modelContext.save()
         if let searchIndex {

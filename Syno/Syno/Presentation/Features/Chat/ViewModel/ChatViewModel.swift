@@ -1,7 +1,6 @@
 import Foundation
 import Observation
 import OSLog
-import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -238,22 +237,6 @@ final class ChatViewModel {
     }
     persistenceError = nil
     return true
-  }
-
-  func sendImage(from item: PhotosPickerItem?) async {
-    guard let item else {
-      return
-    }
-
-    do {
-      let rawImageData = try await item.loadTransferable(type: Data.self)
-      guard let rawImageData else {
-        return
-      }
-      await sendImageData(rawImageData)
-    } catch {
-      handle(error)
-    }
   }
 
   func sendImageData(_ rawImageData: Data) async {

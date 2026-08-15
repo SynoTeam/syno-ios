@@ -63,7 +63,12 @@ struct OnboardingBasicInfoView: View {
       .padding(.bottom, 36)
     }
     .padding(.horizontal, 20)
-    .background(Color.gray50)
+    .background {
+      Image(.bgOnboarding)
+        .resizable()
+        .scaledToFill()
+        .ignoresSafeArea()
+    }
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
     .navigationBarTitleDisplayMode(.inline)

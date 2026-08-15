@@ -29,7 +29,10 @@ struct ContactDetailView: View {
         VStack(spacing: 20) {
           profileHeader
           contactInfoCard
-          additionalInfoCard
+
+          if hasAdditionalInfo {
+            additionalInfoCard
+          }
 
           if !contact.note.isEmpty {
             noteCard
@@ -128,44 +131,61 @@ struct ContactDetailView: View {
 
   private var contactInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(label: "이메일", value: displayValue(contact.email))
-      profileInfo(label: "전화번호", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
-      profileInfo(label: "URL", value: displayValue(contact.url), lineLimit: 1)
+      profileInfo(icon: .mail, label: "이메일", value: displayValue(contact.email))
+      profileInfo(icon: .phone, label: "전화번호", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
+      profileInfo(icon: .link, label: "URL", value: displayValue(contact.url), lineLimit: 1)
     }
     .profileCard()
   }
 
+  private var hasAdditionalInfo: Bool {
+    !contact.address.isEmpty
+      || contact.birthday != nil
+      || contact.anniversary != nil
+      || !contact.socialLinks.isEmpty
+  }
+
   private var additionalInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(label: "주소", value: displayValue(contact.address))
-      profileInfo(label: "생일", value: formattedDate(contact.birthday))
-      profileInfo(label: "기념일", value: formattedDate(contact.anniversary))
+      if !contact.address.isEmpty {
+        profileInfo(icon: .location, label: "주소", value: contact.address)
+      }
+      if let birthday = contact.birthday {
+        profileInfo(icon: .calendar, label: "생일", value: formattedDate(birthday))
+      }
+      if let anniversary = contact.anniversary {
+        profileInfo(icon: .calendar, label: "기념일", value: formattedDate(anniversary))
+      }
       socialLinksInfo
     }
     .profileCard()
   }
 
   private var noteCard: some View {
-    profileInfo(label: "한 줄 기록", value: contact.note)
+    profileInfo(icon: .document, label: "한 줄 기록", value: contact.note)
       .profileCard()
   }
 
   @ViewBuilder
   private var socialLinksInfo: some View {
-    if contact.socialLinks.isEmpty {
-      profileInfo(label: "소셜 링크", value: "-")
-    } else {
-      ForEach(contact.socialLinks, id: \.self) { link in
-        profileInfo(label: link.platform, value: displayValue(link.handle), lineLimit: 1)
-      }
+    ForEach(contact.socialLinks, id: \.self) { link in
+      profileInfo(icon: .link, label: link.platform, value: displayValue(link.handle), lineLimit: 1)
     }
   }
 
-  private func profileInfo(label: String, value: String, lineLimit: Int? = nil) -> some View {
+  private func profileInfo(icon: ImageResource, label: String, value: String, lineLimit: Int? = nil) -> some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text(label)
-        .typeStyle(.footnote)
-        .foregroundStyle(.gray400)
+      HStack(spacing: 4) {
+        Image(icon)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 14, height: 14)
+          .foregroundStyle(.gray400)
+
+        Text(label)
+          .typeStyle(.footnote)
+          .foregroundStyle(.gray400)
+      }
 
       Text(value)
         .typeStyle(.headline)

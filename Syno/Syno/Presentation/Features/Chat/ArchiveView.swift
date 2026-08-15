@@ -1,55 +1,83 @@
 import SwiftUI
 import UIKit
 
-/// 채팅에서 주고받은 사진/링크를 모아보는 아카이브 화면입니다.
+/// 채팅에서 주고받은 텍스트/사진/음성메모/파일/링크를 한눈에 모아보는 아카이브 화면입니다.
+///
+/// 카테고리별로 최근 항목 3~6개만 미리보기로 보여주고, "더 보기"를 누르면
+/// ``ArchiveCategoryListView``에서 해당 카테고리의 전체 목록을 봅니다.
 struct ArchiveView: View {
-  private enum Tab: CaseIterable {
-    case photos
-    case links
-    case voiceMemos
-    case files
-
-    var title: String {
-      switch self {
-      case .photos: "사진"
-      case .links: "링크"
-      case .voiceMemos: "음성"
-      case .files: "파일"
-      }
-    }
-  }
-
   let viewModel: ChatViewModel
 
-  @State private var selectedTab: Tab = .photos
   @State private var isSearching = false
   @State private var searchText = ""
   @FocusState private var isSearchFocused: Bool
-  @State private var confirmationAlert: DestructiveConfirmationAlert?
-  @State private var toast: Toast?
-  @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
+  @State private var selectedCategory: ArchiveCategory?
 
-  private let photoColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
-  private let linkColumns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
+  private let rowPreviewCount = 3
+  private let mediaPreviewCount = 6
 
   var body: some View {
     VStack(spacing: 0) {
-      tabPicker
-
       if isSearching {
         searchBar
       }
 
       ScrollView {
-        switch selectedTab {
-        case .photos:
-          photoGrid
-        case .links:
-          linkGrid
-        case .voiceMemos:
-          voiceMemoGrid
-        case .files:
-          fileList
+        if hasAnyResults {
+          VStack(spacing: 16) {
+            sectionCard(icon: .message, title: "텍스트", category: .text, isEmpty: textNotes.isEmpty) {
+              VStack(alignment: .leading, spacing: 16) {
+                ForEach(textNotes.prefix(rowPreviewCount)) { note in
+                  textRow(note)
+                }
+              }
+            }
+
+            sectionCard(icon: .image, title: "사진", category: .photos, isEmpty: photoNotes.isEmpty, showsDivider: false) {
+              ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                  ForEach(photoNotes.prefix(mediaPreviewCount)) { note in
+                    photoThumbnail(note)
+                  }
+                }
+              }
+            }
+
+            sectionCard(icon: .play, title: "음성 메모", category: .voiceMemos, isEmpty: voiceMemoNotes.isEmpty) {
+              VStack(alignment: .leading, spacing: 16) {
+                ForEach(voiceMemoNotes.prefix(rowPreviewCount)) { note in
+                  voiceMemoRow(note)
+                }
+              }
+            }
+
+            sectionCard(icon: .document, title: "파일", category: .files, isEmpty: fileNotes.isEmpty) {
+              VStack(alignment: .leading, spacing: 16) {
+                ForEach(fileNotes.prefix(rowPreviewCount)) { note in
+                  fileRow(note)
+                }
+              }
+            }
+
+            sectionCard(icon: .link, title: "링크", category: .links, isEmpty: linkNotes.isEmpty, showsDivider: false) {
+              ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                  ForEach(linkNotes.prefix(mediaPreviewCount)) { note in
+                    if let preview = viewModel.linkPreviews[note.id] {
+                      LinkPreviewCard(preview: preview)
+                        .frame(width: 160)
+                    }
+                  }
+                }
+              }
+            }
+          }
+          .padding(16)
+        } else {
+          archiveEmptyState(
+            image: .emptyArchive,
+            message: trimmedSearchText.isEmpty ? "아직 저장된 항목이 없습니다" : "검색 결과가 없습니다"
+          )
         }
       }
     }
@@ -68,226 +96,195 @@ struct ArchiveView: View {
         .accessibilityLabel(isSearching ? "검색 닫기" : "검색")
       }
     }
-    .destructiveConfirmationAlert(item: $confirmationAlert)
-    .toast(item: $toast)
-    .onChange(of: viewModel.fileDownloadStates) { _, newStates in
-      handleFileDownloadStateChange(newStates)
+    .navigationDestination(item: $selectedCategory) { category in
+      ArchiveCategoryListView(viewModel: viewModel, startingCategory: category)
     }
   }
 
-  private var tabPicker: some View {
-    HStack(spacing: 0) {
-      ForEach(Tab.allCases, id: \.self) { tab in
-        Button {
-          selectedTab = tab
-        } label: {
-          VStack(spacing: 8) {
-            Text(tab.title)
-              .typeStyle(.subheadline)
-              .foregroundStyle(selectedTab == tab ? .gray950 : .gray400)
+  // MARK: - Sections
 
-            Rectangle()
-              .fill(selectedTab == tab ? Color.violet500 : Color.clear)
-              .frame(height: 2)
-          }
-          .frame(maxWidth: .infinity)
+  @ViewBuilder
+  private func sectionCard<Content: View>(
+    icon: ImageResource,
+    title: String,
+    category: ArchiveCategory,
+    isEmpty: Bool,
+    showsDivider: Bool = true,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    if !isEmpty {
+      VStack(alignment: .leading, spacing: 16) {
+        HStack(spacing: 6) {
+          Image(icon)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 14, height: 14)
+            .foregroundStyle(.gray400)
+
+          Text(title)
+            .typeStyle(.footnote)
+            .foregroundStyle(.gray400)
+        }
+
+        content()
+
+        if showsDivider {
+          Divider()
+        }
+
+        Button {
+          selectedCategory = category
+        } label: {
+          Text("더 보기")
+            .typeStyle(.subheadline)
+            .foregroundStyle(.gray500)
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
       }
-    }
-    .padding(.top, 12)
-    .overlay(alignment: .bottom) {
-      Divider()
+      .padding(16)
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 16))
     }
   }
+
+  private func textRow(_ note: Note) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 8) {
+        Image(.logo)
+          .profileImage(data: note.profileImageData, size: 32)
+
+        Text(note.contactName)
+          .typeStyle(.subheadlineEmphasized)
+          .foregroundStyle(.gray950)
+
+        Spacer()
+
+        Text(note.clockTimeText)
+          .typeStyle(.caption1)
+          .foregroundStyle(.gray400)
+      }
+
+      Text(note.content)
+        .typeStyle(.footnote)
+        .foregroundStyle(.gray600)
+        .lineLimit(1)
+        .truncationMode(.tail)
+    }
+  }
+
+  private func photoThumbnail(_ note: Note) -> some View {
+    Group {
+      if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
+        Image(uiImage: uiImage)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+      } else {
+        Color.gray100
+      }
+    }
+    .frame(width: 96, height: 84)
+    .clipped()
+    .clipShape(RoundedRectangle(cornerRadius: 8))
+  }
+
+  private func voiceMemoRow(_ note: Note) -> some View {
+    HStack(alignment: .top) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(note.content)
+          .typeStyle(.subheadlineEmphasized)
+          .foregroundStyle(.gray950)
+          .lineLimit(1)
+
+        Text(ArchiveFormatters.dayText(for: note.createdAt))
+          .typeStyle(.caption1)
+          .foregroundStyle(.gray400)
+      }
+
+      Spacer()
+
+      Text(ArchiveFormatters.durationText(note.voiceMemoDuration))
+        .typeStyle(.caption1)
+        .foregroundStyle(.gray400)
+    }
+  }
+
+  private func fileRow(_ note: Note) -> some View {
+    HStack(spacing: 12) {
+      Image(.messageFile)
+        .resizable()
+        .frame(width: 32, height: 28)
+
+      VStack(alignment: .leading, spacing: 4) {
+        Text(note.fileName ?? note.content)
+          .typeStyle(.subheadlineEmphasized)
+          .foregroundStyle(.gray950)
+          .lineLimit(1)
+
+        Text(ByteCountFormatter.string(fromByteCount: Int64(note.fileSize ?? 0), countStyle: .file))
+          .typeStyle(.caption1)
+          .foregroundStyle(.gray400)
+      }
+
+      Spacer()
+    }
+  }
+
+  // MARK: - Filtering
 
   private var trimmedSearchText: String {
     searchText.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
-  private var photoSections: [ChatViewModel.MessageDaySection] {
-    let calendar = Calendar.current
-    var photoNotes = viewModel.messages.filter { $0.imageData != nil }
-    if !trimmedSearchText.isEmpty {
-      photoNotes = photoNotes.filter { viewModel.matches($0, searchText: trimmedSearchText) }
-    }
-    let grouped = Dictionary(grouping: photoNotes) { calendar.startOfDay(for: $0.createdAt) }
-    return grouped
-      .map { date, notes in
-        ChatViewModel.MessageDaySection(
-          date: date,
-          messages: notes.sorted { $0.createdAt < $1.createdAt }
-        )
-      }
-      .sorted { $0.date < $1.date }
+  private var hasAnyResults: Bool {
+    !textNotes.isEmpty || !photoNotes.isEmpty || !voiceMemoNotes.isEmpty || !fileNotes.isEmpty || !linkNotes.isEmpty
   }
 
-  private var linkNotes: [Note] {
-    var notes = viewModel.messages.filter { viewModel.linkPreviews[$0.id] != nil }
-    if !trimmedSearchText.isEmpty {
-      notes = notes.filter { note in
-        guard let preview = viewModel.linkPreviews[note.id] else {
-          return false
-        }
-        return preview.title.localizedStandardContains(trimmedSearchText)
-          || (preview.siteURL.host ?? "").localizedStandardContains(trimmedSearchText)
-      }
-    }
-    return notes.sorted { $0.createdAt < $1.createdAt }
+  private var textNotes: [Note] {
+    viewModel.messages
+      .filter { $0.imageData == nil && $0.voiceMemoData == nil && $0.fileName == nil }
+      .filter { trimmedSearchText.isEmpty || viewModel.matches($0, searchText: trimmedSearchText) }
+      .sorted { $0.createdAt > $1.createdAt }
+  }
+
+  private var photoNotes: [Note] {
+    viewModel.messages
+      .filter { $0.imageData != nil }
+      .filter { trimmedSearchText.isEmpty || viewModel.matches($0, searchText: trimmedSearchText) }
+      .sorted { $0.createdAt > $1.createdAt }
   }
 
   private var voiceMemoNotes: [Note] {
-    viewModel.messages.filter { $0.voiceMemoData != nil }.filter { note in
-      guard !trimmedSearchText.isEmpty else { return true }
-      let transcript: String
-      if case let .transcribed(result) = viewModel.voiceMemoStates[note.id] { transcript = result.text } else { transcript = "" }
-      return note.content.localizedStandardContains(trimmedSearchText) || transcript.localizedStandardContains(trimmedSearchText)
-    }.sorted { $0.createdAt < $1.createdAt }
+    viewModel.messages
+      .filter { $0.voiceMemoData != nil }
+      .filter { note in
+        guard !trimmedSearchText.isEmpty else { return true }
+        let transcript: String
+        if case let .transcribed(result) = viewModel.voiceMemoStates[note.id] { transcript = result.text } else { transcript = "" }
+        return note.content.localizedStandardContains(trimmedSearchText) || transcript.localizedStandardContains(trimmedSearchText)
+      }
+      .sorted { $0.createdAt > $1.createdAt }
   }
 
   private var fileNotes: [Note] {
-    viewModel.messages.filter { $0.fileName != nil }.filter { note in
-      guard !trimmedSearchText.isEmpty else { return true }
-      return (note.fileName ?? note.content).localizedStandardContains(trimmedSearchText)
-    }.sorted { $0.createdAt < $1.createdAt }
-  }
-
-  @ViewBuilder private var voiceMemoGrid: some View {
-    if voiceMemoNotes.isEmpty {
-      emptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "아직 주고받은 음성 메모가 없습니다" : "검색 결과가 없습니다")
-    } else {
-      LazyVStack(alignment: .leading, spacing: 12) {
-        ForEach(voiceMemoNotes) { note in
-          VoiceMemoCard(note: note)
-            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") } }
-        }
-      }.padding(16)
-    }
-  }
-
-  @ViewBuilder private var fileList: some View {
-    if fileNotes.isEmpty {
-      emptyState(
-        image: .emptyArchive,
-        message: trimmedSearchText.isEmpty ? "아직 주고받은 파일이 없습니다" : "검색 결과가 없습니다"
-      )
-    } else {
-      LazyVStack(alignment: .leading, spacing: 12) {
-        ForEach(fileNotes) { note in
-          // NavigationLink의 label 안에 다운로드 재시도 Button까지 같이 넣으면 탭 히트테스트가
-          // 꼬여서(어느 탭이 어느 컨트롤로 가는지 불명확해짐), FileCard는 순수 표시용으로만 두고
-          // 재시도 배지는 NavigationLink와 형제(ZStack의 별도 레이어)로 둡니다.
-          ZStack(alignment: .bottomTrailing) {
-            NavigationLink {
-              FilePreviewView(viewModel: viewModel, noteID: note.id)
-            } label: {
-              FileCard(note: note, downloadState: viewModel.fileDownloadStates[note.id])
-            }
-            .buttonStyle(.plain)
-
-            if note.fileData == nil {
-              downloadRetryBadge(for: note)
-                .padding(.trailing, 6)
-                .padding(.bottom, 6)
-            }
-          }
-          .contextMenu {
-            if let fileURL = viewModel.fileTransferURLs[note.id] {
-              ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
-                Label("공유하기", systemImage: "square.and.arrow.up")
-              }
-            }
-            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") }
-          }
-        }
+    viewModel.messages
+      .filter { $0.fileName != nil }
+      .filter { note in
+        trimmedSearchText.isEmpty || (note.fileName ?? note.content).localizedStandardContains(trimmedSearchText)
       }
-      .padding(16)
-    }
+      .sorted { $0.createdAt > $1.createdAt }
   }
 
-  @ViewBuilder
-  private var photoGrid: some View {
-    if photoSections.isEmpty {
-      emptyState(
-        image: trimmedSearchText.isEmpty ? .emptyArchive : .emptyPhoto,
-        message: trimmedSearchText.isEmpty ? "아직 주고받은 사진이 없습니다" : "검색 결과가 없습니다"
-      )
-    } else {
-      LazyVStack(alignment: .leading, spacing: 16) {
-        ForEach(photoSections) { section in
-          Text(section.title)
-            .typeStyle(.footnoteEmphasized)
-            .foregroundStyle(.gray400)
-
-          LazyVGrid(columns: photoColumns, spacing: 4) {
-            ForEach(section.messages) { note in
-              if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                  .resizable()
-                  .aspectRatio(contentMode: .fill)
-                  .frame(height: 84)
-                  .clipped()
-                  .clipShape(RoundedRectangle(cornerRadius: 8))
-                  .contextMenu {
-                    Button {
-                      UIPasteboard.general.image = uiImage
-                    } label: {
-                      Label("복사하기", systemImage: "doc.on.doc")
-                    }
-
-                    ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
-                      Label("공유하기", systemImage: "square.and.arrow.up")
-                    }
-
-                    Button(role: .destructive) {
-                      requestDelete(note)
-                    } label: {
-                      Label("삭제하기", systemImage: "trash")
-                    }
-                  }
-              }
-            }
-          }
-        }
+  private var linkNotes: [Note] {
+    viewModel.messages
+      .filter { viewModel.linkPreviews[$0.id] != nil }
+      .filter { note in
+        guard !trimmedSearchText.isEmpty else { return true }
+        guard let preview = viewModel.linkPreviews[note.id] else { return false }
+        return preview.title.localizedStandardContains(trimmedSearchText)
+          || (preview.siteURL.host ?? "").localizedStandardContains(trimmedSearchText)
       }
-      .padding(16)
-    }
-  }
-
-  @ViewBuilder
-  private var linkGrid: some View {
-    if linkNotes.isEmpty {
-      emptyState(
-        image: trimmedSearchText.isEmpty ? .emptyArchive : .emptyLink,
-        message: trimmedSearchText.isEmpty ? "아직 주고받은 링크가 없습니다" : "검색 결과가 없습니다"
-      )
-    } else {
-      LazyVGrid(columns: linkColumns, spacing: 12) {
-        ForEach(linkNotes) { note in
-          if let preview = viewModel.linkPreviews[note.id] {
-            LinkPreviewCard(preview: preview)
-              .contextMenu {
-                Button {
-                  UIPasteboard.general.string = preview.siteURL.absoluteString
-                } label: {
-                  Label("복사하기", systemImage: "doc.on.doc")
-                }
-
-                ShareLink(item: preview.siteURL) {
-                  Label("공유하기", systemImage: "square.and.arrow.up")
-                }
-
-                Button(role: .destructive) {
-                  requestDelete(note)
-                } label: {
-                  Label("삭제하기", systemImage: "trash")
-                }
-              }
-          }
-        }
-      }
-      .padding(16)
-    }
+      .sorted { $0.createdAt > $1.createdAt }
   }
 
   private var searchBar: some View {
@@ -329,73 +326,61 @@ struct ArchiveView: View {
       isSearchFocused = false
     }
   }
+}
 
-  @ViewBuilder
-  private func downloadRetryBadge(for note: Note) -> some View {
-    switch viewModel.fileDownloadStates[note.id] {
-    case .checking:
-      FileDownloadBadgeIcon { ProgressView().controlSize(.mini).tint(.gray500) }
-    case .failed, nil:
-      Button(action: { viewModel.retryFileDownload(for: note) }) {
-        FileDownloadBadgeIcon {
-          Image(systemName: "arrow.down")
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.gray500)
-        }
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("파일 다운로드")
+/// 아카이브 미리보기 카드의 "더 보기"로 이동할 수 있는 카테고리입니다.
+enum ArchiveCategory: CaseIterable, Hashable {
+  case text
+  case photos
+  case voiceMemos
+  case files
+  case links
+
+  var title: String {
+    switch self {
+    case .text: "텍스트"
+    case .photos: "사진"
+    case .voiceMemos: "음성"
+    case .files: "파일"
+    case .links: "링크"
     }
   }
+}
 
-  private func emptyState(image: ImageResource, message: String) -> some View {
-    VStack(spacing: 16) {
-      Image(image)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(width: 88, height: 88)
-
-      Text(message)
-        .typeStyle(.subheadline)
-        .foregroundStyle(.gray400)
-    }
-    .frame(maxWidth: .infinity)
-      .padding(.top, 80)
+/// 아카이브 카테고리 미리보기와 전체 목록이 함께 쓰는 날짜/재생시간 포맷터입니다.
+enum ArchiveFormatters {
+  static func dayText(for date: Date) -> String {
+    let isCurrentYear = Calendar.current.isDate(date, equalTo: Date(), toGranularity: .year)
+    return (isCurrentYear ? monthDayFormatter : yearMonthDayFormatter).string(from: date)
   }
 
-  private func requestDelete(_ note: Note) {
-    confirmationAlert = DestructiveConfirmationAlert(
-      title: "이 항목을\n삭제하시겠습니까?",
-      message: "삭제한 항목은 복구할 수 없습니다.",
-      acknowledgementText: nil
-    ) {
-      if viewModel.deleteMessage(id: note.id) {
-        toast = Toast(message: "삭제되었습니다", style: .success, icon: "trash.fill")
-      } else {
-        toast = Toast(message: "삭제에 실패했습니다", style: .failure)
-      }
-    }
+  static func durationText(_ duration: TimeInterval?) -> String {
+    String(format: "%d:%02d", Int(duration ?? 0) / 60, Int(duration ?? 0) % 60)
   }
 
-  /// 다운로드 실패는 특정 카드에 계속 붙어있는 텍스트가 아니라 토스트로 한 번만 알려줍니다.
-  private func handleFileDownloadStateChange(_ states: [Note.ID: ChatViewModel.FileDownloadState]) {
-    for (id, state) in states {
-      guard state == .failed else {
-        toastedFailedFileDownloadIds.remove(id)
-        continue
-      }
-      guard !toastedFailedFileDownloadIds.contains(id) else { continue }
-      toastedFailedFileDownloadIds.insert(id)
+  private static let monthDayFormatter = makeFormatter("M월 d일 (E)")
+  private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일 (E)")
 
-      toast = Toast(
-        message: "파일 다운로드 실패했습니다",
-        style: .failure,
-        action: Toast.Action(title: "다시 시도") {
-          if let note = viewModel.messages.first(where: { $0.id == id }) {
-            viewModel.retryFileDownload(for: note)
-          }
-        }
-      )
-    }
+  private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "ko_KR")
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.dateFormat = dateFormat
+    return formatter
   }
+}
+
+func archiveEmptyState(image: ImageResource, message: String) -> some View {
+  VStack(spacing: 16) {
+    Image(image)
+      .resizable()
+      .aspectRatio(contentMode: .fit)
+      .frame(width: 88, height: 88)
+
+    Text(message)
+      .typeStyle(.subheadline)
+      .foregroundStyle(.gray400)
+  }
+  .frame(maxWidth: .infinity)
+  .padding(.top, 80)
 }

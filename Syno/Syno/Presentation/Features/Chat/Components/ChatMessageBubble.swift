@@ -59,10 +59,6 @@ struct ChatMessageBubble: View {
       if let voiceMemoState { voiceTranscriptView(voiceMemoState) }
       if fileSendFailed { transferFailedView(title: "전송 실패", onRetry: onRetryFileSend) }
 
-      Text(note.clockTimeText)
-        .typeStyle(.caption1)
-        .foregroundStyle(.gray500)
-
       if let pendingStatus {
         pendingStatusView(pendingStatus)
       }

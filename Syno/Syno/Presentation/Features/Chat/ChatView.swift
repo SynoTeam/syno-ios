@@ -28,7 +28,6 @@ struct ChatView: View {
   @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
   @State private var voiceRecorder = VoiceRecorder()
   @FocusState private var isInputFocused: Bool
-  @FocusState private var isSearchFocused: Bool
 
   init(
     contact: Contact,
@@ -72,11 +71,12 @@ struct ChatView: View {
     .toolbar {
       ToolbarItemGroup(placement: .topBarTrailing) {
         Button {
-          toggleMessageSearch()
+          isInputFocused = false
+          isMessageSearchPresented = true
         } label: {
-          Image(systemName: isMessageSearchPresented ? "xmark" : "magnifyingglass")
+          Image(systemName: "magnifyingglass")
         }
-        .accessibilityLabel(isMessageSearchPresented ? "메시지 검색 닫기" : "메시지 검색")
+        .accessibilityLabel("메시지 검색")
 
         Button {
           isShowingArchive = true
@@ -88,6 +88,17 @@ struct ChatView: View {
     }
     .navigationDestination(isPresented: $isShowingArchive) {
       ArchiveView(viewModel: viewModel)
+    }
+    .searchable(
+      text: binding(\.messageSearchText),
+      isPresented: $isMessageSearchPresented,
+      prompt: "이 채팅에서 검색"
+    )
+    .onChange(of: isMessageSearchPresented) { _, isPresented in
+      if !isPresented {
+        viewModel.messageSearchText = ""
+        currentMatchIndex = 0
+      }
     }
     .tint(.gray950)
     .scrollDismissesKeyboard(.interactively)
@@ -162,10 +173,6 @@ struct ChatView: View {
   private var messagesScrollView: some View {
     ScrollViewReader { proxy in
       VStack(spacing: 0) {
-        if isMessageSearchPresented {
-          messageSearchBar
-        }
-
         ScrollView {
           if viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty {
             ChatEmptyStateView()
@@ -243,37 +250,6 @@ struct ChatView: View {
         }
       }
     }
-  }
-
-  private var messageSearchBar: some View {
-    HStack(spacing: 10) {
-      Image(systemName: "magnifyingglass")
-        .foregroundStyle(.gray400)
-
-      TextField("이 채팅에서 검색", text: binding(\.messageSearchText))
-        .typeStyle(.body)
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .focused($isSearchFocused)
-
-      if !viewModel.messageSearchText.isEmpty {
-        Button {
-          viewModel.messageSearchText = ""
-        } label: {
-          Image(systemName: "xmark.circle.fill")
-            .foregroundStyle(.gray400)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("검색어 지우기")
-      }
-    }
-    .padding(.horizontal, 14)
-    .frame(height: 44)
-    .background(.gray100)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-    .padding(.horizontal, 14)
-    .padding(.vertical, 10)
-    .background(.white)
   }
 
   private func matchNavigator(with proxy: ScrollViewProxy) -> some View {
@@ -434,19 +410,6 @@ struct ChatView: View {
     Task { @MainActor in
       try? await Task.sleep(for: .milliseconds(250))
       scrollToLatestMessage(with: proxy, animated: true)
-    }
-  }
-
-  private func toggleMessageSearch() {
-    isMessageSearchPresented.toggle()
-    viewModel.messageSearchText = ""
-    currentMatchIndex = 0
-    isInputFocused = false
-
-    if isMessageSearchPresented {
-      isSearchFocused = true
-    } else {
-      isSearchFocused = false
     }
   }
 

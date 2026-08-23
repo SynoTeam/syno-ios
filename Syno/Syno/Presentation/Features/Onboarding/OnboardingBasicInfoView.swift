@@ -51,14 +51,8 @@ struct OnboardingBasicInfoView: View {
 
       Button(action: viewModel.saveUserProfile) {
         Text("확인")
-          .typeStyle(.headline)
-          .foregroundStyle(.white)
-          .frame(maxWidth: .infinity, minHeight: 60)
-          .background(viewModel.canSubmit ? .violet500 : .violet200)
-          .clipShape(Capsule())
-          .contentShape(Capsule())
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.cta())
       .disabled(!viewModel.canSubmit)
       .padding(.bottom, 36)
     }

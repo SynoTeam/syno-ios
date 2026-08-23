@@ -10,7 +10,6 @@ struct ArchiveCategoryListView: View {
   @State private var selectedCategory: ArchiveCategory
   @State private var isSearching = false
   @State private var searchText = ""
-  @FocusState private var isSearchFocused: Bool
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
   @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
@@ -27,10 +26,6 @@ struct ArchiveCategoryListView: View {
   var body: some View {
     VStack(spacing: 0) {
       categoryPicker
-
-      if isSearching {
-        searchBar
-      }
 
       ScrollView {
         switch selectedCategory {
@@ -54,14 +49,15 @@ struct ArchiveCategoryListView: View {
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
-          toggleSearch()
+          isSearching = true
         } label: {
-          Image(systemName: isSearching ? "xmark" : "magnifyingglass")
+          Image(systemName: "magnifyingglass")
             .foregroundStyle(.gray950)
         }
-        .accessibilityLabel(isSearching ? "검색 닫기" : "검색")
+        .accessibilityLabel("검색")
       }
     }
+    .searchable(text: $searchText, isPresented: $isSearching, prompt: "검색")
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
     .onChange(of: viewModel.fileDownloadStates) { _, newStates in
@@ -334,46 +330,6 @@ struct ArchiveCategoryListView: View {
         }
       }
       .padding(16)
-    }
-  }
-
-  private var searchBar: some View {
-    HStack(spacing: 10) {
-      Image(systemName: "magnifyingglass")
-        .foregroundStyle(.gray400)
-
-      TextField("검색", text: $searchText)
-        .typeStyle(.body)
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .focused($isSearchFocused)
-
-      if !searchText.isEmpty {
-        Button {
-          searchText = ""
-        } label: {
-          Image(systemName: "xmark.circle.fill")
-            .foregroundStyle(.gray400)
-        }
-        .buttonStyle(.plain)
-      }
-    }
-    .padding(.horizontal, 14)
-    .frame(height: 44)
-    .background(.gray100)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-    .padding(.horizontal, 16)
-    .padding(.top, 10)
-    .padding(.bottom, 4)
-  }
-
-  private func toggleSearch() {
-    isSearching.toggle()
-    if isSearching {
-      isSearchFocused = true
-    } else {
-      searchText = ""
-      isSearchFocused = false
     }
   }
 

@@ -131,9 +131,6 @@ struct CountryCodeSelectionSheet: View {
       .disabled(searchQuery.isEmpty || filteredOptions.isEmpty)
       .opacity(searchQuery.isEmpty || filteredOptions.isEmpty ? 0.4 : 1)
       .accessibilityLabel("검색어 지우기")
-
-      Image(systemName: "waveform")
-        .foregroundStyle(.gray500)
     }
     .padding(.horizontal, 16)
     .frame(height: 48)

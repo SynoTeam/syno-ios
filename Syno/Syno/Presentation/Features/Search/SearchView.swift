@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SearchView: View {
   @State private var viewModel: SearchViewModel
-  @FocusState private var isSearchFocused: Bool
+  @Environment(\.dismissSearch) private var dismissSearch
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -54,8 +54,6 @@ struct SearchView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      searchBar
-
       if viewModel.hasQuery {
         categoryPicker
       }
@@ -63,41 +61,10 @@ struct SearchView: View {
       content
     }
     .background(Color.gray50)
-    .navigationBarHidden(true)
+    .navigationBarTitleDisplayMode(.inline)
+    .searchable(text: queryBinding, prompt: "텍스트, 사진, 링크 검색")
+    .onSubmit(of: .search, viewModel.commitCurrentQuery)
     .onDisappear(perform: viewModel.cancelSearch)
-  }
-
-  private var searchBar: some View {
-    HStack(spacing: 10) {
-      Image(systemName: "magnifyingglass")
-        .foregroundStyle(.gray400)
-
-      TextField("텍스트, 사진, 링크 검색", text: queryBinding)
-        .typeStyle(.body)
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .focused($isSearchFocused)
-        .submitLabel(.search)
-        .onSubmit(viewModel.commitCurrentQuery)
-
-      if viewModel.hasQuery {
-        Button {
-          viewModel.clearQuery()
-        } label: {
-          Image(systemName: "xmark.circle.fill")
-            .foregroundStyle(.gray400)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("검색어 지우기")
-      }
-    }
-    .padding(.horizontal, 14)
-    .frame(height: 48)
-    .background(.white)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-    .padding(.horizontal, 16)
-    .padding(.top, 12)
-    .padding(.bottom, 10)
   }
 
   private var queryBinding: Binding<String> {
@@ -140,7 +107,7 @@ struct SearchView: View {
         searches: viewModel.recentSearches,
         onSelect: {
           viewModel.selectRecentSearch($0)
-          isSearchFocused = false
+          dismissSearch()
         },
         onDelete: viewModel.removeRecentSearch,
         onClear: viewModel.clearRecentSearches

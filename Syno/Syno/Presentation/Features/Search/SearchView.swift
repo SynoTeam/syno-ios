@@ -94,7 +94,7 @@ struct SearchView: View {
         .buttonStyle(.plain)
       }
     }
-    .padding(.top, 4)
+    .padding(.top, 16)
     .overlay(alignment: .bottom) {
       Divider()
     }
@@ -151,7 +151,7 @@ struct SearchView: View {
         }
       }
       .padding(.horizontal, 16)
-      .padding(.top, 6)
+      .padding(.top, 16)
       .padding(.bottom, 120)
     }
     .scrollDismissesKeyboard(.interactively)

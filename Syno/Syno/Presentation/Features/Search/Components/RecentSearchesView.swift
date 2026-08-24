@@ -13,11 +13,11 @@ struct RecentSearchesView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 10) {
+      VStack(alignment: .leading, spacing: 8) {
         HStack {
           Text("최근 검색어")
-            .typeStyle(.headline)
-            .foregroundStyle(.gray950)
+            .typeStyle(.footnote)
+            .foregroundStyle(.gray500)
 
           Spacer()
 
@@ -40,38 +40,37 @@ struct RecentSearchesView: View {
               Button {
                 onSelect(search)
               } label: {
-                HStack(spacing: 12) {
-                  Image(systemName: "clock")
-                    .foregroundStyle(.gray400)
-                  Text(search)
-                    .typeStyle(.body)
-                    .foregroundStyle(.gray900)
-                  Spacer()
-                }
-                .contentShape(Rectangle())
+                Text(search)
+                  .typeStyle(.calloutEmphasized)
+                  .foregroundStyle(.gray800)
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .contentShape(Rectangle())
               }
               .buttonStyle(.plain)
 
               Button {
                 onDelete(search)
               } label: {
-                Image(systemName: "xmark")
-                  .font(.system(size: 13, weight: .medium))
-                  .foregroundStyle(.gray400)
-                  .frame(width: 36, height: 36)
+                Image(.xCircle)
+                  .renderingMode(.template)
+                  .foregroundStyle(.gray300)
+                  .frame(width: 22, height: 22)
               }
               .buttonStyle(.plain)
               .accessibilityLabel("\(search) 삭제")
             }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 52)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .frame(minHeight: 36)
           }
         }
       }
+      .padding(.horizontal, 20)
+      .padding(.top, 16)
+      .padding(.bottom, 12)
+      .frame(maxWidth: .infinity, alignment: .topLeading)
+      .background(.white)
+      .cornerRadius(20)
       .padding(.horizontal, 16)
-      .padding(.top, 12)
+      .padding(.top, 16)
       .padding(.bottom, 120)
     }
   }

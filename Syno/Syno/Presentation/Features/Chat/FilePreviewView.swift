@@ -138,7 +138,7 @@ struct FilePreviewView: View {
 
   private func iconCircle(systemName: String) -> some View {
     Circle()
-      .fill(.bgWhite)
+      .fill(.gray100)
       .frame(width: 44, height: 44)
       .overlay {
         Image(systemName: systemName)

@@ -3,7 +3,7 @@ import SwiftUI
 /// Figma `btn_CTA` 컴포넌트에 대응하는 캡슐형 CTA 버튼 스타일입니다.
 /// `Button`/`NavigationLink` label에 `.buttonStyle(.cta(role))`로 적용합니다.
 /// Disabled 상태는 역할과 무관하게 Default 색상에 opacity 40%를 적용합니다.
-enum CTAButtonRole {
+enum SynoButtonRole {
   case primary
   case secondary
   case tertiary
@@ -24,7 +24,7 @@ enum CTAButtonRole {
 }
 
 struct CTAButtonStyle: ButtonStyle {
-  var role: CTAButtonRole = .primary
+  var role: SynoButtonRole = .primary
 
   @Environment(\.isEnabled) private var isEnabled
 
@@ -43,7 +43,7 @@ struct CTAButtonStyle: ButtonStyle {
 }
 
 extension ButtonStyle where Self == CTAButtonStyle {
-  static func cta(_ role: CTAButtonRole = .primary) -> CTAButtonStyle {
+  static func cta(_ role: SynoButtonRole = .primary) -> CTAButtonStyle {
     CTAButtonStyle(role: role)
   }
 }

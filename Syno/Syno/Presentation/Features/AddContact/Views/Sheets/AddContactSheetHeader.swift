@@ -46,7 +46,7 @@ struct AddContactSheetHeader: View {
           .font(.system(size: 17, weight: .semibold))
           .foregroundStyle(.white)
           .frame(width: 44, height: 44)
-          .background(isApplyEnabled ? .violet500 : .violet200)
+          .background(isApplyEnabled ? .violet600 : .violet200)
           .clipShape(Circle())
       }
       .buttonStyle(.plain)

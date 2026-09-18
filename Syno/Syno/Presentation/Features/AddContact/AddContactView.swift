@@ -151,14 +151,16 @@ struct AddContactView: View {
   private var deleteButton: some View {
     if existingContact != nil, onDelete != nil {
       Button(action: requestDeleteConfirmation) {
-        Label("연락처 삭제하기", systemImage: "trash")
-          .typeStyle(.headline)
-          .foregroundStyle(.errorRed)
-          .frame(maxWidth: .infinity, minHeight: 60)
-          .background(.bgError01)
-          .clipShape(Capsule())
+        Label {
+          Text("연락처 삭제하기")
+        } icon: {
+          Image(.trash)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
+        }
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.cta(.destructive))
     }
   }
 

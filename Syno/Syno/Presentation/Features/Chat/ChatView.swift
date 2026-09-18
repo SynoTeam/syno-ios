@@ -328,9 +328,11 @@ struct ChatView: View {
           Label("파일", systemImage: "folder")
         }
       } label: {
-        Image(systemName: "plus")
-          .font(.system(size: 22, weight: .regular))
+        Image(.plus)
+          .resizable()
+          .renderingMode(.template)
           .foregroundStyle(.gray700)
+          .frame(width: 22, height: 22)
           .frame(width: 44, height: 44)
           .background(.gray100)
           .clipShape(Circle())
@@ -367,11 +369,10 @@ struct ChatView: View {
         else if viewModel.canSend { viewModel.sendMessage() }
         else { Task { _ = await voiceRecorder.start() } }
       } label: {
-        Image(systemName: voiceRecorder.isRecording ? "stop.fill" : (viewModel.canSend ? "arrow.up" : "mic.fill"))
-          .font(.system(size: 20, weight: .bold))
+        sendButtonIcon
           .foregroundStyle(.white)
           .frame(width: 44, height: 44)
-          .background((viewModel.canSend || voiceRecorder.isRecording) ? .violet500 : .gray300)
+          .background((viewModel.canSend || voiceRecorder.isRecording) ? .violet600 : .gray300)
           .clipShape(Circle())
       }
       .accessibilityLabel(voiceRecorder.isRecording ? "녹음 중지" : "메모 보내기 또는 음성 녹음")
@@ -380,6 +381,24 @@ struct ChatView: View {
     .padding(.top, 10)
     .padding(.bottom, 10)
     .background(Color.gray50)
+  }
+
+  @ViewBuilder
+  private var sendButtonIcon: some View {
+    if voiceRecorder.isRecording {
+      Image(.stop)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
+    } else if viewModel.canSend {
+      Image(.arrowUp)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
+    } else {
+      Image(systemName: "mic.fill")
+        .font(.system(size: 20, weight: .bold))
+    }
   }
 
   private func scrollToMessage(_ messageId: Note.ID?, with proxy: ScrollViewProxy) {

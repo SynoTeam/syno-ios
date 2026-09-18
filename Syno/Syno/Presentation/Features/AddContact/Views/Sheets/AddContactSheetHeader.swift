@@ -25,13 +25,12 @@ struct AddContactSheetHeader: View {
     HStack {
       Button(action: onCancel) {
         Image(systemName: "xmark")
-          .font(.system(size: 16, weight: .semibold))
+          .font(.system(size: 13, weight: .semibold))
           .foregroundStyle(.gray950)
-          .frame(width: 44, height: 44)
-          .background(.white)
-          .clipShape(Circle())
+          .frame(width: 32, height: 32)
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.glass)
+      .buttonBorderShape(.circle)
 
       Spacer()
 
@@ -43,14 +42,14 @@ struct AddContactSheetHeader: View {
 
       Button(action: onApply) {
         Image(systemName: "checkmark")
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(.white)
-          .frame(width: 44, height: 44)
-          .background(isApplyEnabled ? .violet600 : .violet200)
-          .clipShape(Circle())
+          .font(.system(size: 13, weight: .semibold))
+          .frame(width: 32, height: 32)
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.glassProminent)
+      .buttonBorderShape(.circle)
+      .tint(.violet600)
       .disabled(!isApplyEnabled)
+      .opacity(isApplyEnabled ? 1 : 0.4)
     }
     .padding(.horizontal, 16)
     .padding(.bottom, 12)

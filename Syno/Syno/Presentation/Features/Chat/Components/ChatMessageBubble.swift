@@ -146,9 +146,11 @@ struct ChatMessageBubble: View {
             .fill(.bgError01)
             .frame(width: 24, height: 24)
             .overlay {
-              Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 16, weight: .semibold))
+              Image(.refresh)
+                .resizable()
+                .renderingMode(.template)
                 .foregroundStyle(.errorRed)
+                .frame(width: 14, height: 14)
             }
         }
         .buttonStyle(.plain)
@@ -261,4 +263,14 @@ struct LinkPreviewCard: View {
     }
     .buttonStyle(.plain)
   }
+}
+
+#Preview("전송 실패 재시도") {
+  ChatMessageBubble(
+    note: Note(contactName: "테스트", content: "파일.zip", fileName: "파일.zip", fileSize: 27_000_000),
+    fileSendFailed: true,
+    onRetryFileSend: {}
+  )
+  .padding()
+  .background(Color.gray50)
 }

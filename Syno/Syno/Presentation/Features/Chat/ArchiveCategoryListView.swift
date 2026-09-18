@@ -341,9 +341,11 @@ struct ArchiveCategoryListView: View {
     case .failed, nil:
       Button(action: { viewModel.retryFileDownload(for: note) }) {
         FileDownloadBadgeIcon {
-          Image(systemName: "arrow.down")
-            .font(.system(size: 14, weight: .bold))
+          Image(.download)
+            .resizable()
+            .renderingMode(.template)
             .foregroundStyle(.gray500)
+            .frame(width: 14, height: 14)
         }
       }
       .buttonStyle(.plain)

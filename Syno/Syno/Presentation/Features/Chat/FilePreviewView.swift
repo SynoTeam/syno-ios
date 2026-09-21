@@ -94,37 +94,48 @@ struct FilePreviewView: View {
   private func actionRow(for note: Note) -> some View {
     HStack {
       Button(action: { viewModel.retryFileDownload(for: note) }) {
-        iconCircle(systemName: "arrow.down")
+        iconLabel(.download)
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.glass)
+      .buttonBorderShape(.circle)
       .disabled(note.fileData != nil || downloadState == .checking)
-      .opacity(note.fileData == nil ? 1 : 0.35)
+      .opacity(note.fileData != nil || downloadState == .checking ? 0.4 : 1)
       .accessibilityLabel("다운로드")
 
       if let fileURL {
         ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
-          iconCircle(systemName: "square.and.arrow.up")
+          iconLabel(.share)
         }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
       } else {
-        iconCircle(systemName: "square.and.arrow.up").opacity(0.35)
+        Button(action: {}) {
+          iconLabel(.share)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .disabled(true)
+        .opacity(0.4)
       }
 
       Spacer()
 
       Button(action: { copyFileToPasteboard(note) }) {
-        iconCircle(systemName: "doc.on.doc")
+        iconLabel(.copy)
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.glass)
+      .buttonBorderShape(.circle)
       .disabled(note.fileData == nil)
-      .opacity(note.fileData == nil ? 0.35 : 1)
+      .opacity(note.fileData == nil ? 0.4 : 1)
       .accessibilityLabel("복사하기")
 
       Spacer()
 
       Button(action: { requestDeleteConfirmation(note) }) {
-        iconCircle(systemName: "trash")
+        iconLabel(.trash)
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.glass)
+      .buttonBorderShape(.circle)
       .accessibilityLabel("삭제")
     }
     .padding(8)
@@ -136,15 +147,13 @@ struct FilePreviewView: View {
     .padding(.horizontal, 60)
   }
 
-  private func iconCircle(systemName: String) -> some View {
-    Circle()
-      .fill(.bgWhite)
-      .frame(width: 44, height: 44)
-      .overlay {
-        Image(systemName: systemName)
-          .font(.system(size: 18, weight: .medium))
-          .foregroundStyle(.gray600)
-      }
+  private func iconLabel(_ icon: ImageResource) -> some View {
+    Image(icon)
+      .resizable()
+      .renderingMode(.template)
+      .foregroundStyle(.gray600)
+      .frame(width: 24, height: 24)
+      .frame(width: 32, height: 32)
   }
 
   private func copyFileToPasteboard(_ note: Note) {

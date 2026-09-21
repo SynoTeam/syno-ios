@@ -87,7 +87,7 @@ struct AddContactPhotoPickerView: View {
       }
     } label: {
       Text("사진 선택하기")
-        .typeStyle(.subheadline)
+        .typeStyle(.subheadlineEmphasized)
         .foregroundStyle(.gray700)
         .padding(.horizontal, 16)
         .frame(height: 40)

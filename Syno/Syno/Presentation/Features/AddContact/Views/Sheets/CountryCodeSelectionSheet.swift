@@ -29,11 +29,22 @@ struct CountryCodeSelectionSheet: View {
   }
 
   var body: some View {
-    NavigationStack {
+    VStack(spacing: 0) {
+      AddContactSheetHeader(
+        title: "",
+        onCancel: { dismiss() },
+        isApplyEnabled: !filteredOptions.isEmpty
+      ) {
+        onApply(draftCountryCode)
+        dismiss()
+      }
+
       ScrollView {
         VStack(spacing: 8) {
           if filteredOptions.isEmpty {
-            ContentUnavailableView("검색결과가 없습니다.", systemImage: "magnifyingglass")
+            Text("검색결과가 없습니다.")
+              .typeStyle(.body)
+              .foregroundStyle(.gray400)
               .frame(maxWidth: .infinity)
               .frame(height: 180)
           } else {
@@ -50,29 +61,9 @@ struct CountryCodeSelectionSheet: View {
       .safeAreaInset(edge: .bottom, spacing: 0) {
         searchField
       }
-      .navigationTitle("국가번호 선택")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .topBarLeading) {
-          Button(action: dismiss.callAsFunction) {
-            Image(systemName: "xmark")
-              .font(.system(size: 16, weight: .semibold))
-              .foregroundStyle(.gray950)
-          }
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            onApply(draftCountryCode)
-            dismiss()
-          } label: {
-            Image(systemName: "checkmark")
-              .font(.system(size: 17, weight: .semibold))
-              .foregroundStyle(.violet500)
-          }
-        }
-      }
     }
+    .padding(.top, 16)
+    .background(Color.gray50)
   }
 
   private func countryRow(_ option: CountryCodeOption) -> some View {
@@ -82,18 +73,18 @@ struct CountryCodeSelectionSheet: View {
       draftCountryCode = option.code
     } label: {
       HStack(spacing: 8) {
-        Image(systemName: "checkmark")
-          .font(.system(size: 15, weight: .semibold))
-          .foregroundStyle(.violet500)
-          .opacity(isSelected ? 1 : 0)
+        if isSelected {
+          Image(systemName: "checkmark")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.violet500)
+        }
 
-        Text(option.displayTitle)
+        highlightedTitle(option)
           .typeStyle(isSelected ? .calloutEmphasized : .callout)
-          .foregroundStyle(.gray900)
 
         Spacer()
       }
-      .padding(.horizontal, 18)
+      .padding(.horizontal, 20)
       .frame(height: 54)
       .frame(maxWidth: .infinity)
       .background(.white)
@@ -101,6 +92,23 @@ struct CountryCodeSelectionSheet: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  /// 검색어와 일치하는 부분을 포인트 컬러로 강조한 국가명/국가번호 텍스트입니다.
+  private func highlightedTitle(_ option: CountryCodeOption) -> Text {
+    var attributed = AttributedString(option.displayTitle)
+    attributed.foregroundColor = .gray900
+
+    if !trimmedSearchQuery.isEmpty,
+       let range = attributed.range(of: trimmedSearchQuery, options: .caseInsensitive) {
+      attributed[range].foregroundColor = .violet500
+    }
+
+    return Text(attributed)
+  }
+
+  private var trimmedSearchQuery: String {
+    searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
   private var filteredOptions: [CountryCodeOption] {
@@ -131,9 +139,6 @@ struct CountryCodeSelectionSheet: View {
       .disabled(searchQuery.isEmpty || filteredOptions.isEmpty)
       .opacity(searchQuery.isEmpty || filteredOptions.isEmpty ? 0.4 : 1)
       .accessibilityLabel("검색어 지우기")
-
-      Image(systemName: "waveform")
-        .foregroundStyle(.gray500)
     }
     .padding(.horizontal, 16)
     .frame(height: 48)

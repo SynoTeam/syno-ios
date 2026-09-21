@@ -92,6 +92,11 @@ struct ArchiveView: View {
       }
     }
     .searchable(text: $searchText, isPresented: $isSearching, prompt: "검색")
+    .onChange(of: isSearching) { _, isSearching in
+      if !isSearching {
+        searchText = ""
+      }
+    }
     .navigationDestination(item: $selectedCategory) { category in
       ArchiveCategoryListView(viewModel: viewModel, startingCategory: category)
     }

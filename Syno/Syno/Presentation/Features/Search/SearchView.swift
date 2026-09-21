@@ -10,7 +10,6 @@ import SwiftUI
 
 struct SearchView: View {
   @State private var viewModel: SearchViewModel
-  @Environment(\.dismissSearch) private var dismissSearch
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -105,10 +104,7 @@ struct SearchView: View {
     if !viewModel.hasQuery {
       RecentSearchesView(
         searches: viewModel.recentSearches,
-        onSelect: {
-          viewModel.selectRecentSearch($0)
-          dismissSearch()
-        },
+        onSelect: viewModel.selectRecentSearch,
         onDelete: viewModel.removeRecentSearch,
         onClear: viewModel.clearRecentSearches
       )

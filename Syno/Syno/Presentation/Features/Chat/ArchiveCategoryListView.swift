@@ -58,6 +58,11 @@ struct ArchiveCategoryListView: View {
       }
     }
     .searchable(text: $searchText, isPresented: $isSearching, prompt: "검색")
+    .onChange(of: isSearching) { _, isSearching in
+      if !isSearching {
+        searchText = ""
+      }
+    }
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
     .onChange(of: viewModel.fileDownloadStates) { _, newStates in

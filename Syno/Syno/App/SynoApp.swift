@@ -25,6 +25,7 @@ struct SynoApp: App {
   private let labelTranslator: any LabelTranslating
   private let noteVoiceTranscriber: any NoteVoiceTranscribing
   private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
+  private let analytics: any AnalyticsTracking
 
   init() {
     do {
@@ -90,6 +91,7 @@ struct SynoApp: App {
         searchIndex: index
       )
       userProfileRepository = SwiftDataUserProfileRepository(modelContext: container.mainContext)
+      analytics = AmplitudeAnalyticsService(apiKey: Secrets.amplitudeAPIKey)
     } catch {
       fatalError("Failed to create model container: \(error)")
     }
@@ -116,6 +118,7 @@ struct SynoApp: App {
         try? groupService.backfillGroupsIfNeeded()
       }
       .preferredColorScheme(.light)
+      .environment(\.analytics, analytics)
     }
     .modelContainer(modelContainer)
   }

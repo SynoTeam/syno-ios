@@ -13,6 +13,7 @@ import SwiftUI
 /// 선택 시트 컴포넌트를 조립하는 역할만 담당합니다.
 struct AddContactView: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.analytics) private var analytics
   @FocusState private var focusedField: AddContactField?
   @State private var viewModel: AddContactViewModel
   @State private var isShowingGroupSheet = false
@@ -185,6 +186,9 @@ struct AddContactView: View {
       )
       return
     }
+    if existingContact == nil {
+      analytics.track(AnalyticsEvent.contactCreated)
+    }
     dismiss()
   }
 
@@ -213,6 +217,7 @@ struct AddContactView: View {
       return
     }
 
+    analytics.track(AnalyticsEvent.contactDeleted)
     onDeleted?()
     dismiss()
   }

@@ -8,6 +8,7 @@ import UIKit
 struct ArchiveView: View {
   let viewModel: ChatViewModel
 
+  @Environment(\.analytics) private var analytics
   @State private var isSearching = false
   @State private var searchText = ""
   @State private var selectedCategory: ArchiveCategory?
@@ -100,6 +101,7 @@ struct ArchiveView: View {
     .navigationDestination(item: $selectedCategory) { category in
       ArchiveCategoryListView(viewModel: viewModel, startingCategory: category)
     }
+    .trackScreen("archive")
   }
 
   // MARK: - Sections
@@ -135,6 +137,10 @@ struct ArchiveView: View {
 
         Button {
           selectedCategory = category
+          analytics.track(
+            AnalyticsEvent.archiveCategoryOpened,
+            properties: [AnalyticsEvent.Property.category: String(describing: category)]
+          )
         } label: {
           Text("더 보기")
             .typeStyle(.subheadline)

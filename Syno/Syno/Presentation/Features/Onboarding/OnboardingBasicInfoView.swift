@@ -11,6 +11,7 @@ import SwiftUI
 struct OnboardingBasicInfoView: View {
   @FocusState private var focusedField: Field?
   @State private var viewModel: OnboardingBasicInfoViewModel
+  @Environment(\.analytics) private var analytics
 
   init(repository: any UserProfileRepository) {
     _viewModel = State(
@@ -49,7 +50,7 @@ struct OnboardingBasicInfoView: View {
 
       Spacer()
 
-      Button(action: viewModel.saveUserProfile) {
+      Button(action: saveUserProfile) {
         Text("확인")
       }
       .buttonStyle(.cta())
@@ -96,6 +97,13 @@ struct OnboardingBasicInfoView: View {
         .focused($focusedField, equals: field)
         .submitLabel(submitLabel)
         .onSubmit(onSubmit)
+    }
+  }
+
+  private func saveUserProfile() {
+    viewModel.saveUserProfile()
+    if viewModel.persistenceError == nil {
+      analytics.track(AnalyticsEvent.onboardingCompleted)
     }
   }
 

@@ -12,6 +12,7 @@ import UIKit
 /// 연락처별로 나에게 보내는 형식의 기록을 남기는 채팅 화면입니다.
 struct ChatView: View {
   @State private var viewModel: ChatViewModel
+  @Environment(\.analytics) private var analytics
   @State private var selectedPhotoItem: PhotosPickerItem?
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
@@ -101,6 +102,7 @@ struct ChatView: View {
       }
     }
     .tint(.gray950)
+    .trackScreen("chat")
     .scrollDismissesKeyboard(.interactively)
     .onChange(of: selectedPhotoItem) { _, selectedPhotoItem in
       Task {
@@ -118,6 +120,10 @@ struct ChatView: View {
     .sheet(item: $pendingPhotoConfirmation) { request in
       ChatPhotoConfirmationView(image: request.image) { data in
         Task { await viewModel.sendImageData(data) }
+        analytics.track(
+          AnalyticsEvent.noteSent,
+          properties: [AnalyticsEvent.Property.contentType: AnalyticsEvent.ContentType.photo.rawValue]
+        )
       }
       .presentationDetents([.medium])
       .presentationDragIndicator(.hidden)
@@ -125,6 +131,10 @@ struct ChatView: View {
     .sheet(isPresented: $isShowingFilePicker) {
       FileDocumentPicker { url in
         Task { await viewModel.sendFile(url: url) }
+        analytics.track(
+          AnalyticsEvent.noteSent,
+          properties: [AnalyticsEvent.Property.contentType: AnalyticsEvent.ContentType.file.rawValue]
+        )
       }
     }
     .task {
@@ -365,9 +375,19 @@ struct ChatView: View {
       }
 
       Button {
-        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() { Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) } }
-        else if viewModel.canSend { viewModel.sendMessage() }
-        else { Task { _ = await voiceRecorder.start() } }
+        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() {
+          Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) }
+          analytics.track(
+            AnalyticsEvent.noteSent,
+            properties: [AnalyticsEvent.Property.contentType: AnalyticsEvent.ContentType.voice.rawValue]
+          )
+        } else if viewModel.canSend {
+          viewModel.sendMessage()
+          analytics.track(
+            AnalyticsEvent.noteSent,
+            properties: [AnalyticsEvent.Property.contentType: AnalyticsEvent.ContentType.text.rawValue]
+          )
+        } else { Task { _ = await voiceRecorder.start() } }
       } label: {
         sendButtonIcon
           .foregroundStyle(.white)
@@ -437,7 +457,22 @@ struct ChatView: View {
   }
 
   private func deleteMessage(_ note: Note) -> Bool {
-    viewModel.deleteMessage(id: note.id)
+    guard viewModel.deleteMessage(id: note.id) else {
+      return false
+    }
+    analytics.track(
+      AnalyticsEvent.noteDeleted,
+      properties: [AnalyticsEvent.Property.contentType: contentType(for: note).rawValue]
+    )
+    return true
+  }
+
+  private func contentType(for note: Note) -> AnalyticsEvent.ContentType {
+    if note.imageData != nil { return .photo }
+    if note.voiceMemoData != nil { return .voice }
+    if note.fileName != nil { return .file }
+    if viewModel.linkPreviews[note.id] != nil { return .link }
+    return .text
   }
 
   /// 다운로드 실패는 특정 버블에 계속 붙어있는 텍스트가 아니라 토스트로 한 번만 알려줍니다.

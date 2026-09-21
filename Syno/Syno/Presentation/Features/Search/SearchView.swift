@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SearchView: View {
   @State private var viewModel: SearchViewModel
+  @Environment(\.analytics) private var analytics
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -62,14 +63,26 @@ struct SearchView: View {
     .background(Color.gray50)
     .navigationBarTitleDisplayMode(.inline)
     .searchable(text: queryBinding, prompt: "텍스트, 사진, 링크 검색")
-    .onSubmit(of: .search, viewModel.commitCurrentQuery)
+    .onSubmit(of: .search, commitSearch)
     .onDisappear(perform: viewModel.cancelSearch)
+    .trackScreen("search")
   }
 
   private var queryBinding: Binding<String> {
     Binding(
       get: { viewModel.query },
       set: { viewModel.updateQuery($0) }
+    )
+  }
+
+  private func commitSearch() {
+    viewModel.commitCurrentQuery()
+    analytics.track(
+      AnalyticsEvent.searchPerformed,
+      properties: [
+        AnalyticsEvent.Property.category: viewModel.selectedCategory.rawValue,
+        AnalyticsEvent.Property.hasResults: !viewModel.filteredResults.isEmpty
+      ]
     )
   }
 

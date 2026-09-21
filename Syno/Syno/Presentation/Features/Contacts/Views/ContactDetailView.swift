@@ -79,6 +79,7 @@ struct ContactDetailView: View {
       }
     }
     .tint(.gray950)
+    .trackScreen("contact_detail")
   }
 
   private func showUpdatedToast(originalContact: Contact) {

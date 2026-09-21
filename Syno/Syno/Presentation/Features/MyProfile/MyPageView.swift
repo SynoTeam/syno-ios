@@ -107,6 +107,7 @@ struct MyPageView: View {
       }
     }
     .tint(.gray950)
+    .trackScreen("my_page")
   }
 
   private var profileHeader: some View {

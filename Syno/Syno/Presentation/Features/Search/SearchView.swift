@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SearchView: View {
   @State private var viewModel: SearchViewModel
+  @Environment(\.analytics) private var analytics
   private let noteRepository: any NoteRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -62,8 +63,9 @@ struct SearchView: View {
     .background(Color.gray50)
     .navigationBarTitleDisplayMode(.inline)
     .searchable(text: queryBinding, prompt: "텍스트, 사진, 링크 검색")
-    .onSubmit(of: .search, viewModel.commitCurrentQuery)
+    .onSubmit(of: .search, commitSearch)
     .onDisappear(perform: viewModel.cancelSearch)
+    .trackScreen("search")
   }
 
   private var queryBinding: Binding<String> {
@@ -71,6 +73,19 @@ struct SearchView: View {
       get: { viewModel.query },
       set: { viewModel.updateQuery($0) }
     )
+  }
+
+  private func commitSearch() {
+    Task {
+      guard let result = await viewModel.commitCurrentQuery() else { return }
+      analytics.track(
+        AnalyticsEvent.searchPerformed,
+        properties: [
+          AnalyticsEvent.Property.category: result.category.rawValue,
+          AnalyticsEvent.Property.hasResults: result.hasResults
+        ]
+      )
+    }
   }
 
   private var categoryPicker: some View {
@@ -228,7 +243,7 @@ struct SearchView: View {
     .buttonStyle(.plain)
     .simultaneousGesture(
       TapGesture().onEnded {
-        viewModel.commitCurrentQuery()
+        viewModel.recordCurrentQuery()
       }
     )
   }
@@ -246,7 +261,8 @@ struct SearchView: View {
         linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: noteVoiceTranscriber,
-        voiceTranscriptRepository: noteVoiceTranscriptRepository
+        voiceTranscriptRepository: noteVoiceTranscriptRepository,
+        analytics: analytics
       )
     }
   }

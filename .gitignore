@@ -150,3 +150,6 @@ xcuserdata
 
 # Firebase
 GoogleService-Info.plist
+
+# API Keys / Secrets
+Secrets.swift

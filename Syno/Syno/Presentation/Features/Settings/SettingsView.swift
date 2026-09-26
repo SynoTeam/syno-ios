@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsView: View {
   let accountResetService: AccountResetService
 
+  @Environment(\.analytics) private var analytics
   @State private var storageUsage = "-"
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
@@ -44,6 +45,7 @@ struct SettingsView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
     }
+    .trackScreen("settings")
   }
 
   private var dataSection: some View {
@@ -196,11 +198,20 @@ struct SettingsView: View {
           try accountResetService.clearTemporaryData()
           refreshStorageUsage()
           toast = Toast(message: "임시 데이터가 삭제되었습니다", style: .success)
+          analytics.track(
+            AnalyticsEvent.accountDataReset,
+            properties: [AnalyticsEvent.Property.resetType: "temporary"]
+          )
         case .logout:
           try accountResetService.resetAllData()
           // 삭제가 iCloud로 다 올라간 다음에 로그아웃을 마쳐야, 나중에 다시 들어왔을 때
           // 덜 지워진 채로 서버에 남아있던 데이터가 되살아나는 걸 막을 수 있습니다.
           await accountResetService.waitForPendingCloudKitExport()
+          analytics.track(
+            AnalyticsEvent.accountDataReset,
+            properties: [AnalyticsEvent.Property.resetType: "logout"]
+          )
+          analytics.resetIdentity()
         }
       } catch {
         toast = Toast(message: "데이터를 삭제하지 못했습니다. 다시 시도해주세요.", style: .failure)

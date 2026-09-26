@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3C17B06A306159A7009D1D7A /* AmplitudeUnified in Frameworks */ = {isa = PBXBuildFile; productRef = 3C17B069306159A7009D1D7A /* AmplitudeUnified */; };
 		3CDFBB4F301A732800C7637C /* SynoShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3CDFBB45301A732800C7637C /* SynoShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -93,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C17B06A306159A7009D1D7A /* AmplitudeUnified in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +121,7 @@
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
 				7A0000023000000000000002 /* SynoTests */,
 				3CDFBB46301A732800C7637C /* SynoShareExtension */,
+				3C17B068306159A7009D1D7A /* Frameworks */,
 				3C15409B2FEFC4CE00E89F11 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -131,6 +134,13 @@
 				3CDFBB45301A732800C7637C /* SynoShareExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		3C17B068306159A7009D1D7A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -155,6 +165,7 @@
 			);
 			name = Syno;
 			packageProductDependencies = (
+				3C17B069306159A7009D1D7A /* AmplitudeUnified */,
 			);
 			productName = Syno;
 			productReference = 3C15409A2FEFC4CE00E89F11 /* Syno.app */;
@@ -244,6 +255,9 @@
 			);
 			mainGroup = 3C1540912FEFC4CE00E89F11;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3C17B05D30614D13009D1D7A /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3C15409B2FEFC4CE00E89F11 /* Products */;
 			projectDirPath = "";
@@ -442,6 +456,7 @@
 		3C1540A62FEFC4D000E89F11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -451,6 +466,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Syno/Info.plist;
+				INFOPLIST_KEY_AmplitudeAPIKey = "$(AMPLITUDE_API_KEY)";
 				INFOPLIST_KEY_CFBundleDisplayName = Syno;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -483,6 +499,7 @@
 		3C1540A72FEFC4D000E89F11 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -492,6 +509,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Syno/Info.plist;
+				INFOPLIST_KEY_AmplitudeAPIKey = "$(AMPLITUDE_API_KEY)";
 				INFOPLIST_KEY_CFBundleDisplayName = Syno;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -675,6 +693,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3C17B05D30614D13009D1D7A /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/amplitude/AmplitudeUnified-Swift";
+			requirement = {
+				kind = exactVersion;
+				version = 0.0.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3C17B069306159A7009D1D7A /* AmplitudeUnified */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3C17B05D30614D13009D1D7A /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */;
+			productName = AmplitudeUnified;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3C1540922FEFC4CE00E89F11 /* Project object */;
 }

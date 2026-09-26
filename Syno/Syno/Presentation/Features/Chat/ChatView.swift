@@ -38,7 +38,8 @@ struct ChatView: View {
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating,
     voiceTranscriber: any NoteVoiceTranscribing,
-    voiceTranscriptRepository: any NoteVoiceTranscriptRepository
+    voiceTranscriptRepository: any NoteVoiceTranscriptRepository,
+    analytics: any AnalyticsTracking = NoopAnalyticsTracking()
   ) {
     _viewModel = State(
       initialValue: ChatViewModel(
@@ -50,7 +51,8 @@ struct ChatView: View {
         linkPreviewRepository: linkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: voiceTranscriber,
-        voiceTranscriptRepository: voiceTranscriptRepository
+        voiceTranscriptRepository: voiceTranscriptRepository,
+        analytics: analytics
       )
     )
   }
@@ -101,6 +103,7 @@ struct ChatView: View {
       }
     }
     .tint(.gray950)
+    .trackScreen("chat")
     .scrollDismissesKeyboard(.interactively)
     .onChange(of: selectedPhotoItem) { _, selectedPhotoItem in
       Task {
@@ -365,9 +368,11 @@ struct ChatView: View {
       }
 
       Button {
-        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() { Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) } }
-        else if viewModel.canSend { viewModel.sendMessage() }
-        else { Task { _ = await voiceRecorder.start() } }
+        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() {
+          Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) }
+        } else if viewModel.canSend {
+          viewModel.sendMessage()
+        } else { Task { _ = await voiceRecorder.start() } }
       } label: {
         sendButtonIcon
           .foregroundStyle(.white)

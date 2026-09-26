@@ -76,14 +76,16 @@ struct SearchView: View {
   }
 
   private func commitSearch() {
-    viewModel.commitCurrentQuery()
-    analytics.track(
-      AnalyticsEvent.searchPerformed,
-      properties: [
-        AnalyticsEvent.Property.category: viewModel.selectedCategory.rawValue,
-        AnalyticsEvent.Property.hasResults: !viewModel.filteredResults.isEmpty
-      ]
-    )
+    Task {
+      guard let result = await viewModel.commitCurrentQuery() else { return }
+      analytics.track(
+        AnalyticsEvent.searchPerformed,
+        properties: [
+          AnalyticsEvent.Property.category: result.category.rawValue,
+          AnalyticsEvent.Property.hasResults: result.hasResults
+        ]
+      )
+    }
   }
 
   private var categoryPicker: some View {
@@ -241,7 +243,7 @@ struct SearchView: View {
     .buttonStyle(.plain)
     .simultaneousGesture(
       TapGesture().onEnded {
-        viewModel.commitCurrentQuery()
+        viewModel.recordCurrentQuery()
       }
     )
   }
@@ -259,7 +261,8 @@ struct SearchView: View {
         linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: noteVoiceTranscriber,
-        voiceTranscriptRepository: noteVoiceTranscriptRepository
+        voiceTranscriptRepository: noteVoiceTranscriptRepository,
+        analytics: analytics
       )
     }
   }

@@ -9,6 +9,7 @@ import SwiftUI
 
 /// 내 연락처 정보를 보여주는 프로필 화면입니다.
 struct MyPageView: View {
+  @Environment(\.analytics) private var analytics
   let contact: Contact
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
@@ -256,7 +257,8 @@ struct MyPageView: View {
         linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: noteVoiceTranscriber,
-        voiceTranscriptRepository: noteVoiceTranscriptRepository
+        voiceTranscriptRepository: noteVoiceTranscriptRepository,
+        analytics: analytics
       )
     } label: {
       Text("메모하기")

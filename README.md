@@ -20,7 +20,7 @@
 - **UI**: SwiftUI
 - **저장소**: SwiftData (+ CloudKit private database 동기화)
 - **온디바이스 AI**: Vision(OCR/이미지 라벨링), Speech(음성 인식), NaturalLanguage(의미 기반 임베딩 검색)
-- **외부 의존성 없음**: 서드파티 라이브러리 없이 Apple 네이티브 프레임워크로만 구성
+- **제품 분석**: Amplitude Unified SDK를 사용하며, 연락처·메모 원문을 제외한 기능 이용 이벤트만 전송
 
 ## 아키텍처
 
@@ -60,10 +60,19 @@ open Syno.xcodeproj
 
 Xcode에서 `Syno` 스킴을 선택하고 시뮬레이터 또는 실기기에서 빌드/실행합니다.
 
+Amplitude 이벤트를 확인하려면 Xcode의 `Syno` 스킴에서 Run 환경 변수
+`AMPLITUDE_API_KEY`를 설정합니다. 키가 없으면 앱은 분석 기능만 비활성화하고 정상 실행됩니다.
+CI나 커맨드라인 빌드에서는 키를 저장소에 커밋하지 않고 빌드 설정으로 전달합니다.
+
 커맨드라인 빌드:
 
 ```bash
-xcodebuild -project Syno.xcodeproj -scheme Syno -destination 'generic/platform=iOS Simulator' build
+xcodebuild \
+  -project Syno.xcodeproj \
+  -scheme Syno \
+  -destination 'generic/platform=iOS Simulator' \
+  AMPLITUDE_API_KEY="$AMPLITUDE_API_KEY" \
+  build
 ```
 
 ## 라이선스

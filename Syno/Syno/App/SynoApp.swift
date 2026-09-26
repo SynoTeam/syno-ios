@@ -10,6 +10,13 @@ import SwiftData
 
 @main
 struct SynoApp: App {
+  private static let amplitudeAPIKey: String = {
+    let environmentValue = ProcessInfo.processInfo.environment["AMPLITUDE_API_KEY"]
+    let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AmplitudeAPIKey") as? String
+    return (environmentValue ?? bundleValue ?? "")
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+  }()
+
   private let modelContainer: ModelContainer
   private let contactRepository: any ContactRepository
   private let noteRepository: any NoteRepository
@@ -91,7 +98,11 @@ struct SynoApp: App {
         searchIndex: index
       )
       userProfileRepository = SwiftDataUserProfileRepository(modelContext: container.mainContext)
-      analytics = AmplitudeAnalyticsService(apiKey: Secrets.amplitudeAPIKey)
+      if Self.amplitudeAPIKey.isEmpty {
+        analytics = NoopAnalyticsTracking()
+      } else {
+        analytics = AmplitudeAnalyticsService(apiKey: Self.amplitudeAPIKey)
+      }
     } catch {
       fatalError("Failed to create model container: \(error)")
     }

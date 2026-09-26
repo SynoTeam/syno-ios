@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContactDetailView: View {
+  @Environment(\.analytics) private var analytics
   @State private var toast: Toast?
 
   let contact: Contact
@@ -207,7 +208,8 @@ struct ContactDetailView: View {
         linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: noteVoiceTranscriber,
-        voiceTranscriptRepository: noteVoiceTranscriptRepository
+        voiceTranscriptRepository: noteVoiceTranscriptRepository,
+        analytics: analytics
       )
     } label: {
       Text("메모하기")

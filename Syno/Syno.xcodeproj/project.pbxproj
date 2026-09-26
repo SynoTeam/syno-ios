@@ -456,6 +456,7 @@
 		3C1540A62FEFC4D000E89F11 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -465,6 +466,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Syno/Info.plist;
+				INFOPLIST_KEY_AmplitudeAPIKey = "$(AMPLITUDE_API_KEY)";
 				INFOPLIST_KEY_CFBundleDisplayName = Syno;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -497,6 +499,7 @@
 		3C1540A72FEFC4D000E89F11 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -506,6 +509,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Syno/Info.plist;
+				INFOPLIST_KEY_AmplitudeAPIKey = "$(AMPLITUDE_API_KEY)";
 				INFOPLIST_KEY_CFBundleDisplayName = Syno;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

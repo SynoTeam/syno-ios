@@ -211,6 +211,7 @@ struct SettingsView: View {
             AnalyticsEvent.accountDataReset,
             properties: [AnalyticsEvent.Property.resetType: "logout"]
           )
+          analytics.resetIdentity()
         }
       } catch {
         toast = Toast(message: "데이터를 삭제하지 못했습니다. 다시 시도해주세요.", style: .failure)

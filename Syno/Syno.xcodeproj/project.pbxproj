@@ -46,6 +46,7 @@
 		3C15409A2FEFC4CE00E89F11 /* Syno.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Syno.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CDFBB45301A732800C7637C /* SynoShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SynoShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A0000013000000000000001 /* SynoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A1000013000000000000001 /* Analytics.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Analytics.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -118,6 +119,7 @@
 		3C1540912FEFC4CE00E89F11 = {
 			isa = PBXGroup;
 			children = (
+				7A1000023000000000000002 /* Config */,
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
 				7A0000023000000000000002 /* SynoTests */,
 				3CDFBB46301A732800C7637C /* SynoShareExtension */,
@@ -141,6 +143,14 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7A1000023000000000000002 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				7A1000013000000000000001 /* Analytics.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -455,8 +465,8 @@
 		};
 		3C1540A62FEFC4D000E89F11 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7A1000013000000000000001 /* Analytics.xcconfig */;
 			buildSettings = {
-				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -498,8 +508,8 @@
 		};
 		3C1540A72FEFC4D000E89F11 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7A1000013000000000000001 /* Analytics.xcconfig */;
 			buildSettings = {
-				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;

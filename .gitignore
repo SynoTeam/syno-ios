@@ -133,6 +133,7 @@ xcuserdata
 
 ### Xcode config file ###
 *.xcconfig
+!Syno/Config/Analytics.xcconfig
 
 ### Xcode ###
 

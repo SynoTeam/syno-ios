@@ -60,9 +60,16 @@ open Syno.xcodeproj
 
 Xcode에서 `Syno` 스킴을 선택하고 시뮬레이터 또는 실기기에서 빌드/실행합니다.
 
-Amplitude 이벤트를 확인하려면 Xcode의 `Syno` 스킴에서 Run 환경 변수
-`AMPLITUDE_API_KEY`를 설정합니다. 키가 없으면 앱은 분석 기능만 비활성화하고 정상 실행됩니다.
-CI나 커맨드라인 빌드에서는 키를 저장소에 커밋하지 않고 빌드 설정으로 전달합니다.
+Amplitude를 활성화하려면 로컬 설정 파일을 만들고 API Key를 입력합니다.
+
+```bash
+cp Config/Secrets.xcconfig.example Config/Secrets.xcconfig
+```
+
+`Config/Secrets.xcconfig`의 `AMPLITUDE_API_KEY` 값을 채우면 Xcode 실행과 Archive에
+자동으로 적용됩니다. 이 파일은 Git에서 제외됩니다. 키가 없으면 앱은 분석 기능만
+비활성화하고 정상 실행됩니다. CI나 커맨드라인에서는 키를 빌드 설정으로 직접 전달할
+수 있습니다.
 
 커맨드라인 빌드:
 

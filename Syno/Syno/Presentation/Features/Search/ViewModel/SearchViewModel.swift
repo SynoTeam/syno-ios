@@ -10,6 +10,11 @@ import SwiftData
 @MainActor
 @Observable
 final class SearchViewModel {
+  struct SearchCommitResult {
+    let category: SearchCategory
+    let hasResults: Bool
+  }
+
   var query = ""
   var selectedCategory: SearchCategory = .all
   private(set) var results: [SearchResult] = []
@@ -112,11 +117,24 @@ final class SearchViewModel {
     }
   }
 
-  func commitCurrentQuery() {
+  func commitCurrentQuery() async -> SearchCommitResult? {
     guard hasQuery else {
-      return
+      return nil
     }
 
+    await searchTask?.value
+    guard hasQuery else {
+      return nil
+    }
+    commit(normalizedQuery)
+    return SearchCommitResult(
+      category: selectedCategory,
+      hasResults: !filteredResults.isEmpty
+    )
+  }
+
+  func recordCurrentQuery() {
+    guard hasQuery else { return }
     commit(normalizedQuery)
   }
 

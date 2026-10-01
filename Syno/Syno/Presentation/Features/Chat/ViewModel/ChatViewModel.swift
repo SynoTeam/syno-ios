@@ -74,6 +74,7 @@ final class ChatViewModel {
   private let labelTranslator: any LabelTranslating
   private let voiceTranscriber: any NoteVoiceTranscribing
   private let voiceTranscriptRepository: any NoteVoiceTranscriptRepository
+  private let analytics: any AnalyticsTracking
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Syno",
     category: "ChatViewModel"
@@ -88,7 +89,8 @@ final class ChatViewModel {
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating,
     voiceTranscriber: any NoteVoiceTranscribing,
-    voiceTranscriptRepository: any NoteVoiceTranscriptRepository
+    voiceTranscriptRepository: any NoteVoiceTranscriptRepository,
+    analytics: any AnalyticsTracking = NoopAnalyticsTracking()
   ) {
     self.contact = contact
     self.repository = repository
@@ -99,6 +101,7 @@ final class ChatViewModel {
     self.labelTranslator = labelTranslator
     self.voiceTranscriber = voiceTranscriber
     self.voiceTranscriptRepository = voiceTranscriptRepository
+    self.analytics = analytics
   }
 
   var canSend: Bool {
@@ -207,6 +210,7 @@ final class ChatViewModel {
 
   @discardableResult
   func deleteMessages(ids: Set<Note.ID>) -> Bool {
+    let notesByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
     var deletedIds: Set<Note.ID> = []
     var didFail = false
 
@@ -214,6 +218,9 @@ final class ChatViewModel {
       do {
         try repository.delete(id: id)
         deletedIds.insert(id)
+        if let note = notesByID[id] {
+          trackNoteEvent(AnalyticsEvent.noteDeleted, note: note)
+        }
       } catch {
         didFail = true
       }
@@ -247,6 +254,7 @@ final class ChatViewModel {
     guard save(note) else {
       return
     }
+    trackNoteEvent(AnalyticsEvent.noteSent, note: note)
 
     do {
       let result = try await imageAnalyzer.analyze(imageData: imageData)
@@ -266,6 +274,7 @@ final class ChatViewModel {
   func sendVoiceMemo(audioData: Data, duration: TimeInterval, waveform: [Float]) async {
     let note = makeNote(content: "무제-\(nextVoiceMemoNumber())", voiceMemoData: audioData, voiceMemoDuration: duration, voiceMemoWaveform: waveform)
     guard save(note) else { messages.append(note); voiceMemoStates[note.id] = .sendFailed; return }
+    trackNoteEvent(AnalyticsEvent.noteSent, note: note)
     await transcribe(note)
   }
 
@@ -292,6 +301,7 @@ final class ChatViewModel {
       fileSendFailedIds.insert(note.id)
       return
     }
+    trackNoteEvent(AnalyticsEvent.noteSent, note: note)
     prepareFileTransferURLsIfNeeded()
   }
 
@@ -300,6 +310,7 @@ final class ChatViewModel {
     do {
       try repository.save(note)
       fileSendFailedIds.remove(note.id)
+      trackNoteEvent(AnalyticsEvent.noteSent, note: note)
     } catch {
       fileSendFailedIds.insert(note.id)
     }
@@ -468,6 +479,7 @@ final class ChatViewModel {
       try repository.save(note)
       messages.append(note)
       fetchLinkPreviewIfNeeded(for: note)
+      trackNoteEvent(AnalyticsEvent.noteSent, note: note)
       pendingMessages.removeAll { $0.id == id }
       persistenceError = nil
     } catch {
@@ -504,6 +516,23 @@ final class ChatViewModel {
       image.draw(in: CGRect(origin: .zero, size: targetSize))
     }
     return resizedImage.jpegData(compressionQuality: 0.8)
+  }
+
+  private func trackNoteEvent(_ event: String, note: Note) {
+    analytics.track(
+      event,
+      properties: [
+        AnalyticsEvent.Property.contentType: contentType(for: note).rawValue
+      ]
+    )
+  }
+
+  private func contentType(for note: Note) -> AnalyticsEvent.ContentType {
+    if note.imageData != nil { return .photo }
+    if note.voiceMemoData != nil { return .voice }
+    if note.fileName != nil { return .file }
+    if linkPreviews[note.id] != nil { return .link }
+    return .text
   }
 
   private func handle(_ error: Error) {

@@ -28,14 +28,8 @@ struct OnboardingStartView: View {
         OnboardingBasicInfoView(repository: userProfileRepository)
       } label: {
         Text("시작하기")
-          .typeStyle(.headline)
-          .foregroundStyle(.white)
-          .frame(maxWidth: .infinity, minHeight: 58)
-          .background(.violet500)
-          .clipShape(Capsule())
-          .contentShape(Capsule())
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.cta())
       .padding(.horizontal, 20)
 
       consentFooter

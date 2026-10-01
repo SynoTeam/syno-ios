@@ -34,7 +34,7 @@ struct ContactsRowView: View {
     }
     .padding(.horizontal, style.horizontalPadding)
     .padding(.vertical, style.verticalPadding)
-    .frame(maxWidth: .infinity, minHeight: 60)
+    .frame(maxWidth: .infinity, minHeight: 68)
     .background(backgroundView)
     .clipShape(RoundedRectangle(cornerRadius: style.cornerRadius))
   }

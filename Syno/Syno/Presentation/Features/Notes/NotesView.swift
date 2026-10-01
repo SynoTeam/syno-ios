@@ -9,6 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct NotesView: View {
+  @Environment(\.analytics) private var analytics
   @Query(sort: \StoredNote.createdAt, order: .reverse) private var storedNotes: [StoredNote]
   @Query private var storedContacts: [StoredContact]
   @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
@@ -142,7 +143,8 @@ struct NotesView: View {
               linkPreviewRepository: noteLinkPreviewRepository,
               labelTranslator: labelTranslator,
               voiceTranscriber: noteVoiceTranscriber,
-              voiceTranscriptRepository: noteVoiceTranscriptRepository
+              voiceTranscriptRepository: noteVoiceTranscriptRepository,
+              analytics: analytics
             )
           } label: {
             NoteRowView(note: note)

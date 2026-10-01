@@ -10,6 +10,14 @@ import SwiftData
 
 @main
 struct SynoApp: App {
+  private static let amplitudeAPIKey: String = {
+    let environmentValue = ProcessInfo.processInfo.environment["AMPLITUDE_API_KEY"]
+    let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AmplitudeAPIKey") as? String
+    return [environmentValue, bundleValue]
+      .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .first { !$0.isEmpty } ?? ""
+  }()
+
   private let modelContainer: ModelContainer
   private let contactRepository: any ContactRepository
   private let noteRepository: any NoteRepository
@@ -25,6 +33,7 @@ struct SynoApp: App {
   private let labelTranslator: any LabelTranslating
   private let noteVoiceTranscriber: any NoteVoiceTranscribing
   private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
+  private let analytics: any AnalyticsTracking
 
   init() {
     do {
@@ -90,6 +99,11 @@ struct SynoApp: App {
         searchIndex: index
       )
       userProfileRepository = SwiftDataUserProfileRepository(modelContext: container.mainContext)
+      if Self.amplitudeAPIKey.isEmpty {
+        analytics = NoopAnalyticsTracking()
+      } else {
+        analytics = AmplitudeAnalyticsService(apiKey: Self.amplitudeAPIKey)
+      }
     } catch {
       fatalError("Failed to create model container: \(error)")
     }
@@ -116,6 +130,7 @@ struct SynoApp: App {
         try? groupService.backfillGroupsIfNeeded()
       }
       .preferredColorScheme(.light)
+      .environment(\.analytics, analytics)
     }
     .modelContainer(modelContainer)
   }

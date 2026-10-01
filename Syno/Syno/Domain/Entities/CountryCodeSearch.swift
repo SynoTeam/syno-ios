@@ -25,7 +25,7 @@ enum CountryCodeSearch {
 
       let matchesCountryName = option.countryName.range(
         of: trimmedQuery,
-        options: [.caseInsensitive, .anchored]
+        options: [.caseInsensitive]
       ) != nil
       let matchesCountryCode = !queryDigits.isEmpty &&
         ContactPhoneNumberFormatter.digitsOnly(option.code).contains(queryDigits)

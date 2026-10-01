@@ -72,9 +72,11 @@ struct FileCard: View {
   }
 
   private var downloadArrow: some View {
-    Image(systemName: "arrow.down")
-      .font(.system(size: 14, weight: .bold))
+    Image(.download)
+      .resizable()
+      .renderingMode(.template)
       .foregroundStyle(.gray500)
+      .frame(width: 14, height: 14)
   }
 }
 
@@ -92,4 +94,27 @@ struct FileDownloadBadgeIcon<Content: View>: View {
       .frame(width: 24, height: 24)
       .overlay { content }
   }
+}
+
+#Preview("다운로드 배지 상태") {
+  func note(named name: String) -> Note {
+    Note(contactName: "테스트", content: name, fileName: name, fileSize: 1_200_000)
+  }
+
+  return HStack(spacing: 20) {
+    VStack {
+      FileCard(note: note(named: "확인 중.pdf"), downloadState: .checking, onRetryDownload: {})
+      Text("checking").typeStyle(.caption1)
+    }
+    VStack {
+      FileCard(note: note(named: "실패.pdf"), downloadState: .failed, onRetryDownload: {})
+      Text("failed (재시도 버튼)").typeStyle(.caption1)
+    }
+    VStack {
+      FileCard(note: note(named: "다운로드됨.pdf"), downloadState: nil)
+      Text("nil, onRetryDownload 없음").typeStyle(.caption1)
+    }
+  }
+  .padding()
+  .background(Color.gray50)
 }

@@ -133,6 +133,7 @@ xcuserdata
 
 ### Xcode config file ###
 *.xcconfig
+!Syno/Config/Analytics.xcconfig
 
 ### Xcode ###
 
@@ -150,3 +151,6 @@ xcuserdata
 
 # Firebase
 GoogleService-Info.plist
+
+# API Keys / Secrets
+Secrets.swift

@@ -10,8 +10,11 @@ struct VoiceMemoCard: View {
   var body: some View {
     HStack(spacing: 12) {
       Button(action: togglePlayback) {
-        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+        Image(isPlaying ? .pause : .play)
+          .resizable()
+          .renderingMode(.template)
           .foregroundStyle(.gray50)
+          .frame(width: 16, height: 16)
           .frame(width: 36, height: 36)
           .background(.gray700)
           .clipShape(Circle())
@@ -41,7 +44,7 @@ struct VoiceMemoCard: View {
     .padding(.bottom, 12)
     .frame(width: 240, alignment: .topLeading)
     .background(.black.opacity(0.2))
-    .background(Color(red: 0.13, green: 0.16, blue: 0.22))
+    .background(Color.gray800)
     .cornerRadius(20)
   }
 

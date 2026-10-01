@@ -38,17 +38,30 @@ struct AddContactNoteField: View {
           .typeStyle(.body)
           .foregroundStyle(.gray950)
           .scrollContentBackground(.hidden)
-          .frame(minHeight: 210)
+          .frame(minHeight: 130)
           .padding(20)
           .focused(focusedField, equals: .note)
       }
       .background(.white)
       .clipShape(RoundedRectangle(cornerRadius: 22))
 
-      Text(noteCountText)
-        .typeStyle(.footnote)
-        .foregroundStyle(note.count == noteLimit ? .violet500 : .gray400)
-        .frame(maxWidth: .infinity, alignment: .trailing)
+      HStack(spacing: 8) {
+        if isOverLimit {
+          Text("글자수 초과하였습니다")
+            .typeStyle(.footnote)
+            .foregroundStyle(.errorRed)
+        }
+
+        Spacer()
+
+        Text(noteCountText)
+          .typeStyle(.footnote)
+          .foregroundStyle(isOverLimit ? .errorRed : .gray400)
+      }
     }
+  }
+
+  private var isOverLimit: Bool {
+    note.count >= noteLimit
   }
 }

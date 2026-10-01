@@ -9,6 +9,7 @@ import SwiftUI
 
 /// 내 연락처 정보를 보여주는 프로필 화면입니다.
 struct MyPageView: View {
+  @Environment(\.analytics) private var analytics
   let contact: Contact
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
@@ -107,6 +108,7 @@ struct MyPageView: View {
       }
     }
     .tint(.gray950)
+    .trackScreen("my_page")
   }
 
   private var profileHeader: some View {
@@ -146,14 +148,14 @@ struct MyPageView: View {
       profileInfo(icon: .phone, label: "전화번호", value: phoneText)
       profileInfo(icon: .link, label: "URL", value: urlText, lineLimit: 1)
     }
-    .profileCard()
+    .surfaceCard()
   }
 
   private var groupInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
       profileInfo(icon: .person, label: "그룹", value: groupText)
     }
-    .profileCard()
+    .surfaceCard()
   }
 
   private var hasAdditionalInfo: Bool {
@@ -176,7 +178,7 @@ struct MyPageView: View {
       }
       socialLinksInfo
     }
-    .profileCard()
+    .surfaceCard()
   }
 
   @ViewBuilder
@@ -206,7 +208,7 @@ struct MyPageView: View {
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .profileCard()
+    .surfaceCard()
   }
 
   private func profileInfo(icon: ImageResource, label: String, value: String, lineLimit: Int? = nil) -> some View {
@@ -255,16 +257,13 @@ struct MyPageView: View {
         linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: noteVoiceTranscriber,
-        voiceTranscriptRepository: noteVoiceTranscriptRepository
+        voiceTranscriptRepository: noteVoiceTranscriptRepository,
+        analytics: analytics
       )
     } label: {
       Text("메모하기")
-        .typeStyle(.headline)
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, minHeight: 58)
-        .background(.violet500)
-        .clipShape(Capsule())
     }
+    .buttonStyle(.cta())
   }
 
   private var displayName: String {
@@ -297,16 +296,6 @@ struct MyPageView: View {
 
   private func displayValue(_ value: String) -> String {
     value.isEmpty ? "-" : value
-  }
-}
-
-private extension View {
-  func profileCard() -> some View {
-    self
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(20)
-      .background(.white)
-      .clipShape(RoundedRectangle(cornerRadius: 16))
   }
 }
 

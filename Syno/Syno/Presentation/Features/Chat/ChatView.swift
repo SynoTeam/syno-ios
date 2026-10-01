@@ -28,7 +28,6 @@ struct ChatView: View {
   @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
   @State private var voiceRecorder = VoiceRecorder()
   @FocusState private var isInputFocused: Bool
-  @FocusState private var isSearchFocused: Bool
 
   init(
     contact: Contact,
@@ -39,7 +38,8 @@ struct ChatView: View {
     linkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
     labelTranslator: any LabelTranslating,
     voiceTranscriber: any NoteVoiceTranscribing,
-    voiceTranscriptRepository: any NoteVoiceTranscriptRepository
+    voiceTranscriptRepository: any NoteVoiceTranscriptRepository,
+    analytics: any AnalyticsTracking = NoopAnalyticsTracking()
   ) {
     _viewModel = State(
       initialValue: ChatViewModel(
@@ -51,7 +51,8 @@ struct ChatView: View {
         linkPreviewRepository: linkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: voiceTranscriber,
-        voiceTranscriptRepository: voiceTranscriptRepository
+        voiceTranscriptRepository: voiceTranscriptRepository,
+        analytics: analytics
       )
     )
   }
@@ -72,11 +73,12 @@ struct ChatView: View {
     .toolbar {
       ToolbarItemGroup(placement: .topBarTrailing) {
         Button {
-          toggleMessageSearch()
+          isInputFocused = false
+          isMessageSearchPresented = true
         } label: {
-          Image(systemName: isMessageSearchPresented ? "xmark" : "magnifyingglass")
+          Image(systemName: "magnifyingglass")
         }
-        .accessibilityLabel(isMessageSearchPresented ? "메시지 검색 닫기" : "메시지 검색")
+        .accessibilityLabel("메시지 검색")
 
         Button {
           isShowingArchive = true
@@ -89,7 +91,19 @@ struct ChatView: View {
     .navigationDestination(isPresented: $isShowingArchive) {
       ArchiveView(viewModel: viewModel)
     }
+    .searchable(
+      text: binding(\.messageSearchText),
+      isPresented: $isMessageSearchPresented,
+      prompt: "이 채팅에서 검색"
+    )
+    .onChange(of: isMessageSearchPresented) { _, isPresented in
+      if !isPresented {
+        viewModel.messageSearchText = ""
+        currentMatchIndex = 0
+      }
+    }
     .tint(.gray950)
+    .trackScreen("chat")
     .scrollDismissesKeyboard(.interactively)
     .onChange(of: selectedPhotoItem) { _, selectedPhotoItem in
       Task {
@@ -162,10 +176,6 @@ struct ChatView: View {
   private var messagesScrollView: some View {
     ScrollViewReader { proxy in
       VStack(spacing: 0) {
-        if isMessageSearchPresented {
-          messageSearchBar
-        }
-
         ScrollView {
           if viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty {
             ChatEmptyStateView()
@@ -245,37 +255,6 @@ struct ChatView: View {
     }
   }
 
-  private var messageSearchBar: some View {
-    HStack(spacing: 10) {
-      Image(systemName: "magnifyingglass")
-        .foregroundStyle(.gray400)
-
-      TextField("이 채팅에서 검색", text: binding(\.messageSearchText))
-        .typeStyle(.body)
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .focused($isSearchFocused)
-
-      if !viewModel.messageSearchText.isEmpty {
-        Button {
-          viewModel.messageSearchText = ""
-        } label: {
-          Image(systemName: "xmark.circle.fill")
-            .foregroundStyle(.gray400)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("검색어 지우기")
-      }
-    }
-    .padding(.horizontal, 14)
-    .frame(height: 44)
-    .background(.gray100)
-    .clipShape(RoundedRectangle(cornerRadius: 14))
-    .padding(.horizontal, 14)
-    .padding(.vertical, 10)
-    .background(.white)
-  }
-
   private func matchNavigator(with proxy: ScrollViewProxy) -> some View {
     HStack(spacing: 16) {
       Text("\(currentMatchIndex + 1)/\(viewModel.messageSearchResults.count)")
@@ -352,9 +331,11 @@ struct ChatView: View {
           Label("파일", systemImage: "folder")
         }
       } label: {
-        Image(systemName: "plus")
-          .font(.system(size: 22, weight: .regular))
+        Image(.plus)
+          .resizable()
+          .renderingMode(.template)
           .foregroundStyle(.gray700)
+          .frame(width: 22, height: 22)
           .frame(width: 44, height: 44)
           .background(.gray100)
           .clipShape(Circle())
@@ -387,15 +368,16 @@ struct ChatView: View {
       }
 
       Button {
-        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() { Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) } }
-        else if viewModel.canSend { viewModel.sendMessage() }
-        else { Task { _ = await voiceRecorder.start() } }
+        if voiceRecorder.isRecording, let memo = voiceRecorder.stop() {
+          Task { await viewModel.sendVoiceMemo(audioData: memo.data, duration: memo.duration, waveform: memo.waveform) }
+        } else if viewModel.canSend {
+          viewModel.sendMessage()
+        } else { Task { _ = await voiceRecorder.start() } }
       } label: {
-        Image(systemName: voiceRecorder.isRecording ? "stop.fill" : (viewModel.canSend ? "arrow.up" : "mic.fill"))
-          .font(.system(size: 20, weight: .bold))
+        sendButtonIcon
           .foregroundStyle(.white)
           .frame(width: 44, height: 44)
-          .background((viewModel.canSend || voiceRecorder.isRecording) ? .violet500 : .gray300)
+          .background((viewModel.canSend || voiceRecorder.isRecording) ? .violet600 : .gray300)
           .clipShape(Circle())
       }
       .accessibilityLabel(voiceRecorder.isRecording ? "녹음 중지" : "메모 보내기 또는 음성 녹음")
@@ -404,6 +386,24 @@ struct ChatView: View {
     .padding(.top, 10)
     .padding(.bottom, 10)
     .background(Color.gray50)
+  }
+
+  @ViewBuilder
+  private var sendButtonIcon: some View {
+    if voiceRecorder.isRecording {
+      Image(.stop)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
+    } else if viewModel.canSend {
+      Image(.arrowUp)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
+    } else {
+      Image(systemName: "mic.fill")
+        .font(.system(size: 20, weight: .bold))
+    }
   }
 
   private func scrollToMessage(_ messageId: Note.ID?, with proxy: ScrollViewProxy) {
@@ -434,19 +434,6 @@ struct ChatView: View {
     Task { @MainActor in
       try? await Task.sleep(for: .milliseconds(250))
       scrollToLatestMessage(with: proxy, animated: true)
-    }
-  }
-
-  private func toggleMessageSearch() {
-    isMessageSearchPresented.toggle()
-    viewModel.messageSearchText = ""
-    currentMatchIndex = 0
-    isInputFocused = false
-
-    if isMessageSearchPresented {
-      isSearchFocused = true
-    } else {
-      isSearchFocused = false
     }
   }
 

@@ -13,6 +13,7 @@ import SwiftUI
 /// 선택 시트 컴포넌트를 조립하는 역할만 담당합니다.
 struct AddContactView: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.analytics) private var analytics
   @FocusState private var focusedField: AddContactField?
   @State private var viewModel: AddContactViewModel
   @State private var isShowingGroupSheet = false
@@ -151,14 +152,16 @@ struct AddContactView: View {
   private var deleteButton: some View {
     if existingContact != nil, onDelete != nil {
       Button(action: requestDeleteConfirmation) {
-        Label("연락처 삭제하기", systemImage: "trash")
-          .typeStyle(.headline)
-          .foregroundStyle(.errorRed)
-          .frame(maxWidth: .infinity, minHeight: 60)
-          .background(.bgError01)
-          .clipShape(Capsule())
+        Label {
+          Text("연락처 삭제하기")
+        } icon: {
+          Image(.trash)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
+        }
       }
-      .buttonStyle(.plain)
+      .buttonStyle(.cta(.destructive))
     }
   }
 
@@ -182,6 +185,9 @@ struct AddContactView: View {
         }
       )
       return
+    }
+    if existingContact == nil {
+      analytics.track(AnalyticsEvent.contactCreated)
     }
     dismiss()
   }
@@ -211,6 +217,7 @@ struct AddContactView: View {
       return
     }
 
+    analytics.track(AnalyticsEvent.contactDeleted)
     onDeleted?()
     dismiss()
   }

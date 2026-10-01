@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContactDetailView: View {
+  @Environment(\.analytics) private var analytics
   @State private var toast: Toast?
 
   let contact: Contact
@@ -79,6 +80,7 @@ struct ContactDetailView: View {
       }
     }
     .tint(.gray950)
+    .trackScreen("contact_detail")
   }
 
   private func showUpdatedToast(originalContact: Contact) {
@@ -135,7 +137,7 @@ struct ContactDetailView: View {
       profileInfo(icon: .phone, label: "전화번호", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
       profileInfo(icon: .link, label: "URL", value: displayValue(contact.url), lineLimit: 1)
     }
-    .profileCard()
+    .surfaceCard()
   }
 
   private var hasAdditionalInfo: Bool {
@@ -158,12 +160,12 @@ struct ContactDetailView: View {
       }
       socialLinksInfo
     }
-    .profileCard()
+    .surfaceCard()
   }
 
   private var noteCard: some View {
     profileInfo(icon: .document, label: "한 줄 기록", value: contact.note)
-      .profileCard()
+      .surfaceCard()
   }
 
   @ViewBuilder
@@ -206,16 +208,13 @@ struct ContactDetailView: View {
         linkPreviewRepository: noteLinkPreviewRepository,
         labelTranslator: labelTranslator,
         voiceTranscriber: noteVoiceTranscriber,
-        voiceTranscriptRepository: noteVoiceTranscriptRepository
+        voiceTranscriptRepository: noteVoiceTranscriptRepository,
+        analytics: analytics
       )
     } label: {
       Text("메모하기")
-        .typeStyle(.headline)
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, minHeight: 58)
-        .background(.violet500)
-        .clipShape(Capsule())
     }
+    .buttonStyle(.cta())
   }
 
   private func displayValue(_ value: String) -> String {
@@ -237,16 +236,6 @@ struct ContactDetailView: View {
 
   private var subtitle: String {
     displayValue(contact.group)
-  }
-}
-
-private extension View {
-  func profileCard() -> some View {
-    self
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(20)
-      .background(.white)
-      .clipShape(RoundedRectangle(cornerRadius: 16))
   }
 }
 

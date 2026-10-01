@@ -1,0 +1,3 @@
+// Shared analytics build settings. Local secrets override the empty default below.
+AMPLITUDE_API_KEY = 
+#include? "Secrets.xcconfig"

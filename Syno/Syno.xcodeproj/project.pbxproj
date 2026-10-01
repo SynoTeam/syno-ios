@@ -46,6 +46,7 @@
 		3C15409A2FEFC4CE00E89F11 /* Syno.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Syno.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CDFBB45301A732800C7637C /* SynoShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SynoShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A0000013000000000000001 /* SynoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A1000013000000000000001 /* Analytics.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Analytics.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -118,6 +119,7 @@
 		3C1540912FEFC4CE00E89F11 = {
 			isa = PBXGroup;
 			children = (
+				7A1000023000000000000002 /* Config */,
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
 				7A0000023000000000000002 /* SynoTests */,
 				3CDFBB46301A732800C7637C /* SynoShareExtension */,
@@ -141,6 +143,14 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7A1000023000000000000002 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				7A1000013000000000000001 /* Analytics.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -455,8 +465,8 @@
 		};
 		3C1540A62FEFC4D000E89F11 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7A1000013000000000000001 /* Analytics.xcconfig */;
 			buildSettings = {
-				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -466,7 +476,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Syno/Info.plist;
-				INFOPLIST_KEY_AmplitudeAPIKey = "$(AMPLITUDE_API_KEY)";
 				INFOPLIST_KEY_CFBundleDisplayName = Syno;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -479,7 +488,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.Syno;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -498,8 +507,8 @@
 		};
 		3C1540A72FEFC4D000E89F11 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7A1000013000000000000001 /* Analytics.xcconfig */;
 			buildSettings = {
-				AMPLITUDE_API_KEY = "";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Syno/Syno.entitlements;
@@ -509,7 +518,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Syno/Info.plist;
-				INFOPLIST_KEY_AmplitudeAPIKey = "$(AMPLITUDE_API_KEY)";
 				INFOPLIST_KEY_CFBundleDisplayName = Syno;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -522,7 +530,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.Syno;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -544,7 +552,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = SynoShareExtension/SynoShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = D8KHM6Q8SA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SynoShareExtension/Info.plist;
@@ -556,7 +564,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.Syno.SynoShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -578,7 +586,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = SynoShareExtension/SynoShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = D8KHM6Q8SA;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SynoShareExtension/Info.plist;
@@ -590,7 +598,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.Syno.SynoShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

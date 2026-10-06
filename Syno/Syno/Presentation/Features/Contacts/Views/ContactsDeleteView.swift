@@ -28,7 +28,7 @@ struct ContactsDeleteView: View {
       VStack(alignment: .leading, spacing: 12) {
         if !viewModel.favoriteContacts.isEmpty {
           ContactsDeleteSection(
-            title: "Favorite",
+            title: "Favorites",
             count: viewModel.favoriteContacts.count,
             contacts: viewModel.favoriteContacts,
             selectedContactIDs: $selectedContactIDs
@@ -53,9 +53,9 @@ struct ContactsDeleteView: View {
         Button(action: requestDeleteConfirmation) {
           Image(systemName: "checkmark")
             .font(.system(size: 16, weight: .bold))
-            .foregroundStyle(selectedContactIDs.isEmpty ? .violet500.opacity(0.45) : .white)
+            .foregroundStyle(.white)
             .frame(width: 44, height: 44)
-            .background(selectedContactIDs.isEmpty ? .violet100 : .violet600)
+            .background(.violet600)
             .clipShape(Circle())
         }
         .buttonStyle(.plain)

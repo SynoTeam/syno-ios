@@ -29,18 +29,20 @@ struct NotesView: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 16) {
+      VStack(alignment: .leading, spacing: 0) {
         header
-        filterChips
 
-        if viewModel.isEmpty {
-          emptyState
-        } else {
-          notesList
+        VStack(alignment: .leading, spacing: 16) {
+          filterChips
+
+          if viewModel.isEmpty {
+            emptyState
+          } else {
+            notesList
+          }
         }
       }
       .padding(.horizontal, 16)
-      .padding(.top, 20)
       .padding(.bottom, 120)
     }
     .background(Color.gray50)
@@ -79,13 +81,7 @@ struct NotesView: View {
   }
 
   private var header: some View {
-    HStack {
-      Text("Notes")
-        .typeStyle(.header)
-        .foregroundStyle(.gray950)
-
-      Spacer()
-
+    TabRootHeader(title: "Notes") {
       Menu {
         Picker("정렬 기준", selection: $viewModel.sortOrder) {
           ForEach(NoteSortOrder.allCases) { sortOrder in
@@ -100,12 +96,7 @@ struct NotesView: View {
           Label("그룹 편집", systemImage: "folder")
         }
       } label: {
-        Image(systemName: "ellipsis")
-          .font(.system(size: 18, weight: .bold))
-          .foregroundStyle(.gray700)
-          .frame(width: 44, height: 44)
-          .background(.white)
-          .clipShape(Circle())
+        HeaderCircleIcon(.moreHorizontal)
       }
       .accessibilityLabel("노트 정렬")
     }

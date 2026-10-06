@@ -135,9 +135,7 @@ struct MyPageView: View {
         Image(.logo)
           .profileImage(data: contact.profileImageData, size: 136)
       } else {
-        RoundedRectangle(cornerRadius: 25.6)
-          .fill(.gray100)
-          .frame(width: 96, height: 96)
+        InitialAvatar(name: contact.name, size: 96, cornerRadius: 25.6)
       }
     }
   }

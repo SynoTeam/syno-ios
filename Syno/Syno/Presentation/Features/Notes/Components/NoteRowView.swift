@@ -72,9 +72,7 @@ struct NoteRowView: View {
           .aspectRatio(contentMode: .fill)
           .frame(width: 44, height: 44)
       } else {
-        RoundedRectangle(cornerRadius: 12)
-          .fill(.gray100)
-          .frame(width: 44, height: 44)
+        InitialAvatar(name: note.contactName, size: 44, cornerRadius: 12)
       }
     }
     .clipShape(RoundedRectangle(cornerRadius: 16))

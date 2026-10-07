@@ -12,6 +12,7 @@ struct ContactsView: View {
   @State private var viewModel: ContactsViewModel
   @State private var isFavoriteCollapsed = false
   @State private var isAllCollapsed = true
+  @State private var openSwipeRow: OpenSwipeRow?
   @State private var toast: Toast?
   @State private var contactPendingDeletion: Contact?
   @State private var selectedContact: Contact?
@@ -61,66 +62,72 @@ struct ContactsView: View {
   
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 0) {
         header
+
+        VStack(alignment: .leading, spacing: 12) {
+          if let myContact = viewModel.myContact {
+            NavigationLink {
+              MyPageView(
+                contact: myContact,
+                noteRepository: noteRepository,
+                noteImageAnalyzer: noteImageAnalyzer,
+                noteImageAnalysisRepository: noteImageAnalysisRepository,
+                linkPreviewFetcher: linkPreviewFetcher,
+                noteLinkPreviewRepository: noteLinkPreviewRepository,
+                labelTranslator: labelTranslator,
+                noteVoiceTranscriber: noteVoiceTranscriber,
+                noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
+                existingGroups: viewModel.existingGroups,
+                accountResetService: accountResetService,
+                onSave: { contact in
+                  _ = viewModel.saveMyContact(contact)
+                }
+              )
+            } label: {
+              ContactsRowView(
+                name: myContact.name,
+                group: "My Profile",
+                profileImageData: myContact.profileImageData,
+                style: .me
+              )
+            }
+            .buttonStyle(.plain)
+          }
         
-        if let myContact = viewModel.myContact {
-          NavigationLink {
-            MyPageView(
-              contact: myContact,
-              noteRepository: noteRepository,
-              noteImageAnalyzer: noteImageAnalyzer,
-              noteImageAnalysisRepository: noteImageAnalysisRepository,
-              linkPreviewFetcher: linkPreviewFetcher,
-              noteLinkPreviewRepository: noteLinkPreviewRepository,
-              labelTranslator: labelTranslator,
-              noteVoiceTranscriber: noteVoiceTranscriber,
-              noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
-              existingGroups: viewModel.existingGroups,
-              accountResetService: accountResetService,
-              onSave: { contact in
-                _ = viewModel.saveMyContact(contact)
-              }
-            )
-          } label: {
-            ContactsRowView(
-              name: myContact.name,
-              group: "My Profile",
-              profileImageData: myContact.profileImageData,
-              style: .me
+          if !viewModel.favoriteContacts.isEmpty {
+            ContactsSectionView(
+              title: "Favorites",
+              swipeSection: .favorites,
+              count: viewModel.favoriteContacts.count,
+              contacts: viewModel.favoriteContacts,
+              onSelectContact: { selectedContact = $0 },
+              isCollapsed: $isFavoriteCollapsed,
+              openSwipeRow: $openSwipeRow,
+              onToggleFavorite: toggleFavorite,
+              onDelete: requestDelete
             )
           }
-          .buttonStyle(.plain)
-        }
-        
-        if !viewModel.favoriteContacts.isEmpty {
+
           ContactsSectionView(
-            title: "Favorite",
-            count: viewModel.favoriteContacts.count,
-            contacts: viewModel.favoriteContacts,
+            title: "All",
+            swipeSection: .all,
+            count: viewModel.regularContactCount,
+            contacts: viewModel.regularContacts,
             onSelectContact: { selectedContact = $0 },
-            isCollapsed: $isFavoriteCollapsed,
+            isCollapsed: $isAllCollapsed,
+            openSwipeRow: $openSwipeRow,
             onToggleFavorite: toggleFavorite,
             onDelete: requestDelete
           )
-        }
 
-        ContactsSectionView(
-          title: "All",
-          count: viewModel.regularContactCount,
-          contacts: viewModel.regularContacts,
-          onSelectContact: { selectedContact = $0 },
-          isCollapsed: $isAllCollapsed,
-          onToggleFavorite: toggleFavorite,
-          onDelete: requestDelete
-        )
-        
-        if viewModel.regularContacts.isEmpty {
-          emptyState
+          if viewModel.regularContacts.isEmpty {
+            emptyState
+          }
         }
+        .padding(.top, 8)
       }
       .padding(.horizontal, 16)
-      .padding(.top, 20)
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
@@ -174,13 +181,7 @@ struct ContactsView: View {
   }
 
   private var header: some View {
-    HStack {
-      Text("Contacts")
-        .typeStyle(.header)
-        .foregroundStyle(.gray950)
-
-      Spacer()
-
+    TabRootHeader(title: "Contacts") {
       Menu {
         NavigationLink {
           AddContactView(existingGroups: viewModel.existingGroups) { contact in
@@ -200,12 +201,7 @@ struct ContactsView: View {
           Label("연락처 가져오기", systemImage: "square.and.arrow.down")
         }
       } label: {
-        Image(systemName: "plus")
-          .font(.system(size: 18, weight: .medium))
-          .foregroundStyle(.gray700)
-          .frame(width: 44, height: 44)
-          .background(.white)
-          .clipShape(Circle())
+        HeaderCircleIcon(.plus)
       }
       .accessibilityLabel("Add Contact")
     }
@@ -246,6 +242,7 @@ struct ContactsView: View {
   }
 
   private func requestDelete(contact: Contact) {
+    openSwipeRow = nil
     contactPendingDeletion = contact
   }
 
@@ -260,6 +257,7 @@ struct ContactsView: View {
   }
   
   private func toggleFavorite(id: Contact.ID) {
+    openSwipeRow = nil
     guard let isFavorite = viewModel.toggleFavorite(id: id) else {
       return
     }

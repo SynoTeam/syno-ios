@@ -15,8 +15,10 @@ struct ContactsDeleteRow: View {
       HStack(spacing: 12) {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
           .font(.system(size: 28, weight: .medium))
-          .foregroundStyle(isSelected ? .violet500 : .violet200)
-          .frame(width: 44, height: 44)
+          .foregroundStyle(isSelected ? .gray900 : .gray300)
+          .frame(width: 28, height: 28)
+
+        avatar
 
         VStack(alignment: .leading, spacing: 0) {
           Text(contact.name)
@@ -42,6 +44,22 @@ struct ContactsDeleteRow: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("\(contact.name), \(isSelected ? "선택됨" : "선택 안 됨")")
+  }
+
+  @ViewBuilder
+  private var avatar: some View {
+    if
+      let data = contact.profileImageData,
+      let uiImage = UIImage(data: data)
+    {
+      Image(uiImage: uiImage)
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+        .frame(width: 44, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    } else {
+      InitialAvatar(name: contact.name, size: 44, cornerRadius: 12)
+    }
   }
 }
 

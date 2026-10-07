@@ -77,13 +77,21 @@ struct AddContactPhotoPickerView: View {
       Button {
         openCamera()
       } label: {
-        Label("사진 촬영하기", systemImage: "camera")
+        Label("사진 촬영하기", image: .camera)
       }
 
       Button {
         isShowingPhotoPicker = true
       } label: {
-        Label("앨범 선택하기", systemImage: "photo")
+        Label("앨범 선택하기", image: .image)
+      }
+
+      if selectedImageData != nil {
+        Button {
+          selectedImageData = nil
+        } label: {
+          Label("기본 이미지로 변경", image: .person)
+        }
       }
     } label: {
       Text("사진 선택하기")

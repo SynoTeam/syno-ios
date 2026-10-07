@@ -27,7 +27,7 @@ struct AddContactNoteField: View {
     VStack(alignment: .leading, spacing: 8) {
       ZStack(alignment: .topLeading) {
         if note.isEmpty {
-          Text("한 줄 기록을 입력하세요")
+          Text("한 줄 기록")
             .typeStyle(.body)
             .foregroundStyle(.gray400)
             .padding(EdgeInsets(top: 28, leading: 25, bottom: 0, trailing: 20))

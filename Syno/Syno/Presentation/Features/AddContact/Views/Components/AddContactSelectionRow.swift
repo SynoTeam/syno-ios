@@ -19,8 +19,8 @@ struct AddContactSelectionRow: View {
     Button(action: action) {
       HStack {
         Text(title)
-          .typeStyle(.body)
-          .foregroundStyle(.gray950)
+          .typeStyle(.bodyEmphasized)
+          .foregroundStyle(.gray900)
 
         Spacer()
 

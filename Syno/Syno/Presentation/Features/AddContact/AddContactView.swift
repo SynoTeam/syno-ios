@@ -69,7 +69,6 @@ struct AddContactView: View {
     .background(Color.gray50)
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
-    .navigationTitle(existingContact == nil ? "연락처 추가" : "연락처 편집")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .toolbar {

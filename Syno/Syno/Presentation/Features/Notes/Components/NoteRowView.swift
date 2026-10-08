@@ -11,12 +11,18 @@ import UIKit
 /// 노트 목록에서 연락처 이미지, 이름, 내용, 시간을 표시하는 row입니다.
 struct NoteRowView: View {
   let note: Note
+  /// 검색 결과에서 일치하는 내용을 강조할 검색어입니다. 없으면 강조하지 않습니다.
+  var highlightQuery: String?
+  /// 행 오른쪽 안쪽 여백입니다. 검색 결과에서는 16을 사용합니다.
+  var trailingPadding: CGFloat = 13
+  /// 이름과 내용 사이 간격입니다. 검색 결과에서는 4를 사용합니다.
+  var textSpacing: CGFloat = 2
 
   var body: some View {
     HStack(alignment: .top, spacing: 12) {
       profileImage
 
-      VStack(alignment: .leading, spacing: 2) {
+      VStack(alignment: .leading, spacing: textSpacing) {
         HStack(alignment: .top, spacing: 8) {
           if note.isPinned {
             Image(.pin)
@@ -41,7 +47,7 @@ struct NoteRowView: View {
             .lineLimit(1)
         }
 
-        Text(note.content)
+        Text(highlighting: note.content, query: highlightQuery)
           .typeStyle(.footnote)
           .foregroundStyle(.gray500)
           .lineLimit(1)
@@ -49,7 +55,9 @@ struct NoteRowView: View {
       }
       .padding(.top, 3)
     }
-    .padding(13)
+    .padding(.leading, 13)
+    .padding(.trailing, trailingPadding)
+    .padding(.vertical, 13)
     .frame(maxWidth: .infinity, minHeight: 70)
     .background(.white)
     .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -58,14 +66,6 @@ struct NoteRowView: View {
   private var profileImage: some View {
     Group {
       if
-        let imageData = note.imageData,
-        let uiImage = UIImage(data: imageData)
-      {
-        Image(uiImage: uiImage)
-          .resizable()
-          .aspectRatio(contentMode: .fill)
-          .frame(width: 44, height: 44)
-      } else if
         let profileImageData = note.profileImageData,
         let uiImage = UIImage(data: profileImageData)
       {

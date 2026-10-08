@@ -203,6 +203,7 @@ struct ContactsView: View {
       } label: {
         HeaderCircleIcon(.plus)
       }
+      .tint(.gray700)
       .accessibilityLabel("Add Contact")
     }
   }

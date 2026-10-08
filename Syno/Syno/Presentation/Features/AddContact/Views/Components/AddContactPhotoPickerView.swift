@@ -77,20 +77,20 @@ struct AddContactPhotoPickerView: View {
       Button {
         openCamera()
       } label: {
-        Label("사진 촬영하기", image: .camera)
+        menuLabel("사진 촬영하기", icon: .camera)
       }
 
       Button {
         isShowingPhotoPicker = true
       } label: {
-        Label("앨범 선택하기", image: .image)
+        menuLabel("앨범 선택하기", icon: .image)
       }
 
       if selectedImageData != nil {
         Button {
           selectedImageData = nil
         } label: {
-          Label("기본 이미지로 변경", image: .person)
+          menuLabel("기본 이미지로 변경", icon: .person)
         }
       }
     } label: {
@@ -112,6 +112,18 @@ struct AddContactPhotoPickerView: View {
       Task {
         await loadImage(from: selectedPhotoItem)
       }
+    }
+  }
+
+  /// 메뉴 항목에 20pt 에셋 아이콘을 보여주는 라벨입니다.
+  private func menuLabel(_ title: String, icon: ImageResource) -> some View {
+    Label {
+      Text(title)
+    } icon: {
+      Image(icon)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
     }
   }
 

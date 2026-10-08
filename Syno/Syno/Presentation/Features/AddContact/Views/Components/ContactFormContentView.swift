@@ -31,8 +31,8 @@ struct ContactFormContentView: View {
     VStack(alignment: .leading, spacing: 28) {
       nameSection
       contactSection
-      additionalInfoSection
       groupSection
+      additionalInfoSection
       noteSection
     }
   }
@@ -117,11 +117,11 @@ struct ContactFormContentView: View {
 
         Divider().background(.gray50)
 
-        dateRow(title: "생일", date: $birthday)
+        AddContactDateRow(title: "생일", date: $birthday)
 
         Divider().background(.gray50)
 
-        dateRow(title: "기념일", date: $anniversary)
+        AddContactDateRow(title: "기념일", date: $anniversary)
 
         Divider().background(.gray50)
 
@@ -131,40 +131,6 @@ struct ContactFormContentView: View {
       .background(.white)
       .clipShape(RoundedRectangle(cornerRadius: 22))
     }
-  }
-
-  private func dateRow(title: String, date: Binding<Date?>) -> some View {
-    HStack(spacing: 12) {
-      Text(title)
-        .typeStyle(.body)
-        .foregroundStyle(.gray950)
-
-      Spacer()
-
-      DatePicker(
-        title,
-        selection: Binding(
-          get: { date.wrappedValue ?? Date() },
-          set: { date.wrappedValue = $0 }
-        ),
-        displayedComponents: .date
-      )
-      .labelsHidden()
-      .datePickerStyle(.compact)
-      .tint(.violet500)
-
-      if date.wrappedValue != nil {
-        Button {
-          date.wrappedValue = nil
-        } label: {
-          Image(systemName: "xmark.circle.fill")
-            .foregroundStyle(.gray400)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title) 지우기")
-      }
-    }
-    .frame(height: 54)
   }
 
   private var socialLinksContent: some View {

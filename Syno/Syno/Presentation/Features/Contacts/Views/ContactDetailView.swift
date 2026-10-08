@@ -11,7 +11,8 @@ struct ContactDetailView: View {
   @Environment(\.analytics) private var analytics
   @State private var toast: Toast?
 
-  let contact: Contact
+  /// 푸시된 뒤에도 편집 저장 결과가 바로 보이도록 화면이 직접 들고 있는 연락처입니다.
+  @State private var contact: Contact
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -23,6 +24,34 @@ struct ContactDetailView: View {
   let viewModel: ContactsViewModel?
   let existingGroups: [String]
   let onDeleted: () -> Void
+
+  init(
+    contact: Contact,
+    noteRepository: any NoteRepository,
+    noteImageAnalyzer: any NoteImageAnalyzing,
+    noteImageAnalysisRepository: any NoteImageAnalysisRepository,
+    linkPreviewFetcher: any NoteLinkPreviewFetching,
+    noteLinkPreviewRepository: any NoteLinkPreviewRepository,
+    labelTranslator: any LabelTranslating,
+    noteVoiceTranscriber: any NoteVoiceTranscribing,
+    noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
+    viewModel: ContactsViewModel?,
+    existingGroups: [String],
+    onDeleted: @escaping () -> Void
+  ) {
+    _contact = State(initialValue: contact)
+    self.noteRepository = noteRepository
+    self.noteImageAnalyzer = noteImageAnalyzer
+    self.noteImageAnalysisRepository = noteImageAnalysisRepository
+    self.linkPreviewFetcher = linkPreviewFetcher
+    self.noteLinkPreviewRepository = noteLinkPreviewRepository
+    self.labelTranslator = labelTranslator
+    self.noteVoiceTranscriber = noteVoiceTranscriber
+    self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
+    self.viewModel = viewModel
+    self.existingGroups = existingGroups
+    self.onDeleted = onDeleted
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -50,7 +79,6 @@ struct ContactDetailView: View {
         .padding(.bottom, 28)
     }
     .background(Color.gray50)
-    .navigationTitle(contact.name)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
@@ -64,7 +92,9 @@ struct ContactDetailView: View {
                 guard viewModel.saveMyContact(updatedContact) else {
                   return false
                 }
-                showUpdatedToast(originalContact: contact)
+                let originalContact = contact
+                contact = updatedContact
+                showUpdatedToast(originalContact: originalContact)
                 return true
               },
               onDelete: { contactID in
@@ -73,7 +103,8 @@ struct ContactDetailView: View {
               onDeleted: onDeleted
             )
           } label: {
-            Image(systemName: "pencil")
+            Image(.edit)
+              .renderingMode(.template)
           }
           .accessibilityLabel("Edit Contact")
         }
@@ -92,7 +123,9 @@ struct ContactDetailView: View {
       message: "연락처가 수정되었습니다",
       style: .success,
       action: Toast.Action(title: "되돌리기") {
-        viewModel.saveMyContact(originalContact)
+        if viewModel.saveMyContact(originalContact) {
+          contact = originalContact
+        }
       }
     )
   }
@@ -104,7 +137,7 @@ struct ContactDetailView: View {
       VStack(spacing: 8) {
         Text(contact.name)
           .typeStyle(.title1Emphasized)
-          .foregroundStyle(.gray950)
+          .foregroundStyle(.bgBlack)
 
         Text(subtitle)
           .typeStyle(.subheadline)
@@ -131,9 +164,25 @@ struct ContactDetailView: View {
 
   private var contactInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(icon: .mail, label: "이메일", value: displayValue(contact.email))
-      profileInfo(icon: .phone, label: "전화번호", value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)))
-      profileInfo(icon: .link, label: "URL", value: displayValue(contact.url), lineLimit: 1)
+      profileInfo(
+        icon: .mail,
+        label: "이메일",
+        value: displayValue(contact.email),
+        destination: ContactLinkURL.email(contact.email)
+      )
+      profileInfo(
+        icon: .phone,
+        label: "전화번호",
+        value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)),
+        destination: ContactLinkURL.phone(contact.phone)
+      )
+      profileInfo(
+        icon: .link,
+        label: "URL",
+        value: displayValue(contact.url),
+        lineLimit: 1,
+        destination: ContactLinkURL.website(contact.url)
+      )
     }
     .surfaceCard()
   }
@@ -173,7 +222,13 @@ struct ContactDetailView: View {
     }
   }
 
-  private func profileInfo(icon: ImageResource, label: String, value: String, lineLimit: Int? = nil) -> some View {
+  private func profileInfo(
+    icon: ImageResource,
+    label: String,
+    value: String,
+    lineLimit: Int? = nil,
+    destination: URL? = nil
+  ) -> some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 4) {
         Image(icon)
@@ -187,12 +242,23 @@ struct ContactDetailView: View {
           .foregroundStyle(.gray400)
       }
 
-      Text(value)
-        .typeStyle(.headline)
-        .foregroundStyle(.gray800)
-        .lineLimit(lineLimit)
-        .truncationMode(.tail)
+      if let destination {
+        Link(destination: destination) {
+          profileValueText(value, lineLimit: lineLimit)
+        }
+      } else {
+        profileValueText(value, lineLimit: lineLimit)
+      }
     }
+  }
+
+  private func profileValueText(_ value: String, lineLimit: Int?) -> some View {
+    Text(value)
+      .typeStyle(.headline)
+      .foregroundStyle(.gray800)
+      .lineLimit(lineLimit)
+      .truncationMode(.tail)
+      .multilineTextAlignment(.leading)
   }
 
   private var chatButton: some View {

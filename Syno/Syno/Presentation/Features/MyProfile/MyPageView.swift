@@ -10,7 +10,9 @@ import SwiftUI
 /// 내 연락처 정보를 보여주는 프로필 화면입니다.
 struct MyPageView: View {
   @Environment(\.analytics) private var analytics
-  let contact: Contact
+
+  /// 푸시된 뒤에도 편집 저장 결과가 바로 보이도록 화면이 직접 들고 있는 내 연락처입니다.
+  @State private var contact: Contact
   let noteRepository: any NoteRepository
   let noteImageAnalyzer: any NoteImageAnalyzing
   let noteImageAnalysisRepository: any NoteImageAnalysisRepository
@@ -41,7 +43,7 @@ struct MyPageView: View {
     accountResetService: AccountResetService,
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
-    self.contact = contact
+    _contact = State(initialValue: contact)
     self.noteRepository = noteRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
@@ -84,7 +86,6 @@ struct MyPageView: View {
         .padding(.bottom, 28)
     }
     .background(Color.gray50)
-    .navigationTitle(displayName)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItemGroup(placement: .topBarTrailing) {
@@ -92,17 +93,22 @@ struct MyPageView: View {
           MyPageEditView(
             contact: contact,
             existingGroups: existingGroups,
-            onSave: onSave
+            onSave: { updatedContact in
+              contact = updatedContact
+              onSave(updatedContact)
+            }
           )
         } label: {
-          Image(systemName: "pencil")
+          Image(.edit)
+            .renderingMode(.template)
         }
         .accessibilityLabel("Edit My Page")
 
         NavigationLink {
           SettingsView(accountResetService: accountResetService)
         } label: {
-          Image(systemName: "gearshape")
+          Image(.settings)
+            .renderingMode(.template)
         }
         .accessibilityLabel("Settings")
       }
@@ -117,8 +123,8 @@ struct MyPageView: View {
 
       VStack(spacing: 8) {
         Text(displayName)
-          .typeStyle(.callout)
-          .foregroundStyle(.gray950)
+          .typeStyle(.title1Emphasized)
+          .foregroundStyle(.bgBlack)
 
         Text(subtitle)
           .typeStyle(.footnote)
@@ -142,9 +148,9 @@ struct MyPageView: View {
 
   private var contactInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(icon: .mail, label: "이메일", value: emailText)
-      profileInfo(icon: .phone, label: "전화번호", value: phoneText)
-      profileInfo(icon: .link, label: "URL", value: urlText, lineLimit: 1)
+      profileInfo(icon: .mail, label: "이메일", value: emailText, destination: emailURL)
+      profileInfo(icon: .phone, label: "전화번호", value: phoneText, destination: phoneURL)
+      profileInfo(icon: .link, label: "URL", value: urlText, lineLimit: 1, destination: websiteURL)
     }
     .surfaceCard()
   }
@@ -209,7 +215,13 @@ struct MyPageView: View {
     .surfaceCard()
   }
 
-  private func profileInfo(icon: ImageResource, label: String, value: String, lineLimit: Int? = nil) -> some View {
+  private func profileInfo(
+    icon: ImageResource,
+    label: String,
+    value: String,
+    lineLimit: Int? = nil,
+    destination: URL? = nil
+  ) -> some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack(spacing: 4) {
         Image(icon)
@@ -223,12 +235,23 @@ struct MyPageView: View {
           .foregroundStyle(.gray400)
       }
 
-      Text(value)
-        .typeStyle(.headline)
-        .foregroundStyle(.gray800)
-        .lineLimit(lineLimit)
-        .truncationMode(.tail)
+      if let destination {
+        Link(destination: destination) {
+          profileValueText(value, lineLimit: lineLimit)
+        }
+      } else {
+        profileValueText(value, lineLimit: lineLimit)
+      }
     }
+  }
+
+  private func profileValueText(_ value: String, lineLimit: Int?) -> some View {
+    Text(value)
+      .typeStyle(.headline)
+      .foregroundStyle(.gray800)
+      .lineLimit(lineLimit)
+      .truncationMode(.tail)
+      .multilineTextAlignment(.leading)
   }
 
   private static let dateFormatter: DateFormatter = {
@@ -266,6 +289,18 @@ struct MyPageView: View {
 
   private var displayName: String {
     contact.name.isEmpty ? "내 프로필" : contact.name
+  }
+
+  private var emailURL: URL? {
+    ContactLinkURL.email(contact.email)
+  }
+
+  private var phoneURL: URL? {
+    ContactLinkURL.phone(contact.phone)
+  }
+
+  private var websiteURL: URL? {
+    ContactLinkURL.website(contact.url)
   }
 
   private var emailText: String {

@@ -146,6 +146,10 @@ private final class NoteRepositorySpy: NoteRepository {
   func delete(id: Note.ID) throws {
     savedNotes.removeAll { $0.id == id }
   }
+
+  func deleteAll(contactId: UUID) throws {
+    savedNotes.removeAll { $0.contactId == contactId }
+  }
 }
 
 @MainActor
@@ -170,6 +174,10 @@ private final class RetriableNoteRepositorySpy: NoteRepository {
 
   func delete(id: Note.ID) throws {
     savedNotes.removeAll { $0.id == id }
+  }
+
+  func deleteAll(contactId: UUID) throws {
+    savedNotes.removeAll { $0.contactId == contactId }
   }
 }
 

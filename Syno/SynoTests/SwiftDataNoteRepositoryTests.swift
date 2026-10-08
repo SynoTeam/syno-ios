@@ -70,6 +70,32 @@ final class SwiftDataNoteRepositoryTests: XCTestCase {
   }
 
   @MainActor
+  func testDeleteAllRemovesOnlyNotesForRequestedContact() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+    let targetContactId = UUID()
+    let otherContactId = UUID()
+
+    try repository.save(
+      Note(contactId: targetContactId, contactName: "삭제 대상", content: "첫 번째")
+    )
+    try repository.save(
+      Note(contactId: targetContactId, contactName: "삭제 대상", content: "두 번째")
+    )
+    try repository.save(
+      Note(contactId: otherContactId, contactName: "유지 대상", content: "남아야 함")
+    )
+
+    try repository.deleteAll(contactId: targetContactId)
+
+    XCTAssertTrue(try repository.fetch(contactId: targetContactId).isEmpty)
+    XCTAssertEqual(
+      try repository.fetch(contactId: otherContactId).map(\.content),
+      ["남아야 함"]
+    )
+  }
+
+  @MainActor
   func testSavePersistsPinnedState() async throws {
     let container = try makeContainer()
     let repository = SwiftDataNoteRepository(modelContext: container.mainContext)

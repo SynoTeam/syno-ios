@@ -91,4 +91,47 @@ final class SwiftDataNoteRepository: NoteRepository {
       throw error
     }
   }
+
+  func deleteAll(contactId: UUID) throws {
+    do {
+      let descriptor = FetchDescriptor<StoredNote>(
+        predicate: #Predicate { $0.contactId == contactId }
+      )
+      let storedNotes = try modelContext.fetch(descriptor)
+      guard !storedNotes.isEmpty else {
+        return
+      }
+
+      let noteIDs = Set(storedNotes.map(\.id))
+
+      let previews = try modelContext.fetch(FetchDescriptor<StoredNoteLinkPreview>())
+      for preview in previews where noteIDs.contains(preview.noteId) {
+        modelContext.delete(preview)
+      }
+      let analyses = try modelContext.fetch(FetchDescriptor<StoredNoteImageAnalysis>())
+      for analysis in analyses where noteIDs.contains(analysis.noteId) {
+        modelContext.delete(analysis)
+      }
+      let transcripts = try modelContext.fetch(FetchDescriptor<StoredNoteVoiceTranscript>())
+      for transcript in transcripts where noteIDs.contains(transcript.noteId) {
+        modelContext.delete(transcript)
+      }
+      for storedNote in storedNotes {
+        modelContext.delete(storedNote)
+      }
+
+      try modelContext.save()
+      if let searchIndex {
+        Task {
+          for id in noteIDs {
+            await searchIndex.remove(SearchDocumentKey(kind: .note, sourceId: id))
+          }
+        }
+      }
+    } catch {
+      modelContext.rollback()
+      logger.error("Failed to delete notes for contact \(contactId): \(error.localizedDescription, privacy: .public)")
+      throw error
+    }
+  }
 }

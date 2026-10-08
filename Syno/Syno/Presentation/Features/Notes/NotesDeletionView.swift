@@ -86,9 +86,11 @@ struct NotesDeletionView: View {
 
     confirmationAlert = DestructiveConfirmationAlert(
       title: notes.count > 1
-        ? "해당 노트 \(notes.count)건을\n영구적으로 삭제하겠습니까?"
+        ? "선택한 연락처 \(notes.count)명의 노트를\n영구적으로 삭제하겠습니까?"
         : "해당 노트를\n영구적으로 삭제하겠습니까?",
-      message: "연락처 내 모든 노트와 파일이 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.",
+      message: notes.count > 1
+        ? "선택한 연락처들의 모든 노트와 파일이 삭제됩니다.\n이 작업은 되돌릴 수 없습니다."
+        : "연락처 내 모든 노트와 파일이 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.",
       acknowledgementText: nil
     ) {
       delete(notes)

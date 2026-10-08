@@ -147,8 +147,10 @@ private final class NoteRepositorySpy: NoteRepository {
     savedNotes.removeAll { $0.id == id }
   }
 
-  func deleteAll(contactId: UUID) throws {
-    savedNotes.removeAll { $0.contactId == contactId }
+  func deleteAll(contactIds: [UUID]) throws {
+    savedNotes.removeAll { note in
+      note.contactId.map(contactIds.contains) ?? false
+    }
   }
 }
 
@@ -176,8 +178,10 @@ private final class RetriableNoteRepositorySpy: NoteRepository {
     savedNotes.removeAll { $0.id == id }
   }
 
-  func deleteAll(contactId: UUID) throws {
-    savedNotes.removeAll { $0.contactId == contactId }
+  func deleteAll(contactIds: [UUID]) throws {
+    savedNotes.removeAll { note in
+      note.contactId.map(contactIds.contains) ?? false
+    }
   }
 }
 

@@ -56,10 +56,7 @@ struct NotesView: View {
     .onChange(of: storedNoteChangeTokens) {
       loadStoredNotes()
     }
-    .onChange(of: storedContacts.map {
-      // 이름과 프로필 사진이 바뀌어도 노트 목록이 다시 계산되도록 변경 토큰에 포함한다.
-      "\($0.id.uuidString):\($0.isFavorite):\($0.isPinned):\($0.group):\($0.name):\($0.profileImageData?.count ?? 0)"
-    }) {
+    .onChange(of: storedContacts.map(StoredContactChangeToken.init)) {
       loadStoredNotes()
     }
     .onChange(of: storedGroups.map { "\($0.persistentModelID):\($0.name):\($0.sortIndex)" }) {
@@ -276,12 +273,10 @@ struct NotesView: View {
   /// 선택한 노트의 연락처 데이터를 삭제합니다. 연락처가 연결되지 않은 오래된 노트는 해당 노트만 삭제합니다.
   private func deleteNotes(_ notes: [Note]) -> Bool {
     do {
-      for note in notes {
-        if let contactId = note.contactId {
-          try noteRepository.deleteAll(contactId: contactId)
-        } else {
-          try noteRepository.delete(id: note.id)
-        }
+      // 연락처 단위 삭제는 한 트랜잭션으로 처리해 중간에 실패해도 일부만 지워지지 않게 한다.
+      try noteRepository.deleteAll(contactIds: notes.compactMap(\.contactId))
+      for note in notes where note.contactId == nil {
+        try noteRepository.delete(id: note.id)
       }
       return true
     } catch {
@@ -360,4 +355,24 @@ private struct StoredNoteChangeToken: Equatable {
     noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript
   )
     .modelContainer(for: [StoredNote.self, StoredContact.self, StoredGroup.self], inMemory: true)
+}
+
+/// 노트 목록 표시에 영향을 주는 연락처 값이 바뀌었는지 비교하는 토큰입니다.
+/// 이름과 프로필 사진 데이터를 그대로 포함해, 크기가 같은 다른 사진으로 바뀌어도 감지합니다.
+private struct StoredContactChangeToken: Equatable {
+  let id: UUID
+  let name: String
+  let group: String
+  let isFavorite: Bool
+  let isPinned: Bool
+  let profileImageData: Data?
+
+  init(_ contact: StoredContact) {
+    id = contact.id
+    name = contact.name
+    group = contact.group
+    isFavorite = contact.isFavorite
+    isPinned = contact.isPinned
+    profileImageData = contact.profileImageData
+  }
 }

@@ -71,13 +71,21 @@ final class SearchViewModel {
   }
 
   func updateQuery(_ query: String) {
+    let wasEmpty = !hasQuery
     self.query = query
     searchTask?.cancel()
 
     guard hasQuery else {
       results = []
       isSearching = false
+      // 검색어를 지우면 다음 검색은 항상 "전체" 탭에서 시작한다.
+      selectedCategory = .all
       return
+    }
+
+    // 비어 있던 검색창에 새로 입력을 시작하면 이전에 골라 둔 탭과 상관없이 "전체"로 연다.
+    if wasEmpty {
+      selectedCategory = .all
     }
 
     isSearching = true
@@ -109,6 +117,7 @@ final class SearchViewModel {
 
   func selectRecentSearch(_ search: String) {
     query = search
+    selectedCategory = .all
     commit(search)
     isSearching = true
     let searchTerm = normalizedQuery

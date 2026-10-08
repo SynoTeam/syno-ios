@@ -88,13 +88,17 @@ struct Note: Identifiable, Equatable, Hashable {
     self.isPinned = isPinned
   }
 
-  private static let timeFormatter = makeFormatter("a h:mm")
+  /// "12:22 PM" 형식으로 표시하기 위해 AM/PM은 영어 로캘을 사용합니다.
+  private static let timeFormatter = makeFormatter("h:mm a", localeIdentifier: "en_US_POSIX")
   private static let monthDayFormatter = makeFormatter("M월 d일")
   private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일")
 
-  private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+  private static func makeFormatter(
+    _ dateFormat: String,
+    localeIdentifier: String = "ko_KR"
+  ) -> DateFormatter {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "ko_KR")
+    formatter.locale = Locale(identifier: localeIdentifier)
     formatter.calendar = Calendar(identifier: .gregorian)
     formatter.dateFormat = dateFormat
     return formatter

@@ -13,7 +13,7 @@ final class NoteTimeTextTests: XCTestCase {
       minute: 0
     )
 
-    XCTAssertEqual(makeNote(createdAt: date).timeText, "오후 4:00")
+    XCTAssertEqual(makeNote(createdAt: date).timeText, "4:00 PM")
   }
 
   func testTimeTextShowsMonthAndDayForAnotherDayThisYear() throws {

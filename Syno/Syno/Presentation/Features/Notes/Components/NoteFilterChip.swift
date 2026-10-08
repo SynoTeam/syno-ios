@@ -16,7 +16,7 @@ struct NoteFilterChip: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .typeStyle(.subheadline)
+        .typeStyle(.calloutEmphasized)
         .foregroundStyle(isSelected ? .gray25 : .gray400)
         .padding(.horizontal, 16)
         .frame(height: 32)

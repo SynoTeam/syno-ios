@@ -23,7 +23,7 @@ struct NoteFilterChip: View {
         .background(isSelected ? .gray800 : .clear)
         .overlay {
           Capsule()
-            .stroke(isSelected ? .clear : .gray200, lineWidth: 1)
+            .strokeBorder(isSelected ? .clear : .gray200, lineWidth: 1)
         }
         .clipShape(Capsule())
         .contentShape(Capsule())

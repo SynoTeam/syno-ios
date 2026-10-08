@@ -33,7 +33,7 @@ struct NoteRowView: View {
               .accessibilityLabel("고정된 노트")
           }
 
-          Text(note.contactName)
+          Text(highlighting: note.contactName, query: highlightQuery)
             .typeStyle(.callout)
             .foregroundStyle(.gray950)
             .lineLimit(1)

@@ -233,8 +233,13 @@ final class SearchViewModel {
       }
 
       let noteResults = matchedNotes.map { storedNote in
-        let note = storedNote.note
+        var note = storedNote.note
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
+        // 노트에 복사돼 저장된 이름·사진 대신, 연결된 연락처의 최신 값을 표시용으로 덮어쓴다.
+        if note.contactId != nil, contactsById[note.contactId!] != nil {
+          note.contactName = contact.name
+          note.profileImageData = contact.profileImageData
+        }
         if note.fileName != nil { return SearchResult.file(note, contact: contact) }
         if note.imageData != nil { return SearchResult.photo(note, contact: contact) }
         if note.voiceMemoData != nil { return SearchResult.voice(note, contact: contact, transcript: voiceTranscripts[note.id]) }

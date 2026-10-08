@@ -186,6 +186,8 @@ struct SearchView: View {
       SearchEmptyStateView(category: viewModel.selectedCategory)
     } else {
       resultsList
+        // 새 검색이 끝나기 전의 이전 결과를 눌러 엉뚱한 곳으로 이동하거나 새 검색어가 저장되지 않도록 막는다.
+        .allowsHitTesting(!viewModel.isSearching)
     }
   }
 

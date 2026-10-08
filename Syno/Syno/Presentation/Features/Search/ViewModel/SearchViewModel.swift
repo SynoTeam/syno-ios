@@ -71,13 +71,26 @@ final class SearchViewModel {
   }
 
   func updateQuery(_ query: String) {
+    let previousTerm = normalizedQuery.lowercased()
     self.query = query
     searchTask?.cancel()
 
     guard hasQuery else {
       results = []
       isSearching = false
+      // 검색어를 지우면 다음 검색은 항상 "전체" 탭에서 시작한다.
+      selectedCategory = .all
       return
+    }
+
+    // 새 검색을 시작하면 이전에 골라 둔 탭과 상관없이 "전체"로 연다.
+    // 비어 있던 검색창에 입력하거나 검색어를 통째로 바꾼 경우가 해당하고,
+    // 같은 검색어에 글자를 더하거나 지우는 중에는 고른 탭을 유지한다.
+    let currentTerm = normalizedQuery.lowercased()
+    let isRefinement = !previousTerm.isEmpty
+      && (currentTerm.hasPrefix(previousTerm) || previousTerm.hasPrefix(currentTerm))
+    if !isRefinement {
+      selectedCategory = .all
     }
 
     isSearching = true
@@ -109,6 +122,7 @@ final class SearchViewModel {
 
   func selectRecentSearch(_ search: String) {
     query = search
+    selectedCategory = .all
     commit(search)
     isSearching = true
     let searchTerm = normalizedQuery
@@ -169,6 +183,12 @@ final class SearchViewModel {
           sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
       )
+      // 연락처 이름을 바꾼 뒤에도 새 이름으로 검색되도록, 노트에 복사된 이름이 아니라 현재 연락처 이름을 쓴다.
+      let storedContacts = try modelContext.fetch(FetchDescriptor<StoredContact>())
+      let contactNamesById = Dictionary(
+        storedContacts.map { ($0.id, $0.name) },
+        uniquingKeysWith: { first, _ in first }
+      )
       let imageAnalyses =
         (try? await noteImageAnalysisRepository.fetchAll()) ?? [:]
       let linkPreviews = (try? await noteLinkPreviewRepository.fetchAll()) ?? [:]
@@ -177,6 +197,7 @@ final class SearchViewModel {
       let keywordNotes = storedNotes.filter {
         searchableText(
           for: $0,
+          contactName: $0.contactId.flatMap { contactNamesById[$0] } ?? $0.contactName,
           analysis: imageAnalyses[$0.id],
           transcript: voiceTranscripts[$0.id]
         ).localizedStandardContains(searchTerm)
@@ -224,8 +245,13 @@ final class SearchViewModel {
       }
 
       let noteResults = matchedNotes.map { storedNote in
-        let note = storedNote.note
+        var note = storedNote.note
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
+        // 노트에 복사돼 저장된 이름·사진 대신, 연결된 연락처의 최신 값을 표시용으로 덮어쓴다.
+        if note.contactId != nil, contactsById[note.contactId!] != nil {
+          note.contactName = contact.name
+          note.profileImageData = contact.profileImageData
+        }
         if note.fileName != nil { return SearchResult.file(note, contact: contact) }
         if note.imageData != nil { return SearchResult.photo(note, contact: contact) }
         if note.voiceMemoData != nil { return SearchResult.voice(note, contact: contact, transcript: voiceTranscripts[note.id]) }
@@ -245,10 +271,11 @@ final class SearchViewModel {
 
   private func searchableText(
     for note: StoredNote,
+    contactName: String,
     analysis: NoteImageAnalysisResult?,
     transcript: NoteVoiceTranscriptResult?
   ) -> String {
-    var components = [note.contactName, note.content, note.fileName ?? ""]
+    var components = [contactName, note.content, note.fileName ?? ""]
     if note.imageData != nil, let analysis {
       components.append(
         contentsOf: labelTranslator.searchTerms(for: analysis.labels)

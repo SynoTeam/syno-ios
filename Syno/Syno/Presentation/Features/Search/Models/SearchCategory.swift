@@ -7,9 +7,9 @@ enum SearchCategory: String, CaseIterable, Identifiable {
   case all
   case text
   case photo
-  case link
   case voice
   case file
+  case link
 
   var id: Self {
     self

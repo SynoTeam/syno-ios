@@ -44,7 +44,7 @@ final class GroupService {
     userDefaults.set(true, forKey: Self.backfillCompletedKey)
   }
 
-  /// 새 그룹을 만들고, 대소문자만 다른 기존 그룹이 있으면 그 그룹을 반환합니다.
+  /// 그룹을 만들고, 대소문자만 다른 기존 그룹이 있으면 그 그룹을 반환합니다.
   func createGroup(named value: String) throws -> StoredGroup? {
     let name = value.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !name.isEmpty else {

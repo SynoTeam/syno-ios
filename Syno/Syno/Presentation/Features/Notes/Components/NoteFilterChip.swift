@@ -16,14 +16,14 @@ struct NoteFilterChip: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .typeStyle(.subheadline)
+        .typeStyle(.calloutEmphasized)
         .foregroundStyle(isSelected ? .gray25 : .gray400)
         .padding(.horizontal, 16)
         .frame(height: 32)
         .background(isSelected ? .gray800 : .clear)
         .overlay {
           Capsule()
-            .stroke(isSelected ? .clear : .gray200, lineWidth: 1)
+            .strokeBorder(isSelected ? .clear : .gray200, lineWidth: 1)
         }
         .clipShape(Capsule())
         .contentShape(Capsule())

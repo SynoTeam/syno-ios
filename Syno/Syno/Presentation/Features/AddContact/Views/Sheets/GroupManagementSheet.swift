@@ -15,6 +15,7 @@ struct GroupManagementSheet: View {
   @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
 
   @State private var newGroup = ""
+  @FocusState private var isNewGroupFocused: Bool
   @AppStorage("GroupManagementSheet.sortMode") private var sortModeRawValue = SortMode.alphabetical.rawValue
   @State private var groupPendingDeletion: StoredGroup?
   @State private var confirmationAlert: DestructiveConfirmationAlert?
@@ -36,8 +37,8 @@ struct GroupManagementSheet: View {
           groupRow(group)
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-            .padding(.bottom, 8)
+            // 흰 알약을 행 배경으로 그려야 시스템 순서 변경 핸들이 알약 안쪽에 들어간다.
+            .listRowBackground(Capsule().fill(.white))
         }
         .onMove(perform: moveGroups)
         .moveDisabled(sortMode != .custom)
@@ -48,12 +49,16 @@ struct GroupManagementSheet: View {
           .listRowBackground(Color.clear)
       }
       .listStyle(.plain)
+      .listRowSpacing(8)
+      .scrollDismissesKeyboard(.interactively)
       .scrollContentBackground(.hidden)
-      .environment(\.editMode, .constant(.active))
+      // 사용자 설정 순에서만 편집 모드를 켜서 시스템 순서 변경 핸들을 하나만 보여준다.
+      .environment(\.editMode, .constant(sortMode == .custom ? .active : .inactive))
       .padding(.horizontal, 16)
     }
     .padding(.top, 16)
     .background(Color.gray50)
+    .dismissKeyboardOnTap($isNewGroupFocused)
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
   }
@@ -96,25 +101,19 @@ struct GroupManagementSheet: View {
       }
       .buttonStyle(.plain)
       .accessibilityLabel("\(group.name) 그룹 삭제")
-
-      Image(systemName: "line.3.horizontal")
-        .font(.system(size: 16, weight: .semibold))
-        .foregroundStyle(.gray600)
-        .opacity(sortMode == .custom ? 1 : 0.35)
     }
     .padding(.horizontal, 16)
     .frame(height: 54)
-    .background(.white)
-    .clipShape(RoundedRectangle(cornerRadius: 999))
   }
 
   private var addGroupRow: some View {
     HStack(spacing: 12) {
-      TextField("새 그룹 이름", text: Binding(
+      TextField("그룹 만들기", text: Binding(
         get: { newGroup },
         set: { newGroup = String($0.prefix(20)) }
       ))
       .typeStyle(.callout)
+      .focused($isNewGroupFocused)
       .submitLabel(.done)
       .onSubmit(addGroup)
 

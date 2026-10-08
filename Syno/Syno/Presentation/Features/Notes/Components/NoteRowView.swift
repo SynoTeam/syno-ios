@@ -17,10 +17,12 @@ struct NoteRowView: View {
       profileImage
 
       VStack(alignment: .leading, spacing: 2) {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
           if note.isPinned {
-            Image(systemName: "pin.fill")
-              .font(.system(size: 11, weight: .semibold))
+            Image(.pin)
+              .resizable()
+              .renderingMode(.template)
+              .frame(width: 16, height: 16)
               .foregroundStyle(.violet500)
               .accessibilityLabel("고정된 노트")
           }

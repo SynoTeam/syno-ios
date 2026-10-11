@@ -157,7 +157,7 @@ struct ArchiveCategoryListView: View {
 
   @ViewBuilder private var textList: some View {
     if textNotes.isEmpty {
-      archiveEmptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "아직 주고받은 텍스트가 없습니다" : "검색 결과가 없습니다")
+      archiveEmptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "채팅창에 텍스트를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
     } else {
       LazyVStack(alignment: .leading, spacing: 16) {
         ForEach(textNotes) { note in
@@ -202,7 +202,7 @@ struct ArchiveCategoryListView: View {
 
   @ViewBuilder private var voiceMemoGrid: some View {
     if voiceMemoNotes.isEmpty {
-      archiveEmptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "아직 주고받은 음성 메모가 없습니다" : "검색 결과가 없습니다")
+      archiveEmptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "채팅창에 음성 메모를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
     } else {
       LazyVStack(alignment: .leading, spacing: 12) {
         ForEach(voiceMemoNotes) { note in
@@ -217,7 +217,7 @@ struct ArchiveCategoryListView: View {
     if fileNotes.isEmpty {
       archiveEmptyState(
         image: .emptyArchive,
-        message: trimmedSearchText.isEmpty ? "아직 주고받은 파일이 없습니다" : "검색 결과가 없습니다"
+        message: trimmedSearchText.isEmpty ? "채팅창에 파일을 전송하면\n확인 가능합니다." : "검색 결과가 없습니다"
       )
     } else {
       LazyVStack(alignment: .leading, spacing: 12) {
@@ -270,29 +270,39 @@ struct ArchiveCategoryListView: View {
           LazyVGrid(columns: photoColumns, spacing: 4) {
             ForEach(section.messages) { note in
               if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                  .resizable()
-                  .aspectRatio(contentMode: .fill)
-                  .frame(height: 84)
-                  .clipped()
-                  .clipShape(RoundedRectangle(cornerRadius: 8))
-                  .contextMenu {
-                    Button {
-                      UIPasteboard.general.image = uiImage
-                    } label: {
-                      Label("복사하기", systemImage: "doc.on.doc")
+                NavigationLink {
+                  PhotoPreviewView(viewModel: viewModel, noteID: note.id)
+                } label: {
+                  // 사진의 원래 비율이 칸 크기에 영향을 주지 않도록, 정사각형 칸을 먼저 만들고 사진은 그 위에 덮어 자른다.
+                  Color.clear
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                      Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
                     }
-
-                    ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
-                      Label("공유하기", systemImage: "square.and.arrow.up")
-                    }
-
-                    Button(role: .destructive) {
-                      requestDelete(note)
-                    } label: {
-                      Label("삭제하기", systemImage: "trash")
-                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .contentShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("사진 크게 보기")
+                .contextMenu {
+                  Button {
+                    UIPasteboard.general.image = uiImage
+                  } label: {
+                    Label("복사하기", systemImage: "doc.on.doc")
                   }
+
+                  ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
+                    Label("공유하기", systemImage: "square.and.arrow.up")
+                  }
+
+                  Button(role: .destructive) {
+                    requestDelete(note)
+                  } label: {
+                    Label("삭제하기", systemImage: "trash")
+                  }
+                }
               }
             }
           }

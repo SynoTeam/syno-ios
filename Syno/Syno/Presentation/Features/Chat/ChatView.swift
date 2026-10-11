@@ -94,7 +94,7 @@ struct ChatView: View {
         .ignoresSafeArea()
       }
       .sheet(item: $pendingPhotoConfirmation) { request in
-        ChatPhotoConfirmationView(images: request.images) { datas in
+        ChatPhotoConfirmationView(photos: request.photos) { datas in
           // 여러 장이면 한 묶음으로 저장되어 채팅에서 하나의 콜라주 말풍선으로 보인다.
           Task { await viewModel.sendImages(datas) }
         }
@@ -815,26 +815,30 @@ struct ChatView: View {
   private static let maxPhotoSelectionCount = 10
 
   /// 고른 순서대로 사진을 불러옵니다. 일부만 불러오지 못하면 가져온 사진만 확인 시트로 넘기고 안내합니다.
+  /// 원본이 메모리에 쌓이지 않도록 한 장씩 읽자마자 백그라운드에서 줄여 전송용 데이터와 썸네일만 남깁니다.
   private func loadImages(from items: [PhotosPickerItem]) async {
-    var images: [UIImage] = []
+    var photos: [PreparedPhoto] = []
     for item in items {
-      if
-        let data = try? await item.loadTransferable(type: Data.self),
-        let image = UIImage(data: data)
-      {
-        images.append(image)
+      guard let data = try? await item.loadTransferable(type: Data.self) else {
+        continue
+      }
+      let prepared = await Task.detached(priority: .userInitiated) {
+        PhotoPreparer.prepare(data)
+      }.value
+      if let prepared {
+        photos.append(prepared)
       }
     }
 
-    guard !images.isEmpty else {
+    guard !photos.isEmpty else {
       toast = Toast(message: "사진을 불러오지 못했습니다.", style: .failure)
       return
     }
 
-    if images.count < items.count {
+    if photos.count < items.count {
       toast = Toast(message: "일부 사진을 불러오지 못했습니다.", style: .failure)
     }
-    pendingPhotoConfirmation = PhotoConfirmationRequest(images: images)
+    pendingPhotoConfirmation = PhotoConfirmationRequest(photos: photos)
   }
 
   private func presentPendingCameraImage() {
@@ -847,7 +851,17 @@ struct ChatView: View {
     // presentationDetents를 무시하고 풀사이즈로 띄우는 경우가 있어, dismiss 애니메이션이
     // 끝난 뒤(약 0.35초) 확인 시트를 띄웁니다.
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-      pendingPhotoConfirmation = PhotoConfirmationRequest(images: [image])
+      Task {
+        // 카메라 사진도 메인 스레드를 막지 않게 백그라운드에서 줄인다.
+        let prepared = await Task.detached(priority: .userInitiated) {
+          image.jpegData(compressionQuality: 0.9).flatMap(PhotoPreparer.prepare)
+        }.value
+        if let prepared {
+          pendingPhotoConfirmation = PhotoConfirmationRequest(photos: [prepared])
+        } else {
+          toast = Toast(message: "사진을 불러오지 못했습니다.", style: .failure)
+        }
+      }
     }
   }
 

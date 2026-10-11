@@ -247,27 +247,26 @@ final class ChatViewModel {
     return true
   }
 
-  /// 사진을 보냅니다. 2장 이상이면 같은 묶음 id를 붙여 채팅에서 한 말풍선으로 보이게 합니다.
+  /// 이미 줄여 둔 사진(JPEG)들을 보냅니다. 2장 이상이면 같은 묶음 id를 붙여 채팅에서 한 말풍선으로 보이게 합니다.
   /// 모든 사진을 먼저 저장해 한 번에 보이게 하고, 시간이 걸리는 이미지 분석은 저장 뒤에 순서대로 합니다.
-  func sendImages(_ rawImageDatas: [Data]) async {
-    let groupId = rawImageDatas.count > 1 ? UUID() : nil
+  /// 저장하지 못한 사진이 있으면 마지막에 장수를 오류로 알립니다(뒤 사진의 저장 성공이 오류를 지우지 않도록 마지막에 설정).
+  func sendImages(_ imageDatas: [Data]) async {
+    let groupId = imageDatas.count > 1 ? UUID() : nil
     var sentPhotos: [(note: Note, imageData: Data)] = []
+    var failedCount = 0
 
-    for rawImageData in rawImageDatas {
-      // 큰 사진을 줄이는 동안 UI가 멈추지 않게 백그라운드에서 처리한다.
-      let compressed = await Task.detached(priority: .userInitiated) {
-        Self.compressedImageData(from: rawImageData)
-      }.value
-      guard let imageData = compressed else {
-        continue
-      }
-
+    for imageData in imageDatas {
       let note = makeNote(content: "사진", imageData: imageData, photoGroupId: groupId)
       guard save(note) else {
+        failedCount += 1
         continue
       }
       trackNoteEvent(AnalyticsEvent.noteSent, note: note)
       sentPhotos.append((note, imageData))
+    }
+
+    if failedCount > 0 {
+      persistenceError = "사진 \(failedCount)장을 저장하지 못했습니다."
     }
 
     for photo in sentPhotos {
@@ -275,8 +274,12 @@ final class ChatViewModel {
     }
   }
 
+  /// 원본 데이터를 받아 줄인 뒤 보냅니다. 화면에서는 `PhotoPreparer`로 미리 줄인 데이터를 `sendImages`로 보냅니다.
   func sendImageData(_ rawImageData: Data) async {
-    await sendImages([rawImageData])
+    guard let imageData = Self.compressedImageData(from: rawImageData) else {
+      return
+    }
+    await sendImages([imageData])
   }
 
   private func analyzeImage(imageData: Data, for note: Note) async {
@@ -391,6 +394,10 @@ final class ChatViewModel {
     } catch { voiceMemoStates[note.id] = .sendFailed }
   }
 
+  private static func isDefaultVoiceMemoTitle(_ content: String) -> Bool {
+    content.range(of: #"^무제-\d+$"#, options: .regularExpression) != nil
+  }
+
   private func transcribe(_ note: Note) async {
     guard let audioData = note.voiceMemoData else { return }
     voiceMemoStates[note.id] = .transcribing
@@ -398,7 +405,8 @@ final class ChatViewModel {
       let result = try await voiceTranscriber.transcribe(audioData: audioData)
       try await voiceTranscriptRepository.save(noteId: note.id, result: result, transcribedAt: Date())
       voiceMemoStates[note.id] = .transcribed(result)
-      if let firstLine = result.text.split(separator: "\n").first {
+      // 파일 이름 등 직접 정한 제목은 지키고, 자동으로 붙은 "무제-N"일 때만 전사 첫 줄로 바꾼다.
+      if Self.isDefaultVoiceMemoTitle(note.content), let firstLine = result.text.split(separator: "\n").first {
         update(note: note, content: String(firstLine))
       }
     } catch {

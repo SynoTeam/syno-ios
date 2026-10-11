@@ -25,11 +25,35 @@ struct ChatMessageBubble: View {
   var onRetryFileDownload: (() -> Void)?
   var onRetryFileSend: (() -> Void)?
   var onShowFile: (() -> Void)?
+  var onShowPhoto: (() -> Void)?
   var highlightQuery: String?
+  /// 검색 결과로 이동해 온 메시지를 튀게 만들 때 true입니다.
+  var isHighlighted: Bool = false
+  /// 목록을 옆으로 밀었을 때 말풍선 오른쪽에 보여줄 시간입니다. 없으면 표시하지 않습니다.
+  var revealedTimeText: String?
+  /// 목록을 왼쪽으로 민 거리입니다. 0이면 시간이 숨겨져 있습니다.
+  var timeRevealOffset: CGFloat = 0
 
   var body: some View {
+    ZStack(alignment: .trailing) {
+      // 시간은 화면 오른쪽 끝에 고정하고, 말풍선만 왼쪽으로 밀려나 그 자리를 비운다.
+      if let revealedTimeText {
+        Text(revealedTimeText)
+          .typeStyle(.caption1)
+          .foregroundStyle(.gray400)
+          .fixedSize()
+          .offset(x: 8)
+          .opacity(min(1, timeRevealOffset / 40))
+      }
+
+      bubbleWithMenu
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .offset(x: -timeRevealOffset)
+    }
+  }
+
+  private var bubbleWithMenu: some View {
     messageStack
-    .frame(maxWidth: .infinity, alignment: .trailing)
     .contextMenu {
       if note.fileName == nil {
         Button {
@@ -63,8 +87,11 @@ struct ChatMessageBubble: View {
         pendingStatusView(pendingStatus)
       }
     }
-    .frame(maxWidth: 280, alignment: .trailing)
+    .frame(maxWidth: 298, alignment: .trailing)
     .contentShape(Rectangle())
+    // 검색 결과로 이동해 온 메시지가 통통 튀어 위치를 알려준다.
+    .scaleEffect(isHighlighted ? 1.08 : 1, anchor: .trailing)
+    .animation(.spring(duration: 0.45, bounce: 0.6), value: isHighlighted)
   }
 
   @ViewBuilder
@@ -87,6 +114,12 @@ struct ChatMessageBubble: View {
         .aspectRatio(contentMode: .fill)
         .frame(width: 220, height: 220)
         .clipShape(RoundedRectangle(cornerRadius: 24))
+        .contentShape(RoundedRectangle(cornerRadius: 24))
+        .onTapGesture {
+          onShowPhoto?()
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("사진 크게 보기")
     } else {
       VStack(alignment: .leading, spacing: 0) {
         contentText
@@ -124,14 +157,41 @@ struct ChatMessageBubble: View {
   @ViewBuilder private func voiceTranscriptView(_ state: ChatViewModel.VoiceMemoState) -> some View {
     switch state {
     case .transcribing:
-      HStack { ProgressView().controlSize(.small); Text("STT 변환 중") }.typeStyle(.caption1).foregroundStyle(.gray500).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(.white).clipShape(RoundedRectangle(cornerRadius: 16))
+      transcriptBox {
+        HStack(spacing: 6) {
+          ProgressView().controlSize(.small)
+          Text("STT 변환 중")
+            .typeStyle(.body)
+            .foregroundStyle(.gray500)
+        }
+      }
     case let .transcribed(result):
-      Text(result.text).typeStyle(.footnote).foregroundStyle(.gray800).frame(maxWidth: .infinity, alignment: .leading).padding(12).background(.white).clipShape(RoundedRectangle(cornerRadius: 16))
+      transcriptBox {
+        Text(result.text)
+          .typeStyle(.body)
+          .foregroundStyle(.gray900)
+          .multilineTextAlignment(.leading)
+      }
     case .transcriptFailed:
       HStack { Text("STT 변환 실패").foregroundStyle(.errorRed); if let onRetryTranscription { Button("다시 시도", action: onRetryTranscription).foregroundStyle(.violet500) } }.typeStyle(.caption1)
     case .sendFailed:
       HStack { Text("전송에 실패했습니다"); if let onRetrySend { Button("다시 시도", action: onRetrySend).foregroundStyle(.violet500) } }.typeStyle(.caption1).foregroundStyle(.errorRed)
     }
+  }
+
+  /// 음성 메모 아래에 붙는 STT 결과 말풍선입니다. 텍스트 말풍선과 같은 배경과 모서리를 쓰고 위쪽에 작은 라벨을 둡니다. 글이 짧으면 내용 길이에 맞춰지고 최대 폭은 말풍선 폭(298)입니다.
+  private func transcriptBox<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("STT")
+        .typeStyle(.footnoteEmphasized)
+        .foregroundStyle(.gray400)
+
+      content()
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 16)
+    .background(.gray5)
+    .clipShape(RoundedRectangle(cornerRadius: 24))
   }
 
   private func transferFailedView(title: String, onRetry: (() -> Void)?) -> some View {
@@ -184,19 +244,9 @@ struct ChatMessageBubble: View {
     }
   }
 
+  /// 검색어와 일치하는 모든 부분을 하이라이트한 본문입니다. 검색 중이 아니면 일반 텍스트입니다.
   private var contentText: Text {
-    guard
-      let highlightQuery,
-      !highlightQuery.isEmpty
-    else {
-      return Text(note.content)
-    }
-
-    var attributed = AttributedString(note.content)
-    if let range = attributed.range(of: highlightQuery, options: .caseInsensitive) {
-      attributed[range].backgroundColor = .violet200
-    }
-    return Text(attributed)
+    Text(highlighting: note.content, query: highlightQuery)
   }
 
   @ViewBuilder

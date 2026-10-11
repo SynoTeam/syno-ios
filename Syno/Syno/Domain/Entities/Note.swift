@@ -24,6 +24,8 @@ struct Note: Identifiable, Equatable, Hashable {
   var profileImageData: Data?
   var isFavorite: Bool
   var isPinned: Bool
+  /// 앨범에서 여러 장을 한 번에 보낸 사진이 공유하는 식별자입니다. 채팅에서 한 묶음으로 보여줍니다.
+  var photoGroupId: UUID?
 
   var timeText: String {
     let calendar = Calendar.current
@@ -42,6 +44,11 @@ struct Note: Identifiable, Equatable, Hashable {
   /// 날짜와 무관하게 시각만 표시합니다. 날짜별로 묶어 보여주는 채팅 화면에서 사용합니다.
   var clockTimeText: String {
     Self.timeFormatter.string(from: createdAt)
+  }
+
+  /// 채팅 말풍선을 옆으로 밀었을 때 보여주는 24시간제 시각입니다.
+  var chatTimeText: String {
+    Self.chatTimeFormatter.string(from: createdAt)
   }
 
   var contact: Contact {
@@ -69,7 +76,8 @@ struct Note: Identifiable, Equatable, Hashable {
     fileSize: Int? = nil,
     profileImageData: Data? = nil,
     isFavorite: Bool = false,
-    isPinned: Bool = false
+    isPinned: Bool = false,
+    photoGroupId: UUID? = nil
   ) {
     self.id = id
     self.contactId = contactId
@@ -86,10 +94,12 @@ struct Note: Identifiable, Equatable, Hashable {
     self.profileImageData = profileImageData
     self.isFavorite = isFavorite
     self.isPinned = isPinned
+    self.photoGroupId = photoGroupId
   }
 
   /// "12:22 PM" 형식으로 표시하기 위해 AM/PM은 영어 로캘을 사용합니다.
   private static let timeFormatter = makeFormatter("h:mm a", localeIdentifier: "en_US_POSIX")
+  private static let chatTimeFormatter = makeFormatter("HH:mm", localeIdentifier: "en_US_POSIX")
   private static let monthDayFormatter = makeFormatter("M월 d일")
   private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일")
 

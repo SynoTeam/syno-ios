@@ -70,6 +70,8 @@ struct MainTabView: View {
             accountResetService: accountResetService
           )
         }
+        // 탭바 선택색(보라)은 TabView의 tint를 쓰고, 화면 안의 기본 강조색은 검은색으로 덮어쓴다.
+        .tint(.gray950)
       }
       
       Tab(AppTab.notes.title, systemImage: AppTab.notes.systemImage, value: .notes) {
@@ -86,6 +88,7 @@ struct MainTabView: View {
             noteVoiceTranscriptRepository: noteVoiceTranscriptRepository
           )
         }
+        .tint(.gray950)
       }
       
       Tab(AppTab.search.title, systemImage: AppTab.search.systemImage, value: .search, role: .search) {
@@ -103,6 +106,7 @@ struct MainTabView: View {
             noteVoiceTranscriptRepository: noteVoiceTranscriptRepository
           )
         }
+        .tint(.gray950)
       }
     }
     .tint(.violet500)

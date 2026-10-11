@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Observation
 import OSLog
@@ -246,16 +247,39 @@ final class ChatViewModel {
     return true
   }
 
-  func sendImageData(_ rawImageData: Data) async {
-    guard let imageData = Self.compressedImageData(from: rawImageData) else {
-      return
-    }
-    let note = makeNote(content: "사진", imageData: imageData)
-    guard save(note) else {
-      return
-    }
-    trackNoteEvent(AnalyticsEvent.noteSent, note: note)
+  /// 사진을 보냅니다. 2장 이상이면 같은 묶음 id를 붙여 채팅에서 한 말풍선으로 보이게 합니다.
+  /// 모든 사진을 먼저 저장해 한 번에 보이게 하고, 시간이 걸리는 이미지 분석은 저장 뒤에 순서대로 합니다.
+  func sendImages(_ rawImageDatas: [Data]) async {
+    let groupId = rawImageDatas.count > 1 ? UUID() : nil
+    var sentPhotos: [(note: Note, imageData: Data)] = []
 
+    for rawImageData in rawImageDatas {
+      // 큰 사진을 줄이는 동안 UI가 멈추지 않게 백그라운드에서 처리한다.
+      let compressed = await Task.detached(priority: .userInitiated) {
+        Self.compressedImageData(from: rawImageData)
+      }.value
+      guard let imageData = compressed else {
+        continue
+      }
+
+      let note = makeNote(content: "사진", imageData: imageData, photoGroupId: groupId)
+      guard save(note) else {
+        continue
+      }
+      trackNoteEvent(AnalyticsEvent.noteSent, note: note)
+      sentPhotos.append((note, imageData))
+    }
+
+    for photo in sentPhotos {
+      await analyzeImage(imageData: photo.imageData, for: photo.note)
+    }
+  }
+
+  func sendImageData(_ rawImageData: Data) async {
+    await sendImages([rawImageData])
+  }
+
+  private func analyzeImage(imageData: Data, for note: Note) async {
     do {
       let result = try await imageAnalyzer.analyze(imageData: imageData)
       try await imageAnalysisRepository.save(
@@ -271,11 +295,44 @@ final class ChatViewModel {
     }
   }
 
-  func sendVoiceMemo(audioData: Data, duration: TimeInterval, waveform: [Float]) async {
-    let note = makeNote(content: "무제-\(nextVoiceMemoNumber())", voiceMemoData: audioData, voiceMemoDuration: duration, voiceMemoWaveform: waveform)
+  func sendVoiceMemo(audioData: Data, duration: TimeInterval, waveform: [Float], title: String? = nil) async {
+    let note = makeNote(content: title ?? "무제-\(nextVoiceMemoNumber())", voiceMemoData: audioData, voiceMemoDuration: duration, voiceMemoWaveform: waveform)
     guard save(note) else { messages.append(note); voiceMemoStates[note.id] = .sendFailed; return }
     trackNoteEvent(AnalyticsEvent.noteSent, note: note)
     await transcribe(note)
+  }
+
+  /// 아이폰 음성 메모 앱 등에서 가져온 오디오 파일을 음성 메모로 보냅니다. 파일 이름을 제목으로 씁니다.
+  func sendVoiceMemoFile(url: URL) async {
+    // 큰 오디오 파일을 읽고 파형을 계산하는 동안 UI가 멈추지 않게 백그라운드에서 처리합니다.
+    let prepared = await Task.detached(priority: .utility) { () -> (data: Data, duration: TimeInterval, waveform: [Float])? in
+      guard
+        let data = try? Data(contentsOf: url),
+        let player = try? AVAudioPlayer(data: data),
+        player.duration > 0
+      else {
+        return nil
+      }
+
+      let waveform = VoiceRecorder.waveform(
+        fromAudioFileAt: url,
+        bucketCount: VoiceRecorder.waveformBucketCount
+      )
+      return (data, player.duration, waveform)
+    }.value
+
+    guard let prepared else {
+      persistenceError = "음성 파일을 읽지 못했습니다. 다시 시도해주세요."
+      return
+    }
+
+    let title = url.deletingPathExtension().lastPathComponent
+    await sendVoiceMemo(
+      audioData: prepared.data,
+      duration: prepared.duration,
+      waveform: prepared.waveform,
+      title: title.isEmpty ? nil : title
+    )
   }
 
   func sendFile(url: URL) async {
@@ -357,7 +414,7 @@ final class ChatViewModel {
     persistenceError = nil
   }
 
-  private func makeNote(content: String, imageData: Data? = nil, voiceMemoData: Data? = nil, voiceMemoDuration: TimeInterval? = nil, voiceMemoWaveform: [Float]? = nil, fileData: Data? = nil, fileName: String? = nil, fileSize: Int? = nil) -> Note {
+  private func makeNote(content: String, imageData: Data? = nil, voiceMemoData: Data? = nil, voiceMemoDuration: TimeInterval? = nil, voiceMemoWaveform: [Float]? = nil, fileData: Data? = nil, fileName: String? = nil, fileSize: Int? = nil, photoGroupId: UUID? = nil) -> Note {
     Note(
       contactId: contact.id,
       contactName: contact.name,
@@ -369,7 +426,8 @@ final class ChatViewModel {
       fileData: fileData,
       fileName: fileName,
       fileSize: fileSize,
-      profileImageData: contact.profileImageData
+      profileImageData: contact.profileImageData,
+      photoGroupId: photoGroupId
     )
   }
 
@@ -502,7 +560,7 @@ final class ChatViewModel {
     }
   }
 
-  private static func compressedImageData(
+  private nonisolated static func compressedImageData(
     from data: Data,
     maxDimension: CGFloat = 1600
   ) -> Data? {

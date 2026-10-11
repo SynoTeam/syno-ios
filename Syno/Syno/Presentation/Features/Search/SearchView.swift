@@ -333,9 +333,10 @@ struct SearchView: View {
   @ViewBuilder
   private func destination(for result: SearchResult) -> some View {
     switch result {
-    case let .text(_, contact), let .photo(_, contact), let .link(_, contact, _), let .voice(_, contact, _), let .file(_, contact):
+    case let .text(note, contact), let .photo(note, contact), let .link(note, contact, _), let .voice(note, contact, _), let .file(note, contact):
       ChatView(
         contact: contact,
+        initialMessageID: note.id,
         repository: noteRepository,
         imageAnalyzer: noteImageAnalyzer,
         imageAnalysisRepository: noteImageAnalysisRepository,

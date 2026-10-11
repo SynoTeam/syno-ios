@@ -32,6 +32,9 @@ struct AddContactPhotoPickerView: View {
   /// 이미지 로드 또는 렌더링 실패 알림입니다.
   @State private var toast: Toast?
 
+  /// 카메라 권한이 거부되었을 때 설정 이동을 안내하는 알럿입니다.
+  @State private var deniedPermission: PermissionKind?
+
   var body: some View {
     VStack(spacing: 20) {
       profileImage
@@ -51,6 +54,7 @@ struct AddContactPhotoPickerView: View {
       )
     }
     .toast(item: $toast)
+    .permissionDeniedAlert($deniedPermission)
   }
 
   private var profileImage: some View {
@@ -75,7 +79,7 @@ struct AddContactPhotoPickerView: View {
   private var photoMenu: some View {
     Menu {
       Button {
-        openCamera()
+        Task { await openCamera() }
       } label: {
         menuLabel("사진 촬영하기", icon: .camera)
       }
@@ -147,13 +151,20 @@ struct AddContactPhotoPickerView: View {
     }
   }
 
-  private func openCamera() {
+  private func openCamera() async {
     guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
       showFailureToast("이 기기에서는 카메라를 사용할 수 없습니다.")
       return
     }
 
-    isShowingCamera = true
+    switch await PermissionChecker.requestCameraAccess() {
+    case .granted:
+      isShowingCamera = true
+    case .declinedInPrompt:
+      break
+    case .previouslyDenied:
+      deniedPermission = .camera
+    }
   }
 
   private func presentPendingCameraImage() {

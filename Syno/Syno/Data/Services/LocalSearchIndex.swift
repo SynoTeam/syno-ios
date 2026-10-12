@@ -75,7 +75,7 @@ final class LocalSearchIndex: SearchIndexing {
     let eligibleDocuments = documents.filter(\.isSemanticEligible)
     guard !eligibleDocuments.isEmpty else {
       logger.debug(
-        "Query embedding skipped; all documents use short-text bi-gram fallback query=\(query, privacy: .public)"
+        "Query embedding skipped; all documents use short-text bi-gram fallback queryLength=\(query.count)"
       )
       return fallbackScores(for: query, documents: documents)
     }
@@ -84,11 +84,11 @@ final class LocalSearchIndex: SearchIndexing {
     do {
       queryEmbedding = try await embeddingProvider.embedding(for: query)
       logger.debug(
-        "Query embedding succeeded query=\(query, privacy: .public) dimensions=\(queryEmbedding.count)"
+        "Query embedding succeeded queryLength=\(query.count) dimensions=\(queryEmbedding.count)"
       )
     } catch {
       logger.debug(
-        "Query embedding failed; using bi-gram fallback query=\(query, privacy: .public) error=\(String(describing: error), privacy: .public)"
+        "Query embedding failed; using bi-gram fallback queryLength=\(query.count) domain=\((error as NSError).domain, privacy: .public) code=\((error as NSError).code)"
       )
       return fallbackScores(for: query, documents: documents)
     }
@@ -153,7 +153,7 @@ final class LocalSearchIndex: SearchIndexing {
       })
     } catch {
       logger.debug(
-        "Semantic scoring pipeline failed; using bi-gram fallback query=\(query, privacy: .public) error=\(String(describing: error), privacy: .public)"
+        "Semantic scoring pipeline failed; using bi-gram fallback queryLength=\(query.count) domain=\((error as NSError).domain, privacy: .public) code=\((error as NSError).code)"
       )
       return fallbackScores(for: query, documents: documents)
     }
@@ -241,7 +241,7 @@ final class LocalSearchIndex: SearchIndexing {
     let normalizedText = normalizedScore.map { String(format: "%.6f", $0) } ?? "n/a"
     let fallbackText = fallbackScore.map { String(format: "%.6f", $0) } ?? "n/a"
     logger.debug(
-      "Search score sourceId=\(document.key.sourceId.uuidString, privacy: .public) text=\(document.text, privacy: .public) rawCosine=\(rawCosineText, privacy: .public) normalizedSemanticScore=\(normalizedText, privacy: .public) biGramScore=\(fallbackText, privacy: .public) path=\(path, privacy: .public)"
+      "Search score sourceId=\(document.key.sourceId.uuidString, privacy: .public) rawCosine=\(rawCosineText, privacy: .public) normalizedSemanticScore=\(normalizedText, privacy: .public) biGramScore=\(fallbackText, privacy: .public) path=\(path, privacy: .public)"
     )
   }
 

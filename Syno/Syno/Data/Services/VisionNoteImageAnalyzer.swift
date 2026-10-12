@@ -31,7 +31,7 @@ actor VisionNoteImageAnalyzer: NoteImageAnalyzing {
         .map(\.identifier)
     } catch {
       logger.debug(
-        "Vision classification unavailable error=\(String(describing: error), privacy: .public)"
+        "Vision classification unavailable domain=\((error as NSError).domain, privacy: .public) code=\((error as NSError).code)"
       )
     }
 
@@ -48,7 +48,7 @@ actor VisionNoteImageAnalyzer: NoteImageAnalyzing {
       }
     } catch {
       logger.debug(
-        "Vision OCR unavailable error=\(String(describing: error), privacy: .public)"
+        "Vision OCR unavailable domain=\((error as NSError).domain, privacy: .public) code=\((error as NSError).code)"
       )
     }
 
@@ -60,7 +60,7 @@ actor VisionNoteImageAnalyzer: NoteImageAnalyzing {
       Date().timeIntervalSince(startedAt) * 1_000
     )
     logger.debug(
-      "Vision analysis completed durationMs=\(durationMilliseconds) imageBytes=\(imageData.count) labels=\(result.labels.joined(separator: ", "), privacy: .public) ocrText=\(result.ocrText, privacy: .public)"
+      "Vision analysis completed durationMs=\(durationMilliseconds) imageBytes=\(imageData.count) labelCount=\(result.labels.count) ocrTextLength=\(result.ocrText.count)"
     )
     return result
   }

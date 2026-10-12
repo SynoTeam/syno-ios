@@ -94,6 +94,7 @@ final class StoredNote {
   var isFavorite: Bool = false
   var isPinned: Bool = false
   var createdAt: Date = Date()
+  var photoGroupId: UUID?
 
   init(
     id: UUID,
@@ -110,7 +111,8 @@ final class StoredNote {
     profileImageData: Data?,
     isFavorite: Bool,
     isPinned: Bool = false,
-    createdAt: Date = Date()
+    createdAt: Date = Date(),
+    photoGroupId: UUID? = nil
   ) {
     self.id = id
     self.contactId = contactId
@@ -127,6 +129,7 @@ final class StoredNote {
     self.isFavorite = isFavorite
     self.isPinned = isPinned
     self.createdAt = createdAt
+    self.photoGroupId = photoGroupId
   }
 }
 

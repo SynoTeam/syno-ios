@@ -44,6 +44,9 @@ final class StoredNote {
   /// 저장 생성 시각입니다.
   var createdAt: Date = Date()
 
+  /// 여러 장을 한 번에 보낸 사진의 묶음 식별자입니다.
+  var photoGroupId: UUID?
+
   init(
     id: UUID,
     contactId: UUID?,
@@ -59,7 +62,8 @@ final class StoredNote {
     profileImageData: Data?,
     isFavorite: Bool,
     isPinned: Bool = false,
-    createdAt: Date = Date()
+    createdAt: Date = Date(),
+    photoGroupId: UUID? = nil
   ) {
     self.id = id
     self.contactId = contactId
@@ -76,6 +80,7 @@ final class StoredNote {
     self.isFavorite = isFavorite
     self.isPinned = isPinned
     self.createdAt = createdAt
+    self.photoGroupId = photoGroupId
   }
 
   convenience init(note: Note) {
@@ -94,7 +99,8 @@ final class StoredNote {
       profileImageData: note.profileImageData,
       isFavorite: note.isFavorite,
       isPinned: note.isPinned,
-      createdAt: note.createdAt
+      createdAt: note.createdAt,
+      photoGroupId: note.photoGroupId
     )
   }
 }
@@ -115,6 +121,7 @@ extension StoredNote {
     isFavorite = note.isFavorite
     isPinned = note.isPinned
     createdAt = note.createdAt
+    photoGroupId = note.photoGroupId
   }
 
   /// 저장된 노트를 화면에서 사용하는 `Note` 엔티티로 변환합니다.
@@ -134,7 +141,8 @@ extension StoredNote {
       fileSize: fileSize,
       profileImageData: profileImageData,
       isFavorite: isFavorite,
-      isPinned: isPinned
+      isPinned: isPinned,
+      photoGroupId: photoGroupId
     )
   }
 }

@@ -29,7 +29,7 @@ struct ChatPhotoConfirmationView: View {
         onApply: send
       )
 
-      photos
+      photoContent
         .frame(maxHeight: .infinity)
     }
     .padding(.top, 16)
@@ -38,7 +38,7 @@ struct ChatPhotoConfirmationView: View {
   }
 
   @ViewBuilder
-  private var photos: some View {
+  private var photoContent: some View {
     if images.count > 1 {
       TabView {
         ForEach(images.indices, id: \.self) { index in

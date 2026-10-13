@@ -84,6 +84,9 @@ final class SwiftDataContactRepository: ContactRepository {
         let linkPreviews = try modelContext.fetch(
           FetchDescriptor<StoredNoteLinkPreview>()
         )
+        let voiceTranscripts = try modelContext.fetch(
+          FetchDescriptor<StoredNoteVoiceTranscript>()
+        )
         let noteEmbeddings = try modelContext.fetch(
           FetchDescriptor<StoredNoteEmbedding>()
         )
@@ -99,6 +102,9 @@ final class SwiftDataContactRepository: ContactRepository {
         }
         for preview in linkPreviews where noteIDs.contains(preview.noteId) {
           modelContext.delete(preview)
+        }
+        for transcript in voiceTranscripts where noteIDs.contains(transcript.noteId) {
+          modelContext.delete(transcript)
         }
         for embedding in noteEmbeddings where noteIDs.contains(embedding.noteId) {
           modelContext.delete(embedding)

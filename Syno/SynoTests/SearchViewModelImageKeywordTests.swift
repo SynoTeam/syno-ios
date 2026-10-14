@@ -28,7 +28,8 @@ final class SearchViewModelImageKeywordTests: XCTestCase {
     )
     defaults.removePersistentDomain(forName: "SearchViewModelImageKeywordTests")
     let viewModel = SearchViewModel(
-      modelContext: container.mainContext,
+      noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext),
+      contactRepository: SwiftDataContactRepository(modelContext: container.mainContext),
       searchIndex: EmptySearchIndex(),
       noteImageAnalysisRepository: ImageAnalysisRepositoryStub(
         analyses: [

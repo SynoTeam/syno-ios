@@ -1,8 +1,9 @@
 import SwiftData
+import SwiftUI
 
 @MainActor
 enum PreviewRepositories {
-  private static let container: ModelContainer = {
+  static let container: ModelContainer = {
     do {
       return try ModelContainer(
         for: UserProfile.self,
@@ -55,4 +56,34 @@ enum PreviewRepositories {
     SwiftDataUserProfileRepository(modelContext: container.mainContext)
 
   static let accountReset = AccountResetService(modelContext: container.mainContext)
+
+  static let appContainer = AppContainer(
+    modelContainer: container,
+    contactRepository: contact,
+    noteRepository: note,
+    userProfileRepository: userProfile,
+    searchIndex: searchIndex,
+    noteImageAnalyzer: noteImageAnalyzer,
+    noteImageAnalysisRepository: noteImageAnalysis,
+    linkPreviewFetcher: linkPreviewFetcher,
+    noteLinkPreviewRepository: noteLinkPreview,
+    labelTranslator: labelTranslator,
+    noteVoiceTranscriber: noteVoiceTranscriber,
+    noteVoiceTranscriptRepository: noteVoiceTranscript,
+    accountResetService: accountReset,
+    searchIndexBackfillService: SearchIndexBackfillService(
+      modelContext: container.mainContext,
+      searchIndex: searchIndex,
+      noteImageAnalysisRepository: noteImageAnalysis,
+      labelTranslator: labelTranslator
+    ),
+    groupService: GroupService(modelContext: container.mainContext)
+  )
+}
+
+extension View {
+  /// `@Query`를 쓰는 화면의 프리뷰에 미리보기용 모델 컨테이너를 주입합니다.
+  func previewModelContainer() -> some View {
+    modelContainer(PreviewRepositories.container)
+  }
 }

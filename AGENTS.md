@@ -47,6 +47,7 @@ View → ViewModel → Repository/Service → SwiftData 또는 시스템 API
 - 서비스, 저장소, AI 클라이언트는 View 안에서 만들지 않고 생성자로 주입합니다.
   - 교체 가능성이나 테스트 경계가 필요한 의존성만 프로토콜로 만듭니다.
   - 단순한 값 변환이나 한 곳에서만 쓰는 동작을 위해 프로토콜, 매니저, 헬퍼 계층을 만들지 않습니다.
+- `AppContainer`는 `SynoApp`, `RootView`, `MainTabView`에서만 사용합니다. 기능 화면과 하위 컴포넌트에는 필요한 의존성만 개별 인자로 전달하고, 컨테이너 자체를 넘기지 않습니다.
 - UseCase는 여러 저장소를 묶는 반복 작업이 생길 때만 만듭니다.
 - `DesignSystem`은 기능별 도메인 개념에 의존하지 않습니다.
 - 기능 이름은 `Chat`입니다. 대화 화면과 관련된 코드는 `Presentation/Features/Chat`에 둡니다.

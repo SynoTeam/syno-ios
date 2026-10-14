@@ -38,6 +38,7 @@ final class SearchViewModelImageKeywordTests: XCTestCase {
           )
         ]
       ),
+      noteVoiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub(),
       labelTranslator: StaticLabelDictionary(
         translations: ["cat": "고양이"]
       ),

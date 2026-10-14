@@ -12,7 +12,9 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
       repository: noteRepository,
       imageAnalyzer: FailingImageAnalyzer(),
       imageAnalysisRepository: analysisRepository,
-      labelTranslator: StaticLabelDictionary(translations: [:])
+      labelTranslator: StaticLabelDictionary(translations: [:]),
+      voiceTranscriber: UnusedVoiceTranscriberStub(),
+      voiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub()
     )
     let imageData = try XCTUnwrap(
       UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8))
@@ -60,7 +62,9 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
       imageAnalysisRepository: analysisRepository,
       labelTranslator: StaticLabelDictionary(
         translations: ["cat": "고양이"]
-      )
+      ),
+      voiceTranscriber: UnusedVoiceTranscriberStub(),
+      voiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub()
     )
 
     await viewModel.loadMessages()
@@ -91,7 +95,9 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
       repository: noteRepository,
       imageAnalyzer: FailingImageAnalyzer(),
       imageAnalysisRepository: ImageAnalysisRepositorySpy(),
-      labelTranslator: StaticLabelDictionary(translations: [:])
+      labelTranslator: StaticLabelDictionary(translations: [:]),
+      voiceTranscriber: UnusedVoiceTranscriberStub(),
+      voiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub()
     )
 
     await viewModel.loadMessages()
@@ -111,7 +117,9 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
       repository: noteRepository,
       imageAnalyzer: FailingImageAnalyzer(),
       imageAnalysisRepository: ImageAnalysisRepositorySpy(),
-      labelTranslator: StaticLabelDictionary(translations: [:])
+      labelTranslator: StaticLabelDictionary(translations: [:]),
+      voiceTranscriber: UnusedVoiceTranscriberStub(),
+      voiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub()
     )
     viewModel.messageText = "전송 실패 메시지"
 

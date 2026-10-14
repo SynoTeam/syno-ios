@@ -27,10 +27,9 @@ struct ChatView: View {
   @State private var isMessageSearchPresented = false
   @State private var currentMatchIndex = 0
   @State private var isShowingArchive = false
-  /// 채팅 안에서 여러 메시지를 골라 삭제하는 선택 모드입니다.
   @State private var deniedPermission: PermissionKind?
-  @State private var isSelectingMessages = false
-  @State private var selectedMessageIDs: Set<Note.ID> = []
+  /// 채팅 안에서 여러 메시지를 골라 삭제하는 선택 모드입니다.
+  @State private var selection = ChatSelectionState()
   @State private var deletionAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
   @State private var fullTextNote: Note?
@@ -113,8 +112,8 @@ struct ChatView: View {
   private var content: some View {
     VStack(spacing: 0) {
       messagesScrollView
-      if isSelectingMessages {
-        selectionBar
+      if selection.isActive {
+        ChatSelectionBar(selectedCount: selection.count, onDelete: requestSelectionDeletion)
       } else {
         messageInputBar
       }
@@ -122,7 +121,7 @@ struct ChatView: View {
     .background(Color.gray50)
     .toast(item: $toast)
     .onChange(of: viewModel.messages.map(\.id)) { _, messageIDs in
-      selectedMessageIDs.formIntersection(Set(messageIDs))
+      selection.retain(only: Set(messageIDs))
     }
     .onChange(of: viewModel.fileDownloadStates) { _, newStates in
       handleFileDownloadStateChange(newStates)
@@ -132,8 +131,8 @@ struct ChatView: View {
   /// 제목, 툴바, 검색 등 네비게이션 영역 설정을 붙인 화면입니다.
   private var navigationContent: some View {
     content
-      .navigationTitle(isSelectingMessages ? "\(selectedMessageIDs.count)개 선택" : viewModel.contact.name)
-      .navigationBarBackButtonHidden(isSelectingMessages)
+      .navigationTitle(selection.isActive ? "\(selection.count)개 선택" : viewModel.contact.name)
+      .navigationBarBackButtonHidden(selection.isActive)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar(.hidden, for: .tabBar)
       .toolbar { toolbarContent }
@@ -168,15 +167,17 @@ struct ChatView: View {
 
   @ToolbarContentBuilder
   private var toolbarContent: some ToolbarContent {
-    if isSelectingMessages {
+    if selection.isActive {
       ToolbarItem(placement: .topBarLeading) {
-        Button("취소", action: endMessageSelection)
+        Button("취소") {
+          selection.end()
+        }
       }
       ToolbarItem(placement: .topBarTrailing) {
         Button("선택 해제") {
-          selectedMessageIDs = []
+          selection.clearSelection()
         }
-        .disabled(selectedMessageIDs.isEmpty)
+        .disabled(selection.isEmpty)
       }
     } else {
       ToolbarItemGroup(placement: .topBarTrailing) {
@@ -312,7 +313,7 @@ struct ChatView: View {
   private var timeRevealGesture: some Gesture {
     DragGesture(minimumDistance: 12)
       .onChanged { value in
-        guard !isSelectingMessages else {
+        guard !selection.isActive else {
           return
         }
         let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
@@ -596,34 +597,17 @@ struct ChatView: View {
     }
   }
 
-  /// 말풍선 오른쪽에 체크 원을 붙이는 선택 가능한 줄입니다. 선택 모드에서는 줄 전체가 탭 대상이 됩니다.
-  /// 묶음은 안의 모든 사진이 함께 선택되고 해제됩니다.
+  /// 선택 가능한 줄입니다. 묶음은 안의 모든 사진이 함께 선택되고 해제됩니다.
   private func selectableRow<Content: View>(
     ids: [Note.ID],
     @ViewBuilder content: () -> Content
   ) -> some View {
-    let isSelected = ids.allSatisfy { selectedMessageIDs.contains($0) }
-
-    return HStack(alignment: .center, spacing: 12) {
-      content()
-        .allowsHitTesting(!isSelectingMessages)
-
-      if isSelectingMessages {
-        selectionIndicator(isSelected: isSelected)
-          .transition(.move(edge: .trailing).combined(with: .opacity))
-      }
-    }
-    .overlay {
-      // 선택 모드에서만 줄 전체를 덮어 탭으로 선택을 토글한다. 평소에는 말풍선 동작에 영향을 주지 않는다.
-      if isSelectingMessages {
-        Color.clear
-          .contentShape(Rectangle())
-          .onTapGesture {
-            toggleSelection(for: ids)
-          }
-      }
-    }
-    .animation(.snappy(duration: 0.25), value: isSelectingMessages)
+    ChatSelectableRow(
+      isSelectionActive: selection.isActive,
+      isSelected: selection.isSelected(ids),
+      onToggle: { selection.toggle(ids) },
+      content: content
+    )
     .id(ids[0])
   }
 
@@ -646,7 +630,7 @@ struct ChatView: View {
       highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil,
       isHighlighted: highlightedMessageID == message.id,
       revealedTimeText: message.chatTimeText,
-      timeRevealOffset: isSelectingMessages ? 0 : timeRevealOffset
+      timeRevealOffset: selection.isActive ? 0 : timeRevealOffset
     )
   }
 
@@ -657,7 +641,7 @@ struct ChatView: View {
       onShowPhoto: { photoPreviewNoteID = $0.id },
       isHighlighted: notes.contains { $0.id == highlightedMessageID },
       revealedTimeText: notes.last?.chatTimeText,
-      timeRevealOffset: isSelectingMessages ? 0 : timeRevealOffset
+      timeRevealOffset: selection.isActive ? 0 : timeRevealOffset
     )
   }
 
@@ -673,63 +657,14 @@ struct ChatView: View {
     return messageID
   }
 
-  /// 선택 모드에서 말풍선 오른쪽에 보이는 체크 원입니다. 선택되면 짙은 원 안에 흰 체크가 나타납니다.
-  private func selectionIndicator(isSelected: Bool) -> some View {
-    Circle()
-      .fill(isSelected ? Color.gray900 : Color.clear)
-      .overlay {
-        if isSelected {
-          Image(systemName: "checkmark")
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.white)
-        } else {
-          Circle().stroke(Color.gray300, lineWidth: 1.5)
-        }
-      }
-      .frame(width: 28, height: 28)
-      .accessibilityLabel(isSelected ? "선택됨" : "선택 안 됨")
-  }
-
-  private var selectionBar: some View {
-    Button(action: requestSelectionDeletion) {
-      Text(selectedMessageIDs.isEmpty ? "삭제" : "삭제 (\(selectedMessageIDs.count))")
-        .typeStyle(.calloutEmphasized)
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity)
-        .frame(height: 48)
-        .background(selectedMessageIDs.isEmpty ? Color.gray300 : Color.errorRed)
-        .clipShape(Capsule())
-    }
-    .disabled(selectedMessageIDs.isEmpty)
-    .padding(.horizontal, 14)
-    .padding(.vertical, 10)
-    .background(Color.gray50)
-    .accessibilityLabel("선택한 메시지 삭제")
-  }
-
   /// 길게 눌러 고른 메시지를 먼저 선택한 상태로 선택 모드를 시작합니다.
   private func requestDelete(ids: [Note.ID]) {
     isInputFocused = false
-    selectedMessageIDs = Set(ids)
-    isSelectingMessages = true
-  }
-
-  private func endMessageSelection() {
-    isSelectingMessages = false
-    selectedMessageIDs = []
-  }
-
-  /// 전부 선택되어 있으면 모두 해제하고, 아니면 모두 선택합니다.
-  private func toggleSelection(for ids: [Note.ID]) {
-    if ids.allSatisfy({ selectedMessageIDs.contains($0) }) {
-      selectedMessageIDs.subtract(ids)
-    } else {
-      selectedMessageIDs.formUnion(ids)
-    }
+    selection.begin(with: ids)
   }
 
   private func requestSelectionDeletion() {
-    let count = selectedMessageIDs.count
+    let count = selection.count
     guard count > 0 else {
       return
     }
@@ -744,13 +679,13 @@ struct ChatView: View {
   }
 
   private func deleteSelectedMessages() {
-    let deletedCount = selectedMessageIDs.count
-    guard viewModel.deleteMessages(ids: selectedMessageIDs) else {
+    let deletedCount = selection.count
+    guard viewModel.deleteMessages(ids: selection.selectedIDs) else {
       toast = Toast(message: "메시지 삭제 실패했습니다", style: .failure)
       return
     }
 
-    endMessageSelection()
+    selection.end()
     toast = Toast(
       message: "메시지 \(deletedCount)개가 삭제되었습니다",
       style: .success,

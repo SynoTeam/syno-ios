@@ -42,6 +42,47 @@ final class SwiftDataNoteRepositoryTests: XCTestCase {
   }
 
   @MainActor
+  func testFetchAllReturnsNotesRegardlessOfContactNewestFirst() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+    let contactId = UUID()
+
+    try repository.save(
+      Note(contactId: contactId, contactName: "연결됨", content: "가장 오래됨", createdAt: Date(timeIntervalSince1970: 100))
+    )
+    try repository.save(
+      Note(contactId: nil, contactName: "연결 안 됨", content: "가장 최신", createdAt: Date(timeIntervalSince1970: 300))
+    )
+    try repository.save(
+      Note(contactId: UUID(), contactName: "다른 연락처", content: "중간", createdAt: Date(timeIntervalSince1970: 200))
+    )
+
+    let notes = try repository.fetchAll()
+
+    XCTAssertEqual(notes.map(\.content), ["가장 최신", "중간", "가장 오래됨"])
+  }
+
+  @MainActor
+  func testFetchAllReturnsEmptyArrayForEmptyStore() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+
+    XCTAssertTrue(try repository.fetchAll().isEmpty)
+  }
+
+  @MainActor
+  func testFetchWithNilContactIdReturnsOnlyUnlinkedNotes() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+
+    try repository.save(Note(contactId: UUID(), contactName: "연결됨", content: "연결된 노트"))
+    try repository.save(Note(contactId: nil, contactName: "연결 안 됨", content: "연결 안 된 노트"))
+
+    XCTAssertEqual(try repository.fetch(contactId: nil).map(\.content), ["연결 안 된 노트"])
+    XCTAssertEqual(try repository.fetchAll().count, 2)
+  }
+
+  @MainActor
   func testSaveUpdatesExistingNoteWithoutCreatingDuplicate() async throws {
     let container = try makeContainer()
     let repository = SwiftDataNoteRepository(modelContext: container.mainContext)

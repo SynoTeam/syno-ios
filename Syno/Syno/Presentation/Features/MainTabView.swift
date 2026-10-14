@@ -5,11 +5,9 @@
 //  Created by 이승진 on 7/14/26.
 //
 
-import SwiftData
 import SwiftUI
 
 struct MainTabView: View {
-  @Environment(\.modelContext) private var modelContext
   @State private var selectedTab: AppTab = .contacts
   let userProfile: UserProfile?
   private let contactRepository: any ContactRepository
@@ -94,8 +92,8 @@ struct MainTabView: View {
       Tab(AppTab.search.title, systemImage: AppTab.search.systemImage, value: .search, role: .search) {
         NavigationStack {
           SearchView(
-            modelContext: modelContext,
             noteRepository: noteRepository,
+            contactRepository: contactRepository,
             searchIndex: searchIndex,
             noteImageAnalyzer: noteImageAnalyzer,
             noteImageAnalysisRepository: noteImageAnalysisRepository,

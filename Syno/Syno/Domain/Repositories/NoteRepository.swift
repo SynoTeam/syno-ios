@@ -3,6 +3,9 @@ import Foundation
 @MainActor
 protocol NoteRepository {
   func fetch(contactId: UUID?) throws -> [Note]
+
+  /// 연락처와 상관없이 저장된 모든 노트를 최신순으로 가져옵니다.
+  func fetchAll() throws -> [Note]
   func save(_ note: Note) throws
   func delete(id: Note.ID) throws
 

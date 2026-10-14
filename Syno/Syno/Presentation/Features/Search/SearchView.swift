@@ -5,7 +5,6 @@
 //  Created by 이승진 on 7/14/26.
 //
 
-import SwiftData
 import SwiftUI
 
 struct SearchView: View {
@@ -14,6 +13,7 @@ struct SearchView: View {
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @Environment(\.analytics) private var analytics
   private let noteRepository: any NoteRepository
+  private let contactRepository: any ContactRepository
   private let noteImageAnalyzer: any NoteImageAnalyzing
   private let noteImageAnalysisRepository: any NoteImageAnalysisRepository
   private let linkPreviewFetcher: any NoteLinkPreviewFetching
@@ -23,8 +23,8 @@ struct SearchView: View {
   private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
 
   init(
-    modelContext: ModelContext,
     noteRepository: any NoteRepository,
+    contactRepository: any ContactRepository,
     searchIndex: any SearchIndexing,
     noteImageAnalyzer: any NoteImageAnalyzing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
@@ -35,6 +35,7 @@ struct SearchView: View {
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   ) {
     self.noteRepository = noteRepository
+    self.contactRepository = contactRepository
     self.noteImageAnalyzer = noteImageAnalyzer
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.linkPreviewFetcher = linkPreviewFetcher
@@ -44,7 +45,8 @@ struct SearchView: View {
     self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     _viewModel = State(
       initialValue: SearchViewModel(
-        modelContext: modelContext,
+        noteRepository: noteRepository,
+        contactRepository: contactRepository,
         searchIndex: searchIndex,
         noteImageAnalysisRepository: noteImageAnalysisRepository,
         noteLinkPreviewRepository: noteLinkPreviewRepository,
@@ -352,16 +354,10 @@ struct SearchView: View {
 }
 
 #Preview {
-  let container = try! ModelContainer(
-    for: StoredContact.self,
-    StoredNote.self,
-    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-  )
-
   NavigationStack {
     SearchView(
-      modelContext: container.mainContext,
-      noteRepository: SwiftDataNoteRepository(modelContext: container.mainContext),
+      noteRepository: PreviewRepositories.note,
+      contactRepository: PreviewRepositories.contact,
       searchIndex: PreviewRepositories.searchIndex,
       noteImageAnalyzer: PreviewRepositories.noteImageAnalyzer,
       noteImageAnalysisRepository: PreviewRepositories.noteImageAnalysis,

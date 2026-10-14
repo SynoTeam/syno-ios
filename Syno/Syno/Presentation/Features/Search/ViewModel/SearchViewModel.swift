@@ -5,7 +5,6 @@
 
 import Foundation
 import Observation
-import SwiftData
 
 @MainActor
 @Observable
@@ -21,7 +20,8 @@ final class SearchViewModel {
   private(set) var isSearching = false
   private(set) var recentSearches: [String] = []
 
-  @ObservationIgnored private let modelContext: ModelContext
+  @ObservationIgnored private let noteRepository: any NoteRepository
+  @ObservationIgnored private let contactRepository: any ContactRepository
   @ObservationIgnored private let searchIndex: any SearchIndexing
   @ObservationIgnored private let noteImageAnalysisRepository:
     any NoteImageAnalysisRepository
@@ -35,7 +35,8 @@ final class SearchViewModel {
   private static let recentSearchLimit = 6
 
   init(
-    modelContext: ModelContext,
+    noteRepository: any NoteRepository,
+    contactRepository: any ContactRepository,
     searchIndex: any SearchIndexing,
     noteImageAnalysisRepository: any NoteImageAnalysisRepository,
     noteLinkPreviewRepository: any NoteLinkPreviewRepository = NoopNoteLinkPreviewRepository(),
@@ -43,7 +44,8 @@ final class SearchViewModel {
     labelTranslator: any LabelTranslating,
     userDefaults: UserDefaults = .standard
   ) {
-    self.modelContext = modelContext
+    self.noteRepository = noteRepository
+    self.contactRepository = contactRepository
     self.searchIndex = searchIndex
     self.noteImageAnalysisRepository = noteImageAnalysisRepository
     self.noteLinkPreviewRepository = noteLinkPreviewRepository
@@ -178,15 +180,11 @@ final class SearchViewModel {
     }
 
     do {
-      let storedNotes = try modelContext.fetch(
-        FetchDescriptor<StoredNote>(
-          sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
-      )
+      let notes = try noteRepository.fetchAll()
       // 연락처 이름을 바꾼 뒤에도 새 이름으로 검색되도록, 노트에 복사된 이름이 아니라 현재 연락처 이름을 쓴다.
-      let storedContacts = try modelContext.fetch(FetchDescriptor<StoredContact>())
-      let contactNamesById = Dictionary(
-        storedContacts.map { ($0.id, $0.name) },
+      let contacts = try contactRepository.fetchAll()
+      let contactsById = Dictionary(
+        contacts.map { ($0.id, $0) },
         uniquingKeysWith: { first, _ in first }
       )
       let imageAnalyses =
@@ -194,23 +192,23 @@ final class SearchViewModel {
       let linkPreviews = (try? await noteLinkPreviewRepository.fetchAll()) ?? [:]
       let voiceTranscripts = (try? await noteVoiceTranscriptRepository.fetchAll()) ?? [:]
 
-      let keywordNotes = storedNotes.filter {
+      let keywordNotes = notes.filter {
         searchableText(
           for: $0,
-          contactName: $0.contactId.flatMap { contactNamesById[$0] } ?? $0.contactName,
+          contactName: $0.contactId.flatMap { contactsById[$0]?.name } ?? $0.contactName,
           analysis: imageAnalyses[$0.id],
           transcript: voiceTranscripts[$0.id]
         ).localizedStandardContains(searchTerm)
       }
       let keywordNoteIds = Set(keywordNotes.map(\.id))
-      let semanticNoteDocuments = storedNotes.compactMap { storedNote in
-        keywordNoteIds.contains(storedNote.id) ? nil :
+      let semanticNoteDocuments = notes.compactMap { note in
+        keywordNoteIds.contains(note.id) ? nil :
           SearchDocument.note(
-            id: storedNote.id,
+            id: note.id,
             text: semanticText(
-              for: storedNote,
-              analysis: imageAnalyses[storedNote.id],
-              transcript: voiceTranscripts[storedNote.id]
+              for: note,
+              analysis: imageAnalyses[note.id],
+              transcript: voiceTranscripts[note.id]
             )
           )
       }
@@ -221,31 +219,16 @@ final class SearchViewModel {
       guard !Task.isCancelled, searchTerm == normalizedQuery else { return }
       let minimumDerivedScore = searchTerm.count > 1 ? 0.15 : 1
 
-      let matchedNotes = storedNotes.filter { storedNote in
-        keywordNoteIds.contains(storedNote.id)
+      let matchedNotes = notes.filter { note in
+        keywordNoteIds.contains(note.id)
           || scores[
-            SearchDocumentKey(kind: .note, sourceId: storedNote.id),
+            SearchDocumentKey(kind: .note, sourceId: note.id),
             default: 0
           ] >= minimumDerivedScore
       }
 
-      let referencedContactIds = Set(matchedNotes.compactMap(\.contactId))
-      var contactsById: [UUID: Contact] = [:]
-
-      if !referencedContactIds.isEmpty {
-        let referencedContacts = try modelContext.fetch(
-          FetchDescriptor<StoredContact>(
-            predicate: #Predicate { referencedContactIds.contains($0.id) }
-          )
-        )
-
-        for storedContact in referencedContacts {
-          contactsById[storedContact.id] = storedContact.contact
-        }
-      }
-
-      let noteResults = matchedNotes.map { storedNote in
-        var note = storedNote.note
+      let noteResults = matchedNotes.map { matchedNote in
+        var note = matchedNote
         let contact = note.contactId.flatMap { contactsById[$0] } ?? note.contact
         // 노트에 복사돼 저장된 이름·사진 대신, 연결된 연락처의 최신 값을 표시용으로 덮어쓴다.
         if note.contactId != nil, contactsById[note.contactId!] != nil {
@@ -270,7 +253,7 @@ final class SearchViewModel {
   }
 
   private func searchableText(
-    for note: StoredNote,
+    for note: Note,
     contactName: String,
     analysis: NoteImageAnalysisResult?,
     transcript: NoteVoiceTranscriptResult?
@@ -289,7 +272,7 @@ final class SearchViewModel {
   }
 
   private func semanticText(
-    for note: StoredNote,
+    for note: Note,
     analysis: NoteImageAnalysisResult?,
     transcript: NoteVoiceTranscriptResult?
   ) -> String {

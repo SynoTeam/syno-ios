@@ -51,7 +51,7 @@ View → ViewModel → Repository/Service → SwiftData 또는 시스템 API
 - `DesignSystem`은 기능별 도메인 개념에 의존하지 않습니다.
 - 기능 이름은 `Chat`입니다. 대화 화면과 관련된 코드는 `Presentation/Features/Chat`에 둡니다.
 
-> 알려진 예외: `NotesView`, `MainTabView`, `GroupManagementSheet`, `GroupSelectionSheet`, `SearchView`, `SearchViewModel`이 아직 SwiftData를 직접 사용합니다. `RootView`는 초기 라우팅을 위해 `UserProfile`을 `@Query`로 조회하는 App 계층의 기존 예외입니다.
+> 알려진 예외: `NotesView`, `GroupManagementSheet`, `GroupSelectionSheet`가 아직 SwiftData를 직접 사용합니다. `RootView`는 초기 라우팅을 위해 `UserProfile`을 `@Query`로 조회하는 App 계층의 기존 예외입니다.
 > 새 코드에서는 이 방식을 확산하지 않습니다. 예외 제거는 사용자가 요청했거나, 요청한 변경에 반드시 필요한 경우에만 진행합니다.
 
 ## Gotchas

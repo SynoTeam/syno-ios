@@ -147,6 +147,10 @@ private final class NoteRepositorySpy: NoteRepository {
     savedNotes.filter { $0.contactId == contactId }
   }
 
+  func fetchAll() throws -> [Note] {
+    savedNotes.sorted { $0.createdAt > $1.createdAt }
+  }
+
   func save(_ note: Note) throws {
     savedNotes.append(note)
   }
@@ -173,6 +177,10 @@ private final class RetriableNoteRepositorySpy: NoteRepository {
 
   func fetch(contactId: UUID?) throws -> [Note] {
     savedNotes.filter { $0.contactId == contactId }
+  }
+
+  func fetchAll() throws -> [Note] {
+    savedNotes.sorted { $0.createdAt > $1.createdAt }
   }
 
   func save(_ note: Note) throws {

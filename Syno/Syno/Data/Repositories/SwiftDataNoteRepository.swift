@@ -32,6 +32,18 @@ final class SwiftDataNoteRepository: NoteRepository {
     }
   }
 
+  func fetchAll() throws -> [Note] {
+    do {
+      let descriptor = FetchDescriptor<StoredNote>(
+        sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+      )
+      return try modelContext.fetch(descriptor).map(\.note)
+    } catch {
+      logger.error("Failed to fetch all notes: \(error.localizedDescription, privacy: .public)")
+      throw error
+    }
+  }
+
   func save(_ note: Note) throws {
     do {
       let id = note.id

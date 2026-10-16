@@ -5,9 +5,7 @@
 //  Created by 이승진 on 7/19/26.
 //
 
-import PhotosUI
 import SwiftUI
-import UIKit
 import UniformTypeIdentifiers
 
 /// 연락처별로 나에게 보내는 형식의 기록을 남기는 채팅 화면입니다.
@@ -17,11 +15,8 @@ struct ChatView: View {
   /// 검색 결과에서 들어왔을 때 처음 보여줄 메시지입니다. 이동을 마치면 비웁니다.
   @State private var pendingInitialMessageID: Note.ID?
   @State private var highlightedMessageID: Note.ID?
-  @State private var selectedPhotoItems: [PhotosPickerItem] = []
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
-  @State private var pendingCameraImage: UIImage?
-  @State private var pendingPhotoConfirmation: PhotoConfirmationRequest?
   @State private var isShowingFilePicker = false
   @State private var isShowingVoiceMemoPicker = false
   @State private var isMessageSearchPresented = false
@@ -71,35 +66,14 @@ struct ChatView: View {
 
   var body: some View {
     navigationContent
-      .onChange(of: selectedPhotoItems) { _, items in
-        guard !items.isEmpty else {
-          return
-        }
-        Task {
-          await loadImages(from: items)
-          selectedPhotoItems = []
-        }
-      }
-      .photosPicker(
-        isPresented: $isShowingPhotosPicker,
-        selection: $selectedPhotoItems,
-        maxSelectionCount: Self.maxPhotoSelectionCount,
-        matching: .images
-      )
-      .sheet(isPresented: $isShowingCamera, onDismiss: presentPendingCameraImage) {
-        CameraPickerView { image in
-          pendingCameraImage = image
-        }
-        .ignoresSafeArea()
-      }
-      .sheet(item: $pendingPhotoConfirmation) { request in
-        ChatPhotoConfirmationView(photos: request.photos) { datas in
-          // 여러 장이면 한 묶음으로 저장되어 채팅에서 하나의 콜라주 말풍선으로 보인다.
+      .chatPhotoAttachment(
+        isShowingPhotosPicker: $isShowingPhotosPicker,
+        isShowingCamera: $isShowingCamera,
+        onSend: { datas in
           Task { await viewModel.sendImages(datas) }
-        }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-      }
+        },
+        onToast: { toast = $0 }
+      )
       .sheet(isPresented: $isShowingFilePicker) {
         FileDocumentPicker { url in
           Task { await viewModel.sendFile(url: url) }
@@ -620,60 +594,6 @@ struct ChatView: View {
           }
         }
       )
-    }
-  }
-
-  /// 한 번에 고를 수 있는 앨범 사진 최대 개수입니다.
-  private static let maxPhotoSelectionCount = 10
-
-  /// 고른 순서대로 사진을 불러옵니다. 일부만 불러오지 못하면 가져온 사진만 확인 시트로 넘기고 안내합니다.
-  /// 원본이 메모리에 쌓이지 않도록 한 장씩 읽자마자 백그라운드에서 줄여 전송용 데이터와 썸네일만 남깁니다.
-  private func loadImages(from items: [PhotosPickerItem]) async {
-    var photos: [PreparedPhoto] = []
-    for item in items {
-      guard let data = try? await item.loadTransferable(type: Data.self) else {
-        continue
-      }
-      let prepared = await Task.detached(priority: .userInitiated) {
-        PhotoPreparer.prepare(data)
-      }.value
-      if let prepared {
-        photos.append(prepared)
-      }
-    }
-
-    guard !photos.isEmpty else {
-      toast = Toast(message: "사진을 불러오지 못했습니다.", style: .failure)
-      return
-    }
-
-    if photos.count < items.count {
-      toast = Toast(message: "일부 사진을 불러오지 못했습니다.", style: .failure)
-    }
-    pendingPhotoConfirmation = PhotoConfirmationRequest(photos: photos)
-  }
-
-  private func presentPendingCameraImage() {
-    guard let image = pendingCameraImage else {
-      return
-    }
-
-    pendingCameraImage = nil
-    // 카메라 시트가 완전히 dismiss되기 전에 곧바로 다음 시트를 띄우면 SwiftUI가
-    // presentationDetents를 무시하고 풀사이즈로 띄우는 경우가 있어, dismiss 애니메이션이
-    // 끝난 뒤(약 0.35초) 확인 시트를 띄웁니다.
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-      Task {
-        // 카메라 사진도 메인 스레드를 막지 않게 백그라운드에서 줄인다.
-        let prepared = await Task.detached(priority: .userInitiated) {
-          image.jpegData(compressionQuality: 0.9).flatMap(PhotoPreparer.prepare)
-        }.value
-        if let prepared {
-          pendingPhotoConfirmation = PhotoConfirmationRequest(photos: [prepared])
-        } else {
-          toast = Toast(message: "사진을 불러오지 못했습니다.", style: .failure)
-        }
-      }
     }
   }
 

@@ -239,10 +239,12 @@ struct ChatView: View {
               ForEach(viewModel.pendingMessages) { pendingMessage in
                 ChatMessageBubble(
                   note: pendingMessage.note,
-                  pendingStatus: pendingMessage.status,
-                  onRetry: {
-                    viewModel.retryPendingMessage(id: pendingMessage.id)
-                  }
+                  state: ChatMessageDisplayState(pendingStatus: pendingMessage.status),
+                  actions: ChatMessageActions(
+                    onRetryPendingSend: {
+                      viewModel.retryPendingMessage(id: pendingMessage.id)
+                    }
+                  )
                 )
                 .id(pendingMessage.id)
               }
@@ -456,23 +458,35 @@ struct ChatView: View {
   private func singleBubble(for message: Note) -> some View {
     ChatMessageBubble(
       note: message,
-      onDelete: { requestDelete(ids: [message.id]) },
-      onShowFullText: { fullTextNote = message },
+      state: messageDisplayState(for: message),
+      actions: messageActions(for: message)
+    )
+  }
+
+  private func messageDisplayState(for message: Note) -> ChatMessageDisplayState {
+    ChatMessageDisplayState(
       linkPreview: viewModel.linkPreviews[message.id],
       voiceMemoState: viewModel.voiceMemoStates[message.id],
       fileDownloadState: viewModel.fileDownloadStates[message.id],
       fileTransferURL: viewModel.fileTransferURLs[message.id],
       fileSendFailed: viewModel.fileSendFailedIds.contains(message.id),
-      onRetryTranscription: { Task { await viewModel.retryTranscription(for: message) } },
-      onRetrySend: { Task { await viewModel.retrySend(for: message) } },
-      onRetryFileDownload: { viewModel.retryFileDownload(for: message) },
-      onRetryFileSend: { viewModel.retrySendFile(for: message) },
-      onShowFile: { filePreviewNoteID = message.id },
-      onShowPhoto: { photoPreviewNoteID = message.id },
       highlightQuery: isMessageSearchPresented ? viewModel.messageSearchText : nil,
       isHighlighted: highlightedMessageID == message.id,
       revealedTimeText: message.chatTimeText,
       timeRevealOffset: selection.isActive ? 0 : timeRevealOffset
+    )
+  }
+
+  private func messageActions(for message: Note) -> ChatMessageActions {
+    ChatMessageActions(
+      onDelete: { requestDelete(ids: [message.id]) },
+      onShowFullText: { fullTextNote = message },
+      onShowFile: { filePreviewNoteID = message.id },
+      onShowPhoto: { photoPreviewNoteID = message.id },
+      onRetryTranscription: { Task { await viewModel.retryTranscription(for: message) } },
+      onRetryVoiceSend: { Task { await viewModel.retrySend(for: message) } },
+      onRetryFileDownload: { viewModel.retryFileDownload(for: message) },
+      onRetryFileSend: { viewModel.retrySendFile(for: message) }
     )
   }
 

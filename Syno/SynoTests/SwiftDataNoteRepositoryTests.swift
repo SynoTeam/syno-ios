@@ -63,6 +63,31 @@ final class SwiftDataNoteRepositoryTests: XCTestCase {
   }
 
   @MainActor
+  func testDeleteRemovesEveryRowWithTheSameId() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataNoteRepository(modelContext: container.mainContext)
+    let noteId = UUID()
+    for content in ["첫 번째", "두 번째"] {
+      container.mainContext.insert(
+        StoredNote(
+          id: noteId,
+          contactId: nil,
+          contactName: "중복",
+          content: content,
+          imageData: nil,
+          profileImageData: nil,
+          isFavorite: false
+        )
+      )
+    }
+    try container.mainContext.save()
+
+    try repository.delete(id: noteId)
+
+    XCTAssertTrue(try repository.fetchAll().isEmpty)
+  }
+
+  @MainActor
   func testFetchAllReturnsEmptyArrayForEmptyStore() async throws {
     let container = try makeContainer()
     let repository = SwiftDataNoteRepository(modelContext: container.mainContext)

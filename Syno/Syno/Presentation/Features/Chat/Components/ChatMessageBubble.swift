@@ -8,24 +8,30 @@
 import SwiftUI
 import UIKit
 
-/// 내가 남긴 기록을 오른쪽 말풍선으로 표시하는 채팅 메시지 컴포넌트입니다.
-struct ChatMessageBubble: View {
-  let note: Note
-  var pendingStatus: ChatViewModel.PendingMessage.Status?
-  var onRetry: (() -> Void)?
+/// 말풍선에서 사용자가 할 수 있는 동작입니다. 값이 nil이면 그 동작을 제공하지 않습니다.
+/// 예를 들어 `onDelete`가 없으면 길게 눌렀을 때 삭제 메뉴가 나타나지 않습니다.
+struct ChatMessageActions {
   var onDelete: (() -> Void)?
   var onShowFullText: (() -> Void)?
+  var onShowFile: (() -> Void)?
+  var onShowPhoto: (() -> Void)?
+  /// 저장하지 못해 대기 중인 메시지를 다시 저장합니다.
+  var onRetryPendingSend: (() -> Void)?
+  var onRetryTranscription: (() -> Void)?
+  /// 전송에 실패한 음성 메모를 다시 보냅니다.
+  var onRetryVoiceSend: (() -> Void)?
+  var onRetryFileDownload: (() -> Void)?
+  var onRetryFileSend: (() -> Void)?
+}
+
+/// 말풍선을 그릴 때 쓰는 서로 독립적인 표시 값입니다.
+struct ChatMessageDisplayState {
+  var pendingStatus: ChatViewModel.PendingMessage.Status?
   var linkPreview: NoteLinkPreviewResult?
   var voiceMemoState: ChatViewModel.VoiceMemoState?
   var fileDownloadState: ChatViewModel.FileDownloadState?
   var fileTransferURL: URL?
   var fileSendFailed: Bool = false
-  var onRetryTranscription: (() -> Void)?
-  var onRetrySend: (() -> Void)?
-  var onRetryFileDownload: (() -> Void)?
-  var onRetryFileSend: (() -> Void)?
-  var onShowFile: (() -> Void)?
-  var onShowPhoto: (() -> Void)?
   var highlightQuery: String?
   /// 검색 결과로 이동해 온 메시지를 튀게 만들 때 true입니다.
   var isHighlighted: Bool = false
@@ -33,22 +39,29 @@ struct ChatMessageBubble: View {
   var revealedTimeText: String?
   /// 목록을 왼쪽으로 민 거리입니다. 0이면 시간이 숨겨져 있습니다.
   var timeRevealOffset: CGFloat = 0
+}
+
+/// 내가 남긴 기록을 오른쪽 말풍선으로 표시하는 채팅 메시지 컴포넌트입니다.
+struct ChatMessageBubble: View {
+  let note: Note
+  var state = ChatMessageDisplayState()
+  var actions = ChatMessageActions()
 
   var body: some View {
     ZStack(alignment: .trailing) {
       // 시간은 화면 오른쪽 끝에 고정하고, 말풍선만 왼쪽으로 밀려나 그 자리를 비운다.
-      if let revealedTimeText {
+      if let revealedTimeText = state.revealedTimeText {
         Text(revealedTimeText)
           .typeStyle(.caption1)
           .foregroundStyle(.gray400)
           .fixedSize()
           .offset(x: 8)
-          .opacity(min(1, timeRevealOffset / 40))
+          .opacity(min(1, state.timeRevealOffset / 40))
       }
 
       bubbleWithMenu
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .offset(x: -timeRevealOffset)
+        .offset(x: -state.timeRevealOffset)
     }
   }
 
@@ -65,7 +78,7 @@ struct ChatMessageBubble: View {
 
       shareLink
 
-      if let onDelete {
+      if let onDelete = actions.onDelete {
         Button(role: .destructive, action: onDelete) {
           Label("삭제하기", systemImage: "trash")
         }
@@ -77,21 +90,21 @@ struct ChatMessageBubble: View {
     VStack(alignment: .trailing, spacing: 4) {
       messageContent
 
-      if let linkPreview {
+      if let linkPreview = state.linkPreview {
         LinkPreviewCard(preview: linkPreview)
       }
-      if let voiceMemoState { voiceTranscriptView(voiceMemoState) }
-      if fileSendFailed { transferFailedView(title: "전송 실패", onRetry: onRetryFileSend) }
+      if let voiceMemoState = state.voiceMemoState { voiceTranscriptView(voiceMemoState) }
+      if state.fileSendFailed { transferFailedView(title: "전송 실패", onRetry: actions.onRetryFileSend) }
 
-      if let pendingStatus {
+      if let pendingStatus = state.pendingStatus {
         pendingStatusView(pendingStatus)
       }
     }
     .frame(maxWidth: 298, alignment: .trailing)
     .contentShape(Rectangle())
     // 검색 결과로 이동해 온 메시지가 통통 튀어 위치를 알려준다.
-    .scaleEffect(isHighlighted ? 1.08 : 1, anchor: .trailing)
-    .animation(.spring(duration: 0.45, bounce: 0.6), value: isHighlighted)
+    .scaleEffect(state.isHighlighted ? 1.08 : 1, anchor: .trailing)
+    .animation(.spring(duration: 0.45, bounce: 0.6), value: state.isHighlighted)
   }
 
   @ViewBuilder
@@ -101,9 +114,9 @@ struct ChatMessageBubble: View {
     } else if note.fileName != nil {
       FileCard(
         note: note,
-        downloadState: fileDownloadState,
-        onRetryDownload: onRetryFileDownload,
-        onOpen: onShowFile
+        downloadState: state.fileDownloadState,
+        onRetryDownload: actions.onRetryFileDownload,
+        onOpen: actions.onShowFile
       )
     } else if
       let imageData = note.imageData,
@@ -116,7 +129,7 @@ struct ChatMessageBubble: View {
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .onTapGesture {
-          onShowPhoto?()
+          actions.onShowPhoto?()
         }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("사진 크게 보기")
@@ -128,7 +141,7 @@ struct ChatMessageBubble: View {
           .multilineTextAlignment(.leading)
           .lineLimit(shouldShowFullTextLink ? 10 : nil)
 
-        if shouldShowFullTextLink, let onShowFullText {
+        if shouldShowFullTextLink, let onShowFullText = actions.onShowFullText {
           Divider()
             .padding(.vertical, 10)
 
@@ -173,9 +186,25 @@ struct ChatMessageBubble: View {
           .multilineTextAlignment(.leading)
       }
     case .transcriptFailed:
-      HStack { Text("STT 변환 실패").foregroundStyle(.errorRed); if let onRetryTranscription { Button("다시 시도", action: onRetryTranscription).foregroundStyle(.violet500) } }.typeStyle(.caption1)
+      HStack {
+        Text("STT 변환 실패")
+          .foregroundStyle(.errorRed)
+        if let onRetryTranscription = actions.onRetryTranscription {
+          Button("다시 시도", action: onRetryTranscription)
+            .foregroundStyle(.violet500)
+        }
+      }
+      .typeStyle(.caption1)
     case .sendFailed:
-      HStack { Text("전송에 실패했습니다"); if let onRetrySend { Button("다시 시도", action: onRetrySend).foregroundStyle(.violet500) } }.typeStyle(.caption1).foregroundStyle(.errorRed)
+      HStack {
+        Text("전송에 실패했습니다")
+        if let onRetryVoiceSend = actions.onRetryVoiceSend {
+          Button("다시 시도", action: onRetryVoiceSend)
+            .foregroundStyle(.violet500)
+        }
+      }
+      .typeStyle(.caption1)
+      .foregroundStyle(.errorRed)
     }
   }
 
@@ -225,7 +254,7 @@ struct ChatMessageBubble: View {
 
   @ViewBuilder
   private var shareLink: some View {
-    if let fileTransferURL {
+    if let fileTransferURL = state.fileTransferURL {
       ShareLink(item: fileTransferURL, preview: SharePreview(note.fileName ?? "파일")) {
         Label("공유하기", systemImage: "square.and.arrow.up")
       }
@@ -233,7 +262,7 @@ struct ChatMessageBubble: View {
       ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
         Label("공유하기", systemImage: "square.and.arrow.up")
       }
-    } else if let linkPreview {
+    } else if let linkPreview = state.linkPreview {
       ShareLink(item: linkPreview.siteURL) {
         Label("공유하기", systemImage: "square.and.arrow.up")
       }
@@ -246,7 +275,7 @@ struct ChatMessageBubble: View {
 
   /// 검색어와 일치하는 모든 부분을 하이라이트한 본문입니다. 검색 중이 아니면 일반 텍스트입니다.
   private var contentText: Text {
-    Text(highlighting: note.content, query: highlightQuery)
+    Text(highlighting: note.content, query: state.highlightQuery)
   }
 
   @ViewBuilder
@@ -266,7 +295,7 @@ struct ChatMessageBubble: View {
           .typeStyle(.caption1)
           .foregroundStyle(.errorRed)
 
-        if let onRetry {
+        if let onRetry = actions.onRetryPendingSend {
           Button("다시 시도", action: onRetry)
             .typeStyle(.caption1)
             .foregroundStyle(.violet500)
@@ -318,8 +347,8 @@ struct LinkPreviewCard: View {
 #Preview("전송 실패 재시도") {
   ChatMessageBubble(
     note: Note(contactName: "테스트", content: "파일.zip", fileName: "파일.zip", fileSize: 27_000_000),
-    fileSendFailed: true,
-    onRetryFileSend: {}
+    state: ChatMessageDisplayState(fileSendFailed: true),
+    actions: ChatMessageActions(onRetryFileSend: {})
   )
   .padding()
   .background(Color.gray50)

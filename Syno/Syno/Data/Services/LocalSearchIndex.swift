@@ -110,7 +110,8 @@ final class LocalSearchIndex: SearchIndexing {
       let addedContactVectors = additions.contacts.reduce(into: [Contact.ID: [Double]]()) {
         $0[$1.contactId] = $1.vector
       }
-      return Dictionary(uniqueKeysWithValues: documents.map { document in
+      // 같은 키의 문서가 중복으로 들어와도 죽지 않도록 먼저 나온 것을 씁니다.
+      return Dictionary(documents.map { document in
         let vector: [Double]?
         if !document.isSemanticEligible {
           vector = nil
@@ -150,7 +151,7 @@ final class LocalSearchIndex: SearchIndexing {
           )
         }
         return (document.key, score)
-      })
+      }, uniquingKeysWith: { first, _ in first })
     } catch {
       logger.debug(
         "Semantic scoring pipeline failed; using bi-gram fallback queryLength=\(query.count) domain=\((error as NSError).domain, privacy: .public) code=\((error as NSError).code)"
@@ -216,7 +217,7 @@ final class LocalSearchIndex: SearchIndexing {
     documents: [SearchDocument]
   ) -> [SearchDocumentKey: Double] {
     Dictionary(
-      uniqueKeysWithValues: documents.map { document in
+      documents.map { document in
         let score = characterNGramSimilarity(query, document.text)
         logScore(
           document: document,
@@ -226,7 +227,8 @@ final class LocalSearchIndex: SearchIndexing {
           path: "bi-gram"
         )
         return (document.key, score)
-      }
+      },
+      uniquingKeysWith: { first, _ in first }
     )
   }
 

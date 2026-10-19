@@ -201,12 +201,13 @@ struct NotesView: View {
     )
     let groupNames = storedGroups.map(\.name)
     let groupNamesByContactID = Dictionary(
-      uniqueKeysWithValues: storedContacts.map { contact in
+      storedContacts.map { contact in
         let canonicalName = groupNames.first {
           $0.compare(contact.group, options: .caseInsensitive) == .orderedSame
         } ?? contact.group
         return (contact.id, canonicalName)
-      }
+      },
+      uniquingKeysWith: { first, _ in first }
     )
 
     viewModel.replaceNotes(

@@ -114,7 +114,7 @@ final class AccountResetService {
   func mediaUsageByContact() throws -> [(contact: Contact, bytes: Int64)] {
     let notes = try modelContext.fetch(FetchDescriptor<StoredNote>())
     let contacts = try modelContext.fetch(FetchDescriptor<StoredContact>())
-    let contactsByID = Dictionary(uniqueKeysWithValues: contacts.map { ($0.id, $0.contact) })
+    let contactsByID = Dictionary(contacts.map { ($0.id, $0.contact) }, uniquingKeysWith: { first, _ in first })
     var bytesByContactID: [UUID: Int64] = [:]
 
     for note in notes {

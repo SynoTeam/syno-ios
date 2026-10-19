@@ -19,12 +19,18 @@ final class LocalSearchIndex: SearchIndexing {
     self.embeddingProvider = embeddingProvider
   }
 
+  /// 같은 키의 문서가 중복으로 들어오면 먼저 나온 것만 남깁니다.
+  private nonisolated static func uniqueByKey(_ documents: [SearchDocument]) -> [SearchDocument] {
+    var seen = Set<SearchDocumentKey>()
+    return documents.filter { seen.insert($0.key).inserted }
+  }
+
   func index(_ document: SearchDocument) async {
     await backfill([document], batchSize: 1)
   }
 
   func backfill(_ documents: [SearchDocument], batchSize: Int = 20) async {
-    let eligibleDocuments = documents.filter(\.isSemanticEligible)
+    let eligibleDocuments = Self.uniqueByKey(documents).filter(\.isSemanticEligible)
     guard !eligibleDocuments.isEmpty else { return }
     do {
       var noteCache = try await repository.noteEmbeddings()
@@ -71,6 +77,8 @@ final class LocalSearchIndex: SearchIndexing {
     for query: String,
     documents: [SearchDocument]
   ) async -> [SearchDocumentKey: Double] {
+    // 같은 키의 문서가 서로 다른 텍스트로 중복되면 임베딩 생성과 점수 계산이 어긋나므로 먼저 하나로 줄입니다.
+    let documents = Self.uniqueByKey(documents)
     guard !documents.isEmpty else { return [:] }
     let eligibleDocuments = documents.filter(\.isSemanticEligible)
     guard !eligibleDocuments.isEmpty else {
@@ -110,7 +118,8 @@ final class LocalSearchIndex: SearchIndexing {
       let addedContactVectors = additions.contacts.reduce(into: [Contact.ID: [Double]]()) {
         $0[$1.contactId] = $1.vector
       }
-      return Dictionary(uniqueKeysWithValues: documents.map { document in
+      // 같은 키의 문서가 중복으로 들어와도 죽지 않도록 먼저 나온 것을 씁니다.
+      return Dictionary(documents.map { document in
         let vector: [Double]?
         if !document.isSemanticEligible {
           vector = nil
@@ -150,7 +159,7 @@ final class LocalSearchIndex: SearchIndexing {
           )
         }
         return (document.key, score)
-      })
+      }, uniquingKeysWith: { first, _ in first })
     } catch {
       logger.debug(
         "Semantic scoring pipeline failed; using bi-gram fallback queryLength=\(query.count) domain=\((error as NSError).domain, privacy: .public) code=\((error as NSError).code)"
@@ -216,7 +225,7 @@ final class LocalSearchIndex: SearchIndexing {
     documents: [SearchDocument]
   ) -> [SearchDocumentKey: Double] {
     Dictionary(
-      uniqueKeysWithValues: documents.map { document in
+      documents.map { document in
         let score = characterNGramSimilarity(query, document.text)
         logScore(
           document: document,
@@ -226,7 +235,8 @@ final class LocalSearchIndex: SearchIndexing {
           path: "bi-gram"
         )
         return (document.key, score)
-      }
+      },
+      uniquingKeysWith: { first, _ in first }
     )
   }
 

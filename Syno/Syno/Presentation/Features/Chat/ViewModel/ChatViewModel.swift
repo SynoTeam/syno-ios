@@ -156,10 +156,13 @@ final class ChatViewModel {
       linkPreviews = try await linkPreviewRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
       let transcripts = try await voiceTranscriptRepository.fetchAll()
-      voiceMemoStates = Dictionary(uniqueKeysWithValues: messages.compactMap { note in
-        guard note.voiceMemoData != nil, let transcript = transcripts[note.id] else { return nil }
-        return (note.id, .transcribed(transcript))
-      })
+      voiceMemoStates = Dictionary(
+        messages.compactMap { note in
+          guard note.voiceMemoData != nil, let transcript = transcripts[note.id] else { return nil }
+          return (note.id, .transcribed(transcript))
+        },
+        uniquingKeysWith: { first, _ in first }
+      )
     } catch {
       imageAnalyses = [:]
       linkPreviews = [:]
@@ -211,7 +214,7 @@ final class ChatViewModel {
 
   @discardableResult
   func deleteMessages(ids: Set<Note.ID>) -> Bool {
-    let notesByID = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
+    let notesByID = Dictionary(messages.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     var deletedIds: Set<Note.ID> = []
     var didFail = false
 

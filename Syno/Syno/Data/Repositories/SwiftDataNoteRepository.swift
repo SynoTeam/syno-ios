@@ -77,9 +77,13 @@ final class SwiftDataNoteRepository: NoteRepository {
       let descriptor = FetchDescriptor<StoredNote>(
         predicate: #Predicate { $0.id == id }
       )
-      if let storedNote = try modelContext.fetch(descriptor).first {
+      // 같은 ID의 행이 중복돼 있을 수 있어 일치하는 행을 모두 지웁니다.
+      let storedNotes = try modelContext.fetch(descriptor)
+      if !storedNotes.isEmpty {
         try deleteRelatedData(forNoteIDs: [id])
-        modelContext.delete(storedNote)
+        for storedNote in storedNotes {
+          modelContext.delete(storedNote)
+        }
         try modelContext.save()
         removeFromSearchIndex(noteIDs: [id])
       }

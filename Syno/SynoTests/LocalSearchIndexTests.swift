@@ -47,6 +47,44 @@ final class LocalSearchIndexTests: XCTestCase {
   }
 
   @MainActor
+  func testBackfillUsesOnlyFirstDocumentWhenKeyIsDuplicated() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataSearchEmbeddingRepository(modelContainer: container)
+    let provider = CountingEmbeddingProvider()
+    let index = LocalSearchIndex(repository: repository, embeddingProvider: provider)
+    let noteId = UUID()
+    let firstText = "첫 번째 문서 내용"
+
+    await index.backfill([
+      .note(id: noteId, text: firstText),
+      .note(id: noteId, text: "두 번째 문서의 내용이 더 깁니다")
+    ])
+
+    let callCount = await provider.callCount
+    XCTAssertEqual(callCount, 1)
+    let embeddings = try await repository.noteEmbeddings()
+    XCTAssertEqual(embeddings[noteId]?.vector.first, Double(firstText.utf8.count))
+  }
+
+  @MainActor
+  func testScoresToleratesDuplicatedDocumentKeys() async throws {
+    let container = try makeContainer()
+    let repository = SwiftDataSearchEmbeddingRepository(modelContainer: container)
+    let index = LocalSearchIndex(repository: repository, embeddingProvider: CountingEmbeddingProvider())
+    let noteId = UUID()
+
+    let scores = await index.scores(
+      for: "문서",
+      documents: [
+        .note(id: noteId, text: "첫 번째 문서 내용"),
+        .note(id: noteId, text: "두 번째 문서의 내용이 더 깁니다")
+      ]
+    )
+
+    XCTAssertEqual(scores.count, 1)
+  }
+
+  @MainActor
   func testScoresFallBackToCharacterNGramWhenEmbeddingFails() async throws {
     let container = try makeContainer()
     let repository = SwiftDataSearchEmbeddingRepository(

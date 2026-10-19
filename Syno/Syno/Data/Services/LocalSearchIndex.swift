@@ -19,12 +19,18 @@ final class LocalSearchIndex: SearchIndexing {
     self.embeddingProvider = embeddingProvider
   }
 
+  /// 같은 키의 문서가 중복으로 들어오면 먼저 나온 것만 남깁니다.
+  private nonisolated static func uniqueByKey(_ documents: [SearchDocument]) -> [SearchDocument] {
+    var seen = Set<SearchDocumentKey>()
+    return documents.filter { seen.insert($0.key).inserted }
+  }
+
   func index(_ document: SearchDocument) async {
     await backfill([document], batchSize: 1)
   }
 
   func backfill(_ documents: [SearchDocument], batchSize: Int = 20) async {
-    let eligibleDocuments = documents.filter(\.isSemanticEligible)
+    let eligibleDocuments = Self.uniqueByKey(documents).filter(\.isSemanticEligible)
     guard !eligibleDocuments.isEmpty else { return }
     do {
       var noteCache = try await repository.noteEmbeddings()
@@ -71,6 +77,8 @@ final class LocalSearchIndex: SearchIndexing {
     for query: String,
     documents: [SearchDocument]
   ) async -> [SearchDocumentKey: Double] {
+    // 같은 키의 문서가 서로 다른 텍스트로 중복되면 임베딩 생성과 점수 계산이 어긋나므로 먼저 하나로 줄입니다.
+    let documents = Self.uniqueByKey(documents)
     guard !documents.isEmpty else { return [:] }
     let eligibleDocuments = documents.filter(\.isSemanticEligible)
     guard !eligibleDocuments.isEmpty else {

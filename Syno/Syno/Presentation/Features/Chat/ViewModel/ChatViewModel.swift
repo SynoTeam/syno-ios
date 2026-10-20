@@ -55,6 +55,7 @@ final class ChatViewModel {
 
   private(set) var messages: [Note] = []
   private(set) var pendingMessages: [PendingMessage] = []
+  private(set) var isLoadingMessages = true
   var messageText = ""
   var messageSearchText = ""
   private(set) var persistenceError: String?
@@ -144,7 +145,9 @@ final class ChatViewModel {
     do {
       messages = try repository.fetch(contactId: contact.id)
       persistenceError = nil
+      isLoadingMessages = false
     } catch {
+      isLoadingMessages = false
       handle(error)
       return
     }

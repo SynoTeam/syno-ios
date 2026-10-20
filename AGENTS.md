@@ -59,6 +59,7 @@ View → ViewModel → Repository/Service → SwiftData 또는 시스템 API
 
 - `StoredNote`, `StoredContact` 등 SwiftData 모델을 바꾸면 `SynoShareExtension/SharedModels.swift`의 사본도 같은 스키마로 함께 수정합니다. 빠지면 다른 앱에서 공유할 때 오류가 납니다.
 - 새 속성은 옵셔널이거나 기본값을 둬서 경량 마이그레이션이 되게 합니다.
+- 모델에 속성을 추가하거나 바꿨다면 출시 전에 CloudKit 운영(Production) 스키마 배포를 확인합니다. 개발 환경에서는 새 필드가 자동으로 만들어지지만 TestFlight와 App Store 빌드(운영 환경)에서는 아니라서, 배포하지 않으면 동기화에 실패할 수 있습니다. 운영 스키마는 필드를 지울 수 없으니 속성 삭제, 이름 변경, 타입 변경은 피하고 필요하면 먼저 사용자와 논의합니다.
 - 메모 본문, 검색어, OCR 텍스트는 로그에 `privacy: .public`으로 남기지 않습니다.
 - `.pbxproj`는 꼭 필요할 때만 수정합니다.
 

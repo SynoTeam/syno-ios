@@ -15,6 +15,9 @@ struct ChatView: View {
   /// 검색 결과에서 들어왔을 때 처음 보여줄 메시지입니다. 이동을 마치면 비웁니다.
   @State private var pendingInitialMessageID: Note.ID?
   @State private var highlightedMessageID: Note.ID?
+  /// 목록이 처음 채워진 뒤인지 여부입니다. 처음에는 스크롤뷰의 하단 초기 앵커가 위치를 잡도록 두고,
+  /// 그 뒤에 최신 메시지가 바뀌면 애니메이션 없이 곧바로 맨 아래로 이동합니다.
+  @State private var hasPositionedInitialScroll = false
   @State private var isShowingPhotosPicker = false
   @State private var isShowingCamera = false
   @State private var isShowingFilePicker = false
@@ -224,7 +227,7 @@ struct ChatView: View {
     ScrollViewReader { proxy in
       VStack(spacing: 0) {
         ScrollView {
-          if viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty {
+          if viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty && !viewModel.isLoadingMessages {
             ChatEmptyStateView()
           } else {
             LazyVStack(alignment: .trailing, spacing: 12) {
@@ -255,6 +258,10 @@ struct ChatView: View {
             .padding(.bottom, 24)
           }
         }
+        // 목록이 처음 생길 때 맨 위에서 내려가지 않고 처음부터 맨 아래 위치로 그려진다.
+        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        // 빈 화면에서 메시지가 생기면 스크롤뷰를 새로 만들어 위의 초기 위치가 다시 적용되게 한다.
+        .id(viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty)
         .scrollDismissesKeyboard(.interactively)
         .simultaneousGesture(timeRevealGesture)
         .overlay(alignment: .bottom) {
@@ -266,13 +273,24 @@ struct ChatView: View {
           guard !scrollToInitialMessageIfNeeded(with: proxy) else {
             return
           }
-          scrollToLatestMessage(with: proxy, animated: false)
+          hasPositionedInitialScroll = !viewModel.messages.isEmpty
         }
-        .onChange(of: viewModel.messages.last?.id) { _, messageId in
+        .onChange(of: viewModel.messages.last?.id) { oldMessageID, newMessageID in
           guard !scrollToInitialMessageIfNeeded(with: proxy) else {
             return
           }
-          scrollToMessage(messageId, with: proxy)
+          guard hasPositionedInitialScroll else {
+            // 처음 목록이 채워질 때는 스크롤뷰의 하단 초기 앵커가 위치를 잡는다.
+            hasPositionedInitialScroll = true
+            return
+          }
+          guard oldMessageID != nil else {
+            // 빈 목록에서 처음 메시지가 생기면 스크롤뷰가 새로 만들어지므로 애니메이션 없이 맞춘다.
+            scrollToLatestMessage(with: proxy, animated: false)
+            return
+          }
+          // 이미 있던 목록에 새 메시지가 이어 붙으면 기존처럼 부드럽게 내려간다.
+          scrollToMessage(newMessageID, with: proxy)
         }
         .onChange(of: viewModel.pendingMessages.last?.id) { _, pendingMessageID in
           guard let pendingMessageID else {
@@ -400,6 +418,7 @@ struct ChatView: View {
       // 지연 로딩되는 목록이 먼저 배치된 뒤 이동해야 먼 위치도 정확히 맞는다.
       try? await Task.sleep(for: .milliseconds(100))
       proxy.scrollTo(rowAnchorID(for: targetID), anchor: .center)
+      hasPositionedInitialScroll = true
       // 스크롤이 자리를 잡은 뒤에 튀어야 눈에 보인다.
       try? await Task.sleep(for: .milliseconds(250))
       highlightedMessageID = targetID

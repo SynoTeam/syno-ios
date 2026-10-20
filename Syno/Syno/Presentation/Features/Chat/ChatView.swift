@@ -275,18 +275,22 @@ struct ChatView: View {
           }
           hasPositionedInitialScroll = !viewModel.messages.isEmpty
         }
-        .onChange(of: viewModel.messages.last?.id) { _, _ in
+        .onChange(of: viewModel.messages.last?.id) { oldMessageID, newMessageID in
           guard !scrollToInitialMessageIfNeeded(with: proxy) else {
             return
           }
           guard hasPositionedInitialScroll else {
-            // 빈 목록에서 처음 메시지가 생기면 스크롤뷰의 하단 초기 앵커가 위치를 잡는다.
+            // 처음 목록이 채워질 때는 스크롤뷰의 하단 초기 앵커가 위치를 잡는다.
             hasPositionedInitialScroll = true
             return
           }
-          // 저장소 재조회나 CloudKit 동기화로 목록이 갱신될 때 애니메이션하면
-          // 맨 위에서 최신 메시지까지 목록 전체를 훑는 것처럼 보여 즉시 위치를 맞춘다.
-          scrollToLatestMessage(with: proxy, animated: false)
+          guard oldMessageID != nil else {
+            // 빈 목록에서 처음 메시지가 생기면 스크롤뷰가 새로 만들어지므로 애니메이션 없이 맞춘다.
+            scrollToLatestMessage(with: proxy, animated: false)
+            return
+          }
+          // 이미 있던 목록에 새 메시지가 이어 붙으면 기존처럼 부드럽게 내려간다.
+          scrollToMessage(newMessageID, with: proxy)
         }
         .onChange(of: viewModel.pendingMessages.last?.id) { _, pendingMessageID in
           guard let pendingMessageID else {

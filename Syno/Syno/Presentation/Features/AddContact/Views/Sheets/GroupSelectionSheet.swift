@@ -75,8 +75,10 @@ struct GroupSelectionSheet: View {
       draftGroup = group
     } label: {
       HStack(spacing: 8) {
-        Image(systemName: "checkmark")
-          .font(.system(size: 15, weight: .semibold))
+        Image(.check)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 20, height: 20)
           .foregroundStyle(.violet500)
           .opacity(isSelected ? 1 : 0)
 
@@ -124,7 +126,7 @@ struct GroupSelectionSheet: View {
         isAddingNewGroup = true
         isNewGroupFieldFocused = true
       } label: {
-        Label("그룹 추가하기", systemImage: "plus.circle.fill")
+        Label("그룹 추가하기", icon: .plusCircle)
           .typeStyle(.calloutEmphasized)
           .foregroundStyle(.violet500)
           .frame(maxWidth: .infinity, alignment: .leading)

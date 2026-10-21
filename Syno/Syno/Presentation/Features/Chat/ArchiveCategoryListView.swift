@@ -45,13 +45,17 @@ struct ArchiveCategoryListView: View {
     .background(Color.gray50)
     .navigationTitle(selectedCategory.title)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
           isSearching = true
         } label: {
-          Image(systemName: "magnifyingglass")
+          Image(.search)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.gray950)
         }
         .accessibilityLabel("검색")
@@ -190,9 +194,9 @@ struct ArchiveCategoryListView: View {
             Button {
               UIPasteboard.general.string = note.content
             } label: {
-              Label("복사하기", systemImage: "doc.on.doc")
+              Label("복사하기", icon: .copy)
             }
-            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") }
+            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", icon: .trash) }
           }
         }
       }
@@ -207,7 +211,7 @@ struct ArchiveCategoryListView: View {
       LazyVStack(alignment: .leading, spacing: 12) {
         ForEach(voiceMemoNotes) { note in
           VoiceMemoCard(note: note)
-            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") } }
+            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", icon: .trash) } }
         }
       }.padding(16)
     }
@@ -242,10 +246,10 @@ struct ArchiveCategoryListView: View {
           .contextMenu {
             if let fileURL = viewModel.fileTransferURLs[note.id] {
               ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
-                Label("공유하기", systemImage: "square.and.arrow.up")
+                Label("공유하기", icon: .share)
               }
             }
-            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", systemImage: "trash") }
+            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", icon: .trash) }
           }
         }
       }
@@ -290,17 +294,17 @@ struct ArchiveCategoryListView: View {
                   Button {
                     UIPasteboard.general.image = uiImage
                   } label: {
-                    Label("복사하기", systemImage: "doc.on.doc")
+                    Label("복사하기", icon: .copy)
                   }
 
                   ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
-                    Label("공유하기", systemImage: "square.and.arrow.up")
+                    Label("공유하기", icon: .share)
                   }
 
                   Button(role: .destructive) {
                     requestDelete(note)
                   } label: {
-                    Label("삭제하기", systemImage: "trash")
+                    Label("삭제하기", icon: .trash)
                   }
                 }
               }
@@ -328,17 +332,17 @@ struct ArchiveCategoryListView: View {
                 Button {
                   UIPasteboard.general.string = preview.siteURL.absoluteString
                 } label: {
-                  Label("복사하기", systemImage: "doc.on.doc")
+                  Label("복사하기", icon: .copy)
                 }
 
                 ShareLink(item: preview.siteURL) {
-                  Label("공유하기", systemImage: "square.and.arrow.up")
+                  Label("공유하기", icon: .share)
                 }
 
                 Button(role: .destructive) {
                   requestDelete(note)
                 } label: {
-                  Label("삭제하기", systemImage: "trash")
+                  Label("삭제하기", icon: .trash)
                 }
               }
           }
@@ -375,7 +379,7 @@ struct ArchiveCategoryListView: View {
       acknowledgementText: nil
     ) {
       if viewModel.deleteMessage(id: note.id) {
-        toast = Toast(message: "삭제되었습니다", style: .success, icon: "trash.fill")
+        toast = Toast(message: "삭제되었습니다", style: .success, icon: .trash)
       } else {
         toast = Toast(message: "삭제에 실패했습니다", style: .failure)
       }

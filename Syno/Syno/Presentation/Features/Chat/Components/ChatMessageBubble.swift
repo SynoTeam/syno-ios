@@ -72,7 +72,7 @@ struct ChatMessageBubble: View {
         Button {
           UIPasteboard.general.string = note.content
         } label: {
-          Label("복사하기", systemImage: "doc.on.doc")
+          Label("복사하기", icon: .copy)
         }
       }
 
@@ -80,7 +80,7 @@ struct ChatMessageBubble: View {
 
       if let onDelete = actions.onDelete {
         Button(role: .destructive, action: onDelete) {
-          Label("삭제하기", systemImage: "trash")
+          Label("삭제하기", icon: .trash)
         }
       }
     }
@@ -153,8 +153,10 @@ struct ChatMessageBubble: View {
 
               Spacer()
 
-              Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
+              Image(.chevronRight)
+                .resizable()
+                .renderingMode(.template)
+                .frame(width: 16, height: 16)
                 .foregroundStyle(.gray400)
             }
           }
@@ -256,19 +258,19 @@ struct ChatMessageBubble: View {
   private var shareLink: some View {
     if let fileTransferURL = state.fileTransferURL {
       ShareLink(item: fileTransferURL, preview: SharePreview(note.fileName ?? "파일")) {
-        Label("공유하기", systemImage: "square.and.arrow.up")
+        Label("공유하기", icon: .share)
       }
     } else if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
       ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
-        Label("공유하기", systemImage: "square.and.arrow.up")
+        Label("공유하기", icon: .share)
       }
     } else if let linkPreview = state.linkPreview {
       ShareLink(item: linkPreview.siteURL) {
-        Label("공유하기", systemImage: "square.and.arrow.up")
+        Label("공유하기", icon: .share)
       }
     } else {
       ShareLink(item: note.content) {
-        Label("공유하기", systemImage: "square.and.arrow.up")
+        Label("공유하기", icon: .share)
       }
     }
   }

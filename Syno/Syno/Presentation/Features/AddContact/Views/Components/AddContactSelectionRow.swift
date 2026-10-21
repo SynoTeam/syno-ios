@@ -24,8 +24,10 @@ struct AddContactSelectionRow: View {
 
         Spacer()
 
-        Image(systemName: "chevron.right")
-          .font(.system(size: 18, weight: .semibold))
+        Image(.chevronRight)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 24, height: 24)
           .foregroundStyle(.gray500)
       }
       .frame(minHeight: 54)

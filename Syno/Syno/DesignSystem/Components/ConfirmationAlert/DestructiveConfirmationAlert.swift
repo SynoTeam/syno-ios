@@ -85,8 +85,10 @@ private struct DestructiveConfirmationAlertView: View {
             hasAcknowledgedWarning.toggle()
           } label: {
             HStack(spacing: 8) {
-              Image(systemName: hasAcknowledgedWarning ? "checkmark.circle.fill" : "checkmark.circle.fill")
-                .font(.system(size: 20, weight: .medium))
+              Image(.checkCircleFilled)
+                .resizable()
+                .renderingMode(.template)
+                .frame(width: 24, height: 24)
                 .foregroundStyle(hasAcknowledgedWarning ? .gray900 : .gray400)
               Text(acknowledgementText)
                 .typeStyle(.callout)

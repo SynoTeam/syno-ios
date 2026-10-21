@@ -119,8 +119,8 @@ struct ChatView: View {
   private var navigationContent: some View {
     content
       .navigationTitle(selection.isActive ? "\(selection.count)개 선택" : viewModel.contact.name)
-      .navigationBarBackButtonHidden(selection.isActive)
       .navigationBarTitleDisplayMode(.inline)
+      .synoBackButton(isHidden: selection.isActive)
       .toolbar(.hidden, for: .tabBar)
       .toolbar { toolbarContent }
       .navigationDestination(isPresented: $isShowingArchive) {
@@ -214,7 +214,7 @@ struct ChatView: View {
       onDelete: { note in
         let didDelete = deleteMessage(note)
         if didDelete {
-          toast = Toast(message: "메시지가 삭제되었습니다", style: .success, icon: "trash.fill")
+          toast = Toast(message: "메시지가 삭제되었습니다", style: .success, icon: .trash)
         }
         return didDelete
       }
@@ -348,7 +348,10 @@ struct ChatView: View {
         Button {
           goToPreviousMatch(with: proxy)
         } label: {
-          Image(systemName: "chevron.up")
+          Image(.chevronUp)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .frame(width: 28, height: 28)
         }
         .disabled(currentMatchIndex <= 0)
@@ -356,7 +359,10 @@ struct ChatView: View {
         Button {
           goToNextMatch(with: proxy)
         } label: {
-          Image(systemName: "chevron.down")
+          Image(.chevronDown)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .frame(width: 28, height: 28)
         }
         .disabled(currentMatchIndex >= viewModel.messageSearchResults.count - 1)
@@ -564,7 +570,7 @@ struct ChatView: View {
     toast = Toast(
       message: "메시지 \(deletedCount)개가 삭제되었습니다",
       style: .success,
-      icon: "trash.fill"
+      icon: .trash
     )
   }
 

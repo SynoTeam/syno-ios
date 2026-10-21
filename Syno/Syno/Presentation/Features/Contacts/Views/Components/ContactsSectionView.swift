@@ -67,7 +67,7 @@ struct ContactsSectionView: View {
                 Button(role: .destructive) {
                   onDelete(contact)
                 } label: {
-                  Label("연락처 삭제", systemImage: "trash")
+                  Label("연락처 삭제", icon: .trash)
                 }
               }
             }
@@ -107,8 +107,10 @@ struct ContactsSectionView: View {
         Spacer()
         
         if !contacts.isEmpty {
-          Image(systemName: "chevron.up")
-            .font(.system(size: 12, weight: .semibold))
+          Image(.chevronUp)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 16, height: 16)
             .foregroundStyle(.gray500)
             .rotationEffect(.degrees(isCollapsed ? 180 : 0))
         }
@@ -241,8 +243,10 @@ private struct FavoriteSwipeRow<Content: View>: View {
       close()
       onDelete()
     } label: {
-      Image(systemName: "trash.fill")
-        .font(.system(size: 16, weight: .semibold))
+      Image(.trash)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
         .foregroundStyle(.errorRed)
         .frame(width: actionWidth, height: actionWidth)
         .background(.errorRed.opacity(0.12))

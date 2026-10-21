@@ -57,8 +57,10 @@ struct ContactsDeleteSection: View {
 
         Spacer()
 
-        Image(systemName: "chevron.up")
-          .font(.system(size: 12, weight: .semibold))
+        Image(.chevronUp)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 16, height: 16)
           .foregroundStyle(.gray500)
           .rotationEffect(.degrees(isCollapsed ? 180 : 0))
       }
@@ -116,8 +118,10 @@ struct ContactsDeleteAllSection: View {
 
           Spacer()
 
-          Image(systemName: "chevron.up")
-            .font(.system(size: 12, weight: .semibold))
+          Image(.chevronUp)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 16, height: 16)
             .foregroundStyle(.gray500)
             .rotationEffect(.degrees(isCollapsed ? 180 : 0))
         }

@@ -36,7 +36,10 @@ struct AddContactDateRow: View {
         Button {
           date = nil
         } label: {
-          Image(systemName: "xmark.circle.fill")
+          Image(.xCircle)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.gray400)
         }
         .buttonStyle(.plain)

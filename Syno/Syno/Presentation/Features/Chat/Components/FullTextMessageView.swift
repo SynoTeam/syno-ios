@@ -30,7 +30,10 @@ struct FullTextMessageView: View {
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
           Button(action: { dismiss() }) {
-            Image(systemName: "xmark")
+            Image(.close)
+              .resizable()
+              .renderingMode(.template)
+              .frame(width: 20, height: 20)
           }
         }
 
@@ -39,20 +42,23 @@ struct FullTextMessageView: View {
             Button {
               UIPasteboard.general.string = note.content
             } label: {
-              Label("복사하기", systemImage: "doc.on.doc")
+              Label("복사하기", icon: .copy)
             }
 
             ShareLink(item: note.content) {
-              Label("공유하기", systemImage: "square.and.arrow.up")
+              Label("공유하기", icon: .share)
             }
 
             Button(role: .destructive) {
               requestDeleteConfirmation()
             } label: {
-              Label("삭제하기", systemImage: "trash")
+              Label("삭제하기", icon: .trash)
             }
           } label: {
-            Image(systemName: "ellipsis")
+            Image(.moreHorizontal)
+              .resizable()
+              .renderingMode(.template)
+              .frame(width: 20, height: 20)
           }
         }
       }

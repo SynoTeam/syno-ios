@@ -33,12 +33,12 @@ struct ChatPhotoGroupBubble: View {
           ShareLink(items: images) { image in
             SharePreview("사진", image: image)
           } label: {
-            Label("공유하기", systemImage: "square.and.arrow.up")
+            Label("공유하기", icon: .share)
           }
 
           if let onDelete {
             Button(role: .destructive, action: onDelete) {
-              Label("삭제하기", systemImage: "trash")
+              Label("삭제하기", icon: .trash)
             }
           }
         }

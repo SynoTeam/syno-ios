@@ -192,13 +192,13 @@ struct ContactsView: View {
             return true
           }
         } label: {
-          Label("새 연락처 추가", systemImage: "person.badge.plus")
+          Label("새 연락처 추가", icon: .person)
         }
 
         Button {
           isShowingContactImportPicker = true
         } label: {
-          Label("연락처 가져오기", systemImage: "square.and.arrow.down")
+          Label("연락처 가져오기", icon: .download)
         }
       } label: {
         HeaderCircleIcon(.plus)
@@ -236,7 +236,7 @@ struct ContactsView: View {
       let message = result.skipped > 0
         ? "\(result.imported)명을 가져왔습니다. (\(result.skipped)명은 중복되어 건너뜀)"
         : "\(result.imported)명을 가져왔습니다."
-      toast = Toast(message: message, style: .success, icon: "square.and.arrow.down.fill")
+      toast = Toast(message: message, style: .success, icon: .download)
     } else {
       toast = Toast(message: "가져올 새 연락처가 없습니다.", style: .failure)
     }
@@ -253,7 +253,7 @@ struct ContactsView: View {
     toast = Toast(
       message: "연락처 \(count)건이 삭제되었습니다.",
       style: .success,
-      icon: "trash.fill"
+      icon: .trash
     )
   }
   
@@ -268,7 +268,7 @@ struct ContactsView: View {
       ? "즐겨찾기에 추가되었습니다"
       : "즐겨찾기 해제되었습니다",
       style: .success,
-      icon: isFavorite ? "star.fill" : "star.slash.fill",
+      systemIcon: isFavorite ? "star.fill" : "star.slash.fill",
       action: Toast.Action(title: "되돌리기") {
         viewModel.setFavorite(
           id: id,
@@ -283,7 +283,7 @@ struct ContactsView: View {
     toast = Toast(
       message: "연락처가 삭제되었습니다",
       style: .success,
-      icon: "trash.fill"
+      icon: .trash
     )
   }
 }

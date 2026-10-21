@@ -48,7 +48,10 @@ struct PhotoCropView: View {
         .toolbar {
           ToolbarItem(placement: .topBarLeading) {
             Button(action: dismiss.callAsFunction) {
-              Image(systemName: "chevron.left")
+              Image(.chevronLeft)
+                .resizable()
+                .renderingMode(.template)
+                .frame(width: 24, height: 24)
                 .foregroundStyle(.black)
             }
           }

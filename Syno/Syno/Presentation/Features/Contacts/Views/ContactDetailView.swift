@@ -80,6 +80,7 @@ struct ContactDetailView: View {
     }
     .background(Color.gray50)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {

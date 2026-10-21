@@ -32,8 +32,10 @@ struct AddContactPhoneNumberField: View {
             .typeStyle(.subheadline)
             .foregroundStyle(.gray950)
 
-          Image(systemName: "chevron.down")
-            .font(.system(size: 14, weight: .semibold))
+          Image(.chevronDown)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.gray500)
         }
         .frame(width: 73, height: 38)

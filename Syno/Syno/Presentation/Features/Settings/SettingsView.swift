@@ -31,6 +31,7 @@ struct SettingsView: View {
     .background(Color.gray50)
     .navigationTitle("앱 설정")
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .task { refreshStorageUsage() }
     .destructiveConfirmationAlert(item: $confirmationAlert)
@@ -126,8 +127,10 @@ struct SettingsView: View {
 
         Spacer()
 
-        Image(systemName: "chevron.right")
-          .font(.system(size: 13, weight: .semibold))
+        Image(.chevronRight)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 16, height: 16)
           .foregroundStyle(.gray300)
       }
       .contentShape(Rectangle())

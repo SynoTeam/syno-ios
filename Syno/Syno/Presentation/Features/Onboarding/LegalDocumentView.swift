@@ -16,6 +16,7 @@ struct LegalDocumentView: View {
     .background(Color.gray50)
     .navigationTitle(title)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
   }
 
   private var attributedContent: AttributedString {

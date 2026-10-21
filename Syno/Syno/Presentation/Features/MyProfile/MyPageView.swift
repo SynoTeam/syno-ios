@@ -87,6 +87,7 @@ struct MyPageView: View {
     }
     .background(Color.gray50)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar {
       ToolbarItemGroup(placement: .topBarTrailing) {
         NavigationLink {

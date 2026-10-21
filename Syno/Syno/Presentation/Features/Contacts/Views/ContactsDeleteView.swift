@@ -47,12 +47,15 @@ struct ContactsDeleteView: View {
     .background(Color.gray50)
     .navigationTitle("연락처 삭제")
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button(action: requestDeleteConfirmation) {
-          Image(systemName: "checkmark")
-            .font(.system(size: 16, weight: .bold))
+          Image(.check)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
             .background(.violet600)

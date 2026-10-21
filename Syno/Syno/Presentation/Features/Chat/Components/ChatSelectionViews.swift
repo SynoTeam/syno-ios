@@ -32,8 +32,10 @@ struct ChatSelectionIndicator: View {
       .fill(isSelected ? Color.gray900 : Color.clear)
       .overlay {
         if isSelected {
-          Image(systemName: "checkmark")
-            .font(.system(size: 14, weight: .bold))
+          Image(.check)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 16, height: 16)
             .foregroundStyle(.white)
         } else {
           Circle().stroke(Color.gray300, lineWidth: 1.5)

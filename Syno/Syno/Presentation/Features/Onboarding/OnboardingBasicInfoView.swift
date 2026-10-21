@@ -67,6 +67,7 @@ struct OnboardingBasicInfoView: View {
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .alert("오류", isPresented: persistenceErrorBinding) {
       Button("확인", action: viewModel.clearPersistenceError)
     } message: {

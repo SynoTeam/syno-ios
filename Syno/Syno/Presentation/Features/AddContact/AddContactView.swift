@@ -70,6 +70,7 @@ struct AddContactView: View {
     .scrollDismissesKeyboard(.interactively)
     .dismissKeyboardOnTap($focusedField)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
@@ -108,8 +109,10 @@ struct AddContactView: View {
       isShowingDeviceContactPicker = true
     } label: {
       HStack(spacing: 8) {
-        Image(systemName: "person.crop.circle.badge.plus")
-          .font(.system(size: 18, weight: .semibold))
+        Image(.person)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 24, height: 24)
 
         Text("휴대폰 연락처에서 불러오기")
           .typeStyle(.subheadline)

@@ -35,12 +35,15 @@ struct NotesDeletionView: View {
     }
     .background(Color.gray50)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button(action: requestDeleteConfirmation) {
-          Image(systemName: "checkmark")
-            .font(.system(size: 16, weight: .bold))
+          Image(.check)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
             .background(.violet600)
@@ -115,10 +118,19 @@ private struct NotesDeletionRow: View {
   var body: some View {
     Button(action: onToggle) {
       HStack(spacing: 12) {
-        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-          .font(.system(size: 28, weight: .medium))
-          .foregroundStyle(isSelected ? .gray900 : .gray300)
-          .frame(width: 28, height: 28)
+        Group {
+          if isSelected {
+            Image(.checkCircleFilled)
+              .resizable()
+              .renderingMode(.template)
+              .foregroundStyle(.gray900)
+          } else {
+            Circle()
+              .stroke(Color.gray300, lineWidth: 1.5)
+              .padding(2)
+          }
+        }
+        .frame(width: 28, height: 28)
 
         NoteRowView(note: note)
       }

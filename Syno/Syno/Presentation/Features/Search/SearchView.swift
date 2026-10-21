@@ -303,10 +303,7 @@ struct SearchView: View {
     case .file:
       sectionAssetIcon(.document)
     case .voice:
-      Image(systemName: "waveform")
-        .font(.system(size: 16, weight: .medium))
-        .foregroundStyle(.gray300)
-        .frame(width: 20, height: 20)
+      sectionAssetIcon(.sliders)
     }
   }
 

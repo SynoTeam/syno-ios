@@ -74,8 +74,10 @@ struct CountryCodeSelectionSheet: View {
     } label: {
       HStack(spacing: 8) {
         if isSelected {
-          Image(systemName: "checkmark")
-            .font(.system(size: 15, weight: .semibold))
+          Image(.check)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.violet500)
         }
 
@@ -121,7 +123,10 @@ struct CountryCodeSelectionSheet: View {
 
   private var searchField: some View {
     HStack(spacing: 8) {
-      Image(systemName: "magnifyingglass")
+      Image(.search)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
         .foregroundStyle(.gray500)
 
       TextField("검색하기", text: $searchQuery)
@@ -132,7 +137,10 @@ struct CountryCodeSelectionSheet: View {
       Button {
         searchQuery = ""
       } label: {
-        Image(systemName: "xmark.circle.fill")
+        Image(.xCircle)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 20, height: 20)
           .foregroundStyle(.gray400)
       }
       .buttonStyle(.plain)

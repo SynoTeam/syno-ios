@@ -19,7 +19,7 @@ struct MainTabView: View {
 
   var body: some View {
     TabView(selection: $selectedTab) {
-      Tab(AppTab.contacts.title, systemImage: AppTab.contacts.systemImage, value: .contacts) {
+      Tab(value: AppTab.contacts) {
         NavigationStack {
           ContactsView(
             userProfile: userProfile,
@@ -37,9 +37,11 @@ struct MainTabView: View {
         }
         // 탭바 선택색(보라)은 TabView의 tint를 쓰고, 화면 안의 기본 강조색은 검은색으로 덮어쓴다.
         .tint(.gray950)
+      } label: {
+        AppTab.contacts.label
       }
       
-      Tab(AppTab.notes.title, systemImage: AppTab.notes.systemImage, value: .notes) {
+      Tab(value: AppTab.notes) {
         NavigationStack {
           NotesView(
             noteRepository: container.noteRepository,
@@ -54,9 +56,11 @@ struct MainTabView: View {
           )
         }
         .tint(.gray950)
+      } label: {
+        AppTab.notes.label
       }
       
-      Tab(AppTab.search.title, systemImage: AppTab.search.systemImage, value: .search, role: .search) {
+      Tab(value: AppTab.search, role: .search) {
         NavigationStack {
           SearchView(
             noteRepository: container.noteRepository,
@@ -72,6 +76,8 @@ struct MainTabView: View {
           )
         }
         .tint(.gray950)
+      } label: {
+        AppTab.search.label
       }
     }
     .tint(.violet500)
@@ -94,14 +100,23 @@ private enum AppTab: Hashable {
     }
   }
   
-  var systemImage: String {
+  var icon: ImageResource {
     switch self {
     case .contacts:
-      "person.crop.circle"
+      .person
     case .notes:
-      "note.text"
+      .card
     case .search:
-      "magnifyingglass"
+      .search
+    }
+  }
+
+  var label: some View {
+    Label {
+      Text(title)
+    } icon: {
+      Image(icon)
+        .renderingMode(.template)
     }
   }
 }

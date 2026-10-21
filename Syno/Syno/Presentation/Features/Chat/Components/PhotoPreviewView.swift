@@ -57,6 +57,7 @@ struct PhotoPreviewView: View {
     .animation(.snappy, value: selectedGroupPhotos.isEmpty)
     .background(Color.gray50)
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .permissionDeniedAlert($deniedPermission)

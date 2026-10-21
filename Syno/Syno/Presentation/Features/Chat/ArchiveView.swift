@@ -80,13 +80,17 @@ struct ArchiveView: View {
     .background(Color.gray50)
     .navigationTitle("아카이브")
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
           isSearching = true
         } label: {
-          Image(systemName: "magnifyingglass")
+          Image(.search)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
             .foregroundStyle(.gray950)
         }
         .accessibilityLabel("검색")

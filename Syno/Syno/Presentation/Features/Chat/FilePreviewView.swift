@@ -35,6 +35,7 @@ struct FilePreviewView: View {
     .background(Color.gray50)
     .navigationTitle("파일")
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .sheet(isPresented: $isQuickLookPresented) {
       if let fileURL {
@@ -50,8 +51,10 @@ struct FilePreviewView: View {
         if let fileURL {
           QuickLookPreview(url: fileURL)
         } else {
-          Image(systemName: "doc.fill")
-            .font(.system(size: 72))
+          Image(.file)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 72, height: 72)
             .foregroundStyle(.violet500)
         }
       }
@@ -168,7 +171,7 @@ struct FilePreviewView: View {
   @ViewBuilder private var downloadStatus: some View {
     switch downloadState {
     case .checking:
-      Label("iCloud에서 파일을 확인하는 중", systemImage: "arrow.triangle.2.circlepath")
+      Label("iCloud에서 파일을 확인하는 중", icon: .refresh)
         .typeStyle(.footnote).foregroundStyle(.gray500)
     case .failed:
       Label("파일을 가져오지 못했습니다. 다시 시도해주세요.", systemImage: "exclamationmark.triangle")

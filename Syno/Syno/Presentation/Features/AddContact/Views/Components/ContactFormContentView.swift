@@ -165,7 +165,10 @@ struct ContactFormContentView: View {
       Button {
         socialLinks.remove(at: index)
       } label: {
-        Image(systemName: "minus.circle.fill")
+        Image(.minusCircle)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 20, height: 20)
           .foregroundStyle(.gray400)
       }
       .buttonStyle(.plain)

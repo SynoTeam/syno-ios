@@ -134,7 +134,7 @@ struct NotesView: View {
         Button {
           isShowingDeletion = true
         } label: {
-          Label("선택 삭제", systemImage: "trash")
+          Label("선택 삭제", icon: .trash)
         }
       } label: {
         HeaderCircleIcon(.moreHorizontal)
@@ -289,7 +289,7 @@ struct NotesView: View {
     toast = Toast(
       message: "노트가 삭제되었습니다.",
       style: .success,
-      icon: "trash.fill"
+      icon: .trash
     )
   }
 
@@ -322,7 +322,7 @@ struct NotesView: View {
       toast = Toast(
         message: isPinned ? "핀 추가되었습니다" : "핀 해제되었습니다",
         style: .success,
-        icon: isPinned ? "pin.fill" : "pin.slash.fill",
+        systemIcon: isPinned ? "pin.fill" : "pin.slash.fill",
         action: Toast.Action(title: "되돌리기") {
           setPin(!isPinned, for: note, showsSuccessToast: false)
         }

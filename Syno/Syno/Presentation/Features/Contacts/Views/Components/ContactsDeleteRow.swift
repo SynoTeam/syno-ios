@@ -13,10 +13,19 @@ struct ContactsDeleteRow: View {
   var body: some View {
     Button(action: onToggle) {
       HStack(spacing: 12) {
-        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-          .font(.system(size: 28, weight: .medium))
-          .foregroundStyle(isSelected ? .gray900 : .gray300)
-          .frame(width: 28, height: 28)
+        Group {
+          if isSelected {
+            Image(.checkCircleFilled)
+              .resizable()
+              .renderingMode(.template)
+              .foregroundStyle(.gray900)
+          } else {
+            Circle()
+              .stroke(Color.gray300, lineWidth: 1.5)
+              .padding(2)
+          }
+        }
+        .frame(width: 28, height: 28)
 
         avatar
 

@@ -95,8 +95,10 @@ struct GroupManagementSheet: View {
         groupPendingDeletion = group
         requestDeleteConfirmation()
       } label: {
-        Image(systemName: "minus.circle.fill")
-          .font(.system(size: 22))
+        Image(.minusCircle)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 24, height: 24)
           .foregroundStyle(.gray600)
       }
       .buttonStyle(.plain)
@@ -118,8 +120,10 @@ struct GroupManagementSheet: View {
       .onSubmit(addGroup)
 
       Button(action: addGroup) {
-        Image(systemName: "plus.circle.fill")
-          .font(.system(size: 22))
+        Image(.plusCircle)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 24, height: 24)
           .foregroundStyle(.violet500)
       }
       .buttonStyle(.plain)

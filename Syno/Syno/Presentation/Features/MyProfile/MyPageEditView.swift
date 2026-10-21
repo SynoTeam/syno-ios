@@ -47,6 +47,7 @@ struct MyPageEditView: View {
     .dismissKeyboardOnTap($focusedField)
     .navigationTitle("프로필 편집")
     .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton()
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button("완료", action: saveContact)

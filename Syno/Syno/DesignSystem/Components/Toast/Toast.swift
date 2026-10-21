@@ -4,20 +4,24 @@ struct Toast: Identifiable {
   let id = UUID()
   let message: String
   let style: Style
-  let icon: String?
+  let icon: ImageResource?
+  /// 앱 아이콘 에셋이 아직 없는 아이콘(별 등)을 SF Symbol 이름으로 보여줄 때만 씁니다. 에셋이 생기면 `icon`으로 옮깁니다.
+  let systemIcon: String?
   let duration: TimeInterval
   let action: Action?
 
   init(
     message: String,
     style: Style,
-    icon: String? = nil,
+    icon: ImageResource? = nil,
+    systemIcon: String? = nil,
     duration: TimeInterval = 2.5,
     action: Action? = nil
   ) {
     self.message = message
     self.style = style
     self.icon = icon
+    self.systemIcon = systemIcon
     self.duration = duration
     self.action = action
   }
@@ -49,10 +53,19 @@ struct ToastView: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      Image(systemName: toast.icon ?? toast.style.iconName)
-        .font(.system(size: 20, weight: .semibold))
-        .foregroundStyle(toast.style.accentColor)
-        .accessibilityHidden(true)
+      Group {
+        if let systemIcon = toast.systemIcon {
+          Image(systemName: systemIcon)
+            .font(.system(size: 20, weight: .semibold))
+        } else {
+          Image(toast.icon ?? toast.style.icon)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 24, height: 24)
+        }
+      }
+      .foregroundStyle(toast.style.accentColor)
+      .accessibilityHidden(true)
 
       Text(toast.message)
         .typeStyle(.subheadlineEmphasized)
@@ -91,12 +104,12 @@ struct ToastView: View {
 }
 
 private extension Toast.Style {
-  var iconName: String {
+  var icon: ImageResource {
     switch self {
     case .success:
-      "checkmark.circle.fill"
+      .checkCircleFilled
     case .failure:
-      "exclamationmark.circle.fill"
+      .alertCircle
     }
   }
 
@@ -150,7 +163,7 @@ private struct ToastPreview: View {
         toast = Toast(
           message: "연락처를 삭제했습니다.",
           style: .success,
-          icon: "trash.fill",
+          icon: .trash,
           action: Toast.Action(title: "되돌리기") {
             status = "삭제를 되돌렸습니다."
           }

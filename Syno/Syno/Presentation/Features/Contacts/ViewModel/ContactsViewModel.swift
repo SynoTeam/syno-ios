@@ -33,11 +33,29 @@ final class ContactsViewModel {
   }
   
   var favoriteContacts: [Contact] {
-    Self.sorted(contacts.filter { $0.isFavorite && !$0.isMe })
+    sortedLists.favorites
   }
 
   var regularContacts: [Contact] {
-    Self.sorted(contacts.filter { !$0.isMe })
+    sortedLists.regular
+  }
+
+  /// 정렬 결과를 저장해 두는 캐시입니다. 화면이 다시 그려질 때마다 연락처 전체를 정렬하지 않도록
+  /// 연락처 배열이 바뀐 경우에만 다시 계산합니다. 관찰 대상이 아니므로 읽는 중에 갱신해도 됩니다.
+  @ObservationIgnored
+  private var sortedListsCache: (source: [Contact], favorites: [Contact], regular: [Contact])?
+
+  private var sortedLists: (favorites: [Contact], regular: [Contact]) {
+    // 배열이 같은 저장소를 가리키면 비교가 바로 끝나므로 바뀌지 않은 평소에는 거의 비용이 없다.
+    if let cache = sortedListsCache, cache.source == contacts {
+      return (cache.favorites, cache.regular)
+    }
+
+    let regular = Self.sorted(contacts.filter { !$0.isMe })
+    // 정렬된 목록에서 거르면 즐겨찾기 목록도 같은 순서를 유지한다.
+    let favorites = regular.filter(\.isFavorite)
+    sortedListsCache = (contacts, favorites, regular)
+    return (favorites, regular)
   }
 
   /// 그룹이 있는 연락처를 그룹 가나다 순, 같은 그룹 안에서는 이름 가나다 순으로 두고

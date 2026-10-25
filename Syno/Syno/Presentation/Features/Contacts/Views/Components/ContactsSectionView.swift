@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ContactsSectionView: View {
   let title: String
@@ -190,11 +191,6 @@ struct OpenSwipeRow: Equatable {
 }
 
 private struct FavoriteSwipeRow<Content: View>: View {
-  private enum DragAxis {
-    case horizontal
-    case vertical
-  }
-
   private let actionWidth: CGFloat = 40
   private let actionSpacing: CGFloat = 8
   /// 행 왼쪽 여백 + 프로필 이미지 폭에 약간의 여유를 더한 값입니다.
@@ -208,7 +204,7 @@ private struct FavoriteSwipeRow<Content: View>: View {
   let onDelete: () -> Void
   private let label: () -> Content
 
-  @State private var dragAxis: DragAxis?
+  @State private var isHorizontalDragging = false
   @State private var dragTranslation: CGFloat = 0
 
   init(
@@ -253,7 +249,14 @@ private struct FavoriteSwipeRow<Content: View>: View {
             .allowsHitTesting(false)
         }
         .offset(x: displayedOffset)
-        .simultaneousGesture(swipeGesture)
+        .gesture(
+          HorizontalPanGesture(
+            onChanged: handleSwipeChanged,
+            onEnded: handleSwipeEnded,
+            onCancelled: handleSwipeCancelled,
+            onVertical: { openSwipeRow = nil }
+          )
+        )
     }
     .clipped()
     .animation(swipeSettleAnimation, value: openSwipeRow)
@@ -326,7 +329,7 @@ private struct FavoriteSwipeRow<Content: View>: View {
   }
 
   private var displayedOffset: CGFloat {
-    let dragged = dragAxis == .horizontal ? dragTranslation : 0
+    let dragged = isHorizontalDragging ? dragTranslation : 0
     return resistedOffset(restingOffset + dragged)
   }
 
@@ -359,70 +362,135 @@ private struct FavoriteSwipeRow<Content: View>: View {
     openSwipeRow = nil
   }
 
-  private var swipeGesture: some Gesture {
-    DragGesture(minimumDistance: 12)
-      .onChanged { value in
-        let horizontal = abs(value.translation.width)
-        let vertical = abs(value.translation.height)
+  private func handleSwipeChanged(_ translation: CGFloat) {
+    if !isHorizontalDragging {
+      isHorizontalDragging = true
 
-        if dragAxis == nil {
-          // 방향이 분명해질 때까지 대각선 움직임은 보류한다.
-          if horizontal > vertical * 1.3 {
-            dragAxis = .horizontal
-
-            // 다른 행이 열려 있으면 먼저 닫는다.
-            if let openSwipeRow, !isThisRow(openSwipeRow) {
-              self.openSwipeRow = nil
-            }
-          } else if vertical > horizontal * 1.3 {
-            // 세로 스크롤은 ScrollView에 맡긴다.
-            dragAxis = .vertical
-          } else {
-            return
-          }
-        }
-
-        if dragAxis == .horizontal {
-          dragTranslation = value.translation.width
-        }
+      // 다른 행이 열려 있으면 먼저 닫는다.
+      if let openSwipeRow, !isThisRow(openSwipeRow) {
+        self.openSwipeRow = nil
       }
-      .onEnded { value in
-        guard dragAxis == .horizontal else {
-          dragAxis = nil
-          dragTranslation = 0
-          return
+    }
+    dragTranslation = translation
+  }
+
+  private func handleSwipeEnded(translation: CGFloat, velocity: CGFloat) {
+    guard isHorizontalDragging else {
+      return
+    }
+
+    let wasOpenOffset = restingOffset
+    // 속도는 짧은 구간만 투영해 가벼운 드래그가 열림 임계값을 넘지 않게 한다.
+    let proposedOffset = wasOpenOffset + translation + velocity * 0.05
+
+    withAnimation(swipeSettleAnimation) {
+      isHorizontalDragging = false
+      dragTranslation = 0
+
+      if proposedOffset > revealDistance / 2 {
+        // 반대쪽이 열려 있었다면 한 번에 넘기지 않고 먼저 닫는다.
+        if wasOpenOffset < 0 {
+          close()
+        } else {
+          openSwipeRow = OpenSwipeRow(section: section, id: id, edge: .favorite)
         }
-
-        let wasOpenOffset = restingOffset
-
-        // 예측값은 일부만 반영해서 작은 플릭이 과하게 투영되지 않게 한다.
-        let currentOffset = wasOpenOffset + value.translation.width
-        let projectedDelta = value.predictedEndTranslation.width - value.translation.width
-        let proposedOffset = currentOffset + projectedDelta * 0.2
-
-        // 정리 전체를 애니메이션으로 묶어서 임계값 미달 시에도 부드럽게 돌아가게 한다.
-        withAnimation(swipeSettleAnimation) {
-          dragAxis = nil
-          dragTranslation = 0
-
-          if proposedOffset > revealDistance / 2 {
-            // 반대쪽이 열려 있었다면 한 번에 넘기지 않고 먼저 닫는다.
-            if wasOpenOffset < 0 {
-              close()
-            } else {
-              openSwipeRow = OpenSwipeRow(section: section, id: id, edge: .favorite)
-            }
-          } else if proposedOffset < -revealDistance / 2 {
-            if wasOpenOffset > 0 {
-              close()
-            } else {
-              openSwipeRow = OpenSwipeRow(section: section, id: id, edge: .delete)
-            }
-          } else {
-            close()
-          }
+      } else if proposedOffset < -revealDistance / 2 {
+        if wasOpenOffset > 0 {
+          close()
+        } else {
+          openSwipeRow = OpenSwipeRow(section: section, id: id, edge: .delete)
         }
+      } else {
+        close()
       }
+    }
+  }
+
+  private func handleSwipeCancelled() {
+    guard isHorizontalDragging else {
+      return
+    }
+
+    withAnimation(swipeSettleAnimation) {
+      isHorizontalDragging = false
+      dragTranslation = 0
+    }
+  }
+}
+
+/// 가로 속도에서만 인식되어 세로 드래그를 상위 ScrollView에 넘기는 행 스와이프 제스처입니다.
+private struct HorizontalPanGesture: UIGestureRecognizerRepresentable {
+  let onChanged: (CGFloat) -> Void
+  let onEnded: (CGFloat, CGFloat) -> Void
+  let onCancelled: () -> Void
+  let onVertical: () -> Void
+
+  func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+    Coordinator(onVertical: onVertical)
+  }
+
+  func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+    let recognizer = UIPanGestureRecognizer()
+    recognizer.delegate = context.coordinator
+    recognizer.cancelsTouchesInView = false
+    return recognizer
+  }
+
+  func updateUIGestureRecognizer(_ recognizer: UIPanGestureRecognizer, context: Context) {
+    context.coordinator.onVertical = onVertical
+  }
+
+  func handleUIGestureRecognizerAction(
+    _ recognizer: UIPanGestureRecognizer,
+    context: Context
+  ) {
+    let translation = recognizer.translation(in: recognizer.view).x
+    switch recognizer.state {
+    case .began, .changed:
+      onChanged(translation)
+    case .ended:
+      let velocity = recognizer.velocity(in: recognizer.view).x
+      onEnded(translation, velocity)
+    case .cancelled, .failed:
+      onCancelled()
+    default:
+      break
+    }
+  }
+
+  final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+    var onVertical: () -> Void
+
+    init(onVertical: @escaping () -> Void) {
+      self.onVertical = onVertical
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+      guard
+        let pan = gestureRecognizer as? UIPanGestureRecognizer,
+        let view = gestureRecognizer.view
+      else {
+        return false
+      }
+
+      let velocity = pan.velocity(in: view)
+      if abs(velocity.x) > abs(velocity.y) * 1.3 {
+        return true
+      }
+      if abs(velocity.y) > abs(velocity.x) * 1.3 {
+        // 열린 행을 닫고 인식을 포기해 상위 스크롤 뷰가 세로 이동을 처리하게 한다.
+        onVertical()
+      }
+      return false
+    }
+
+    func gestureRecognizer(
+      _ gestureRecognizer: UIGestureRecognizer,
+      shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+      // 상위 ScrollView pan만 허용해 내비게이션 가장자리 뒤로 가기와의 경합을 막는다.
+      otherGestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer.view is UIScrollView
+    }
   }
 }
 

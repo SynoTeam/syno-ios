@@ -48,7 +48,6 @@ struct ContactsDeleteView: View {
     .navigationTitle("연락처 삭제")
     .navigationBarTitleDisplayMode(.inline)
     .synoBackButton()
-    .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button(action: requestDeleteConfirmation) {

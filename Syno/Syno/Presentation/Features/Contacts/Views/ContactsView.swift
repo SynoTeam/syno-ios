@@ -132,6 +132,12 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
+    // 상세·삭제 화면의 탭바 숨김을 화면마다 붙이지 않고 여기서 한 번에 제어한다.
+    // 화면마다 숨기면 iOS 26에서 뒤로 돌아올 때 탭바가 늦게 나타날 수 있다.
+    .toolbar(
+      selectedContact != nil || contactPendingDeletion != nil ? .hidden : .visible,
+      for: .tabBar
+    )
     .navigationDestination(item: $contactPendingDeletion) { contact in
       ContactsDeleteView(
         viewModel: viewModel,

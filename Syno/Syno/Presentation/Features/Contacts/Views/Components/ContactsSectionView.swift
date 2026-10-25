@@ -362,19 +362,23 @@ private struct FavoriteSwipeRow<Content: View>: View {
   private var swipeGesture: some Gesture {
     DragGesture(minimumDistance: 12)
       .onChanged { value in
-        if dragAxis == nil {
-          dragAxis = abs(value.translation.width) > abs(value.translation.height)
-            ? .horizontal
-            : .vertical
+        let horizontal = abs(value.translation.width)
+        let vertical = abs(value.translation.height)
 
-          if dragAxis == .horizontal {
+        if dragAxis == nil {
+          // 방향이 분명해질 때까지 대각선 움직임은 보류한다.
+          if horizontal > vertical * 1.3 {
+            dragAxis = .horizontal
+
             // 다른 행이 열려 있으면 먼저 닫는다.
             if let openSwipeRow, !isThisRow(openSwipeRow) {
               self.openSwipeRow = nil
             }
+          } else if vertical > horizontal * 1.3 {
+            // 세로 스크롤은 ScrollView에 맡긴다.
+            dragAxis = .vertical
           } else {
-            // 세로 스크롤을 시작하면 열린 행을 닫는다.
-            openSwipeRow = nil
+            return
           }
         }
 
@@ -383,7 +387,12 @@ private struct FavoriteSwipeRow<Content: View>: View {
         }
       }
       .onEnded { value in
-        let wasHorizontal = dragAxis == .horizontal
+        guard dragAxis == .horizontal else {
+          dragAxis = nil
+          dragTranslation = 0
+          return
+        }
+
         let wasOpenOffset = restingOffset
 
         // 예측값은 일부만 반영해서 작은 플릭이 과하게 투영되지 않게 한다.
@@ -395,10 +404,6 @@ private struct FavoriteSwipeRow<Content: View>: View {
         withAnimation(swipeSettleAnimation) {
           dragAxis = nil
           dragTranslation = 0
-
-          guard wasHorizontal else {
-            return
-          }
 
           if proposedOffset > revealDistance / 2 {
             // 반대쪽이 열려 있었다면 한 번에 넘기지 않고 먼저 닫는다.

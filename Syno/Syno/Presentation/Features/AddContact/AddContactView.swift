@@ -52,8 +52,11 @@ struct AddContactView: View {
     VStack(spacing: 0) {
       ScrollView {
         VStack(alignment: .leading, spacing: 24) {
-          AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
-          importDeviceContactButton
+          VStack(spacing: 20) {
+            AddContactPhotoPickerView(selectedImageData: binding(\.selectedImageData))
+            importDeviceContactButton
+          }
+          .frame(maxWidth: .infinity)
           contactForm
         }
         .padding(.horizontal, 16)
@@ -108,20 +111,14 @@ struct AddContactView: View {
       focusedField = nil
       isShowingDeviceContactPicker = true
     } label: {
-      HStack(spacing: 8) {
-        Image(.person)
-          .resizable()
-          .renderingMode(.template)
-          .frame(width: 24, height: 24)
-
-        Text("휴대폰 연락처에서 불러오기")
-          .typeStyle(.subheadline)
-      }
-      .foregroundStyle(.gray700)
-      .frame(maxWidth: .infinity, minHeight: 48)
-      .background(.white)
-      .clipShape(RoundedRectangle(cornerRadius: 16))
-      .contentShape(Rectangle())
+      Text("연락처 불러오기")
+        .typeStyle(.subheadlineEmphasized)
+        .foregroundStyle(.gray700)
+        .padding(.horizontal, 16)
+        .frame(height: 40)
+        .background(.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 999))
+        .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
   }

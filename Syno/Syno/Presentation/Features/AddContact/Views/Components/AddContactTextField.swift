@@ -44,13 +44,40 @@ struct AddContactTextField: View {
   }
 
   var body: some View {
-    TextField(placeholder, text: $text)
-      .typeStyle(.body)
-      .foregroundStyle(.gray950)
-      .frame(height: 54)
-      .lineLimit(1)
-      .focused(focusedField, equals: field)
-      .submitLabel(submitLabel)
-      .onSubmit(onSubmit)
+    HStack(spacing: 8) {
+      TextField(placeholder, text: $text)
+        .typeStyle(.body)
+        .foregroundStyle(.gray950)
+        .lineLimit(1)
+        .focused(focusedField, equals: field)
+        .submitLabel(submitLabel)
+        .onSubmit(onSubmit)
+
+      if focusedField.wrappedValue == field {
+        AddContactClearButton {
+          text = ""
+          // 버튼을 눌러도 입력 중이던 필드의 포커스가 유지되게 한다.
+          focusedField.wrappedValue = field
+        }
+      }
+    }
+    .frame(height: 54)
+  }
+}
+
+/// 입력 중인 필드의 내용을 지우는 X 버튼입니다.
+struct AddContactClearButton: View {
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      Image(.xCircle)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
+        .foregroundStyle(.gray300)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("입력 지우기")
   }
 }

@@ -10,7 +10,6 @@ struct GroupSelectionSheet: View {
   @State private var draftGroup: String
   @State private var newGroup = ""
   @State private var isAddingNewGroup = false
-  @State private var isShowingGroupManagement = false
   @State private var toast: Toast?
   @FocusState private var isNewGroupFieldFocused: Bool
 
@@ -44,13 +43,6 @@ struct GroupSelectionSheet: View {
           }
 
           addNewGroupRow
-
-          Button("그룹 편집") {
-            isShowingGroupManagement = true
-          }
-          .typeStyle(.subheadline)
-          .foregroundStyle(.gray600)
-          .frame(maxWidth: .infinity, minHeight: 44)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -60,11 +52,6 @@ struct GroupSelectionSheet: View {
     }
     .padding(.top, 32)
     .background(Color.gray50)
-    .sheet(isPresented: $isShowingGroupManagement) {
-      GroupManagementSheet()
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-    }
     .toast(item: $toast)
   }
 
@@ -111,16 +98,22 @@ struct GroupSelectionSheet: View {
           .submitLabel(.done)
           .onSubmit(confirmNewGroup)
 
-        Button("추가", action: confirmNewGroup)
-          .typeStyle(.subheadline)
-          .foregroundStyle(.violet500)
-          .buttonStyle(.plain)
+        Button(action: clearOrCancelNewGroup) {
+          Image(.xCircle)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
+            .foregroundStyle(.gray300)
+        }
+        .buttonStyle(.plain)
+        // 입력이 비어 있으면 지울 내용이 없고 입력 행을 닫으므로 동작에 맞게 안내한다.
+        .accessibilityLabel(newGroup.isEmpty ? "그룹 추가 취소" : "입력 지우기")
       }
       .padding(.horizontal, 20)
       .frame(height: 54)
       .frame(maxWidth: .infinity)
       .background(.white)
-      .clipShape(RoundedRectangle(cornerRadius: 16))
+      .clipShape(RoundedRectangle(cornerRadius: 9999))
     } else {
       Button {
         isAddingNewGroup = true
@@ -133,7 +126,7 @@ struct GroupSelectionSheet: View {
           .padding(.horizontal, 20)
           .frame(height: 54)
           .background(.white)
-          .clipShape(RoundedRectangle(cornerRadius: 16))
+          .clipShape(RoundedRectangle(cornerRadius: 9999))
       }
       .buttonStyle(.plain)
     }
@@ -144,6 +137,16 @@ struct GroupSelectionSheet: View {
       get: { newGroup },
       set: { newGroup = String($0.prefix(20)) }
     )
+  }
+
+  /// 입력한 내용이 있으면 지우고, 이미 비어 있으면 그룹 추가 입력을 닫습니다.
+  private func clearOrCancelNewGroup() {
+    if newGroup.isEmpty {
+      isAddingNewGroup = false
+      isNewGroupFieldFocused = false
+    } else {
+      newGroup = ""
+    }
   }
 
   private func confirmNewGroup() {

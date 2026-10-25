@@ -123,7 +123,10 @@ struct ContactFormContentView: View {
 
         AddContactDateRow(title: "기념일", date: $anniversary)
 
-        Divider().background(.gray50)
+        // 소셜 링크가 없으면 카드 하단 경계에 구분선이 남지 않도록 한다.
+        if !socialLinks.isEmpty {
+          Divider().background(.gray50)
+        }
 
         socialLinksContent
       }

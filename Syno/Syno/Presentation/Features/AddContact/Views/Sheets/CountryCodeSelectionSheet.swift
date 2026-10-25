@@ -17,6 +17,9 @@ struct CountryCodeSelectionSheet: View {
   /// 국가번호 목록을 필터링하는 검색어입니다.
   @State private var searchQuery = ""
 
+  /// 시트를 열 때 적용되어 있던 국가번호입니다. 목록 맨 위에 올리는 기준이며, 시트 안에서 고를 때는 바뀌지 않습니다.
+  private let initialCountryCode: String
+
   /// 체크 버튼을 눌렀을 때 부모 폼에 선택값을 반영하는 콜백입니다.
   let onApply: (String) -> Void
 
@@ -25,6 +28,7 @@ struct CountryCodeSelectionSheet: View {
     onApply: @escaping (String) -> Void
   ) {
     self.onApply = onApply
+    initialCountryCode = selectedCountryCode
     _draftCountryCode = State(initialValue: selectedCountryCode)
   }
 
@@ -117,7 +121,7 @@ struct CountryCodeSelectionSheet: View {
     CountryCodeSearch.results(
       options: AddContactViewModel.countryCodeOptions,
       query: searchQuery,
-      selectedCountryCode: draftCountryCode
+      selectedCountryCode: initialCountryCode
     )
   }
 

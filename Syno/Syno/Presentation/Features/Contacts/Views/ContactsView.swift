@@ -118,7 +118,8 @@ struct ContactsView: View {
             isCollapsed: $isAllCollapsed,
             openSwipeRow: $openSwipeRow,
             onToggleFavorite: toggleFavorite,
-            onDelete: requestDelete
+            onDelete: requestDelete,
+            showsGroupHeaders: true
           )
 
           if viewModel.regularContacts.isEmpty {
@@ -192,7 +193,7 @@ struct ContactsView: View {
             return true
           }
         } label: {
-          Label("새 연락처 추가", icon: .person)
+          Label("연락처 추가하기", icon: .plus)
         }
 
         Button {
@@ -210,7 +211,7 @@ struct ContactsView: View {
   
   private var emptyState: some View {
     VStack(spacing: 28) {
-      Image(.emptyList)
+      Image(.emptyContact)
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(width: 120, height: 120)

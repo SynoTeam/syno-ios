@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 생일, 기념일처럼 선택 사항인 날짜를 시트의 그래픽 달력으로 고르는 행입니다.
+/// 생일, 기념일처럼 선택 사항인 날짜를 시트의 휠 선택기로 고르는 행입니다.
 struct AddContactDateRow: View {
   /// 행 왼쪽에 표시할 제목입니다.
   let title: String
@@ -18,20 +18,6 @@ struct AddContactDateRow: View {
 
       Spacer()
 
-      Button {
-        isShowingPicker = true
-      } label: {
-        Text(dateText)
-          .typeStyle(.subheadlineEmphasized)
-          .foregroundStyle(date == nil ? .gray400 : .gray700)
-          .padding(.horizontal, 12)
-          .frame(height: 36)
-          .background(.gray100)
-          .clipShape(Capsule())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("\(title) 선택")
-
       if date != nil {
         Button {
           date = nil
@@ -45,24 +31,47 @@ struct AddContactDateRow: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(title) 지우기")
       }
+
+      Button {
+        isShowingPicker = true
+      } label: {
+        HStack(spacing: 4) {
+          if date != nil {
+            Text(dateText)
+              .typeStyle(.bodyEmphasized)
+              .foregroundStyle(.gray900)
+          }
+
+          Image(.chevronRight)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
+            .foregroundStyle(.gray500)
+        }
+        // 날짜가 비어 있으면 화살표뿐이라 누르기 어려워서 최소 터치 영역을 44pt로 둔다.
+        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("\(title) 선택")
     }
     .frame(height: 54)
     .sheet(isPresented: $isShowingPicker) {
       AddContactDatePickerSheet(title: title, date: $date)
-        .presentationDetents([.height(480)])
+        .presentationDetents([.height(340)])
         .presentationDragIndicator(.visible)
     }
   }
 
   private var dateText: String {
     guard let date else {
-      return "선택하기"
+      return ""
     }
     return date.formatted(.dateTime.year().month().day())
   }
 }
 
-/// 그래픽 달력을 보여주고 "완료"를 눌렀을 때만 선택한 날짜를 반영하는 시트입니다.
+/// 휠 선택기를 보여주고 "완료"를 눌렀을 때만 선택한 날짜를 반영하는 시트입니다.
 private struct AddContactDatePickerSheet: View {
   @Environment(\.dismiss) private var dismiss
 
@@ -84,7 +93,7 @@ private struct AddContactDatePickerSheet: View {
         selection: $draft,
         displayedComponents: .date
       )
-      .datePickerStyle(.graphical)
+      .datePickerStyle(.wheel)
       .labelsHidden()
       .tint(.violet500)
       .padding(.horizontal, 16)

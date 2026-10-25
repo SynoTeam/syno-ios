@@ -89,7 +89,9 @@ struct ContactsDeleteAllSection: View {
       if $0.title.isEmpty != $1.title.isEmpty {
         return !$0.title.isEmpty
       }
-      return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+      let result = $0.title.localizedStandardCompare($1.title)
+      // 로케일 비교에서 같게 나와도 원본 그룹명으로 가려서 표시 순서가 항상 같게 한다.
+      return result == .orderedSame ? $0.title < $1.title : result == .orderedAscending
     }
   }
 

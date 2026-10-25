@@ -51,16 +51,19 @@ struct ContactsSectionView: View {
       
       if !isCollapsed {
         // 지연 스택을 중첩하면 연락처가 많을 때 스크롤이 끊기므로 제목과 행을 한 스택에 나란히 둔다.
+        let groups = groupedContacts
+        let firstGroupID = groups.first?.id
+
         LazyVStack(alignment: .leading, spacing: 2) {
-          ForEach(groupedContacts) { group in
+          ForEach(groups) { group in
             if showsGroupHeaders, !group.title.isEmpty {
               Text(group.title)
                 .typeStyle(.footnoteEmphasized)
                 .foregroundStyle(.gray400)
                 .padding(.horizontal, 8)
-                .padding(.top, group.id == groupedContacts.first?.id ? 0 : 14)
+                .padding(.top, group.id == firstGroupID ? 0 : 14)
                 .padding(.bottom, 6)
-            } else if showsGroupHeaders, group.id != groupedContacts.first?.id {
+            } else if showsGroupHeaders, group.id != firstGroupID {
               // 그룹이 없는 연락처 구간도 앞 그룹과 간격을 둔다.
               Color.clear.frame(height: 14)
             }

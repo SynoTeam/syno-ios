@@ -50,21 +50,23 @@ struct ContactsSectionView: View {
       header
       
       if !isCollapsed {
-        LazyVStack(alignment: .leading, spacing: 16) {
+        // 지연 스택을 중첩하면 연락처가 많을 때 스크롤이 끊기므로 제목과 행을 한 스택에 나란히 둔다.
+        LazyVStack(alignment: .leading, spacing: 2) {
           ForEach(groupedContacts) { group in
-            VStack(alignment: .leading, spacing: 8) {
-              if showsGroupHeaders, !group.title.isEmpty {
-                Text(group.title)
-                  .typeStyle(.footnoteEmphasized)
-                  .foregroundStyle(.gray400)
-                  .padding(.horizontal, 8)
-              }
+            if showsGroupHeaders, !group.title.isEmpty {
+              Text(group.title)
+                .typeStyle(.footnoteEmphasized)
+                .foregroundStyle(.gray400)
+                .padding(.horizontal, 8)
+                .padding(.top, group.id == groupedContacts.first?.id ? 0 : 14)
+                .padding(.bottom, 6)
+            } else if showsGroupHeaders, group.id != groupedContacts.first?.id {
+              // 그룹이 없는 연락처 구간도 앞 그룹과 간격을 둔다.
+              Color.clear.frame(height: 14)
+            }
 
-              LazyVStack(spacing: 2) {
-                ForEach(group.contacts) { contact in
-                  contactRow(contact)
-                }
-              }
+            ForEach(group.contacts) { contact in
+              contactRow(contact)
             }
           }
         }
@@ -357,7 +359,6 @@ private struct FavoriteSwipeRow<Content: View>: View {
   private var swipeGesture: some Gesture {
     DragGesture(minimumDistance: 12)
       .onChanged { value in
-        // 방향은 제스처 시작 시 한 번만 정하고 이후에는 바꾸지 않는다.
         if dragAxis == nil {
           dragAxis = abs(value.translation.width) > abs(value.translation.height)
             ? .horizontal

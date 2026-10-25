@@ -39,6 +39,8 @@ private struct DestructiveConfirmationAlertModifier: ViewModifier {
               onConfirm()
             }
           )
+          // 내비게이션 바와 홈 인디케이터 영역을 포함한 화면 전체 기준으로 가운데에 놓는다.
+          .ignoresSafeArea(.container)
           .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
       }

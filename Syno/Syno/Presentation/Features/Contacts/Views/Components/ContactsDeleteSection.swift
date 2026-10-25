@@ -47,13 +47,7 @@ struct ContactsDeleteSection: View {
           .typeStyle(.calloutEmphasized)
           .foregroundStyle(.gray500)
 
-        Text("\(count)")
-          .typeStyle(.footnoteEmphasized)
-          .foregroundStyle(.violet600)
-          .padding(.horizontal, 6)
-          .padding(.vertical, 2)
-          .background(.violet100)
-          .clipShape(Capsule())
+        ContactCountChip(count: count)
 
         Spacer()
 
@@ -85,14 +79,19 @@ struct ContactsDeleteAllSection: View {
 
   @State private var isCollapsed = false
 
+  /// 그룹 이름 순으로 묶고, 그룹이 없는 연락처(빈 제목)는 맨 아래에 둡니다.
   private var groupedContacts: [(title: String, contacts: [Contact])] {
     Dictionary(grouping: contacts) { contact in
-      let group = contact.group.trimmingCharacters(in: .whitespacesAndNewlines)
-      return group.isEmpty ? "미분류" : group
+      contact.group.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     .map { (title: $0.key, contacts: $0.value) }
     .sorted {
-      $0.title.localizedStandardCompare($1.title) == .orderedAscending
+      if $0.title.isEmpty != $1.title.isEmpty {
+        return !$0.title.isEmpty
+      }
+      let result = $0.title.localizedStandardCompare($1.title)
+      // 로케일 비교에서 같게 나와도 원본 그룹명으로 가려서 표시 순서가 항상 같게 한다.
+      return result == .orderedSame ? $0.title < $1.title : result == .orderedAscending
     }
   }
 
@@ -108,13 +107,7 @@ struct ContactsDeleteAllSection: View {
             .typeStyle(.calloutEmphasized)
             .foregroundStyle(.gray500)
 
-          Text("\(contacts.count)")
-            .typeStyle(.footnoteEmphasized)
-            .foregroundStyle(.violet600)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(.violet100)
-            .clipShape(Capsule())
+          ContactCountChip(count: contacts.count)
 
           Spacer()
 
@@ -144,10 +137,12 @@ struct ContactsDeleteAllSection: View {
     VStack(alignment: .leading, spacing: 16) {
       ForEach(groupedContacts, id: \.title) { group in
         VStack(alignment: .leading, spacing: 8) {
-          Text(group.title)
-            .typeStyle(.footnoteEmphasized)
-            .foregroundStyle(.gray400)
-            .padding(.horizontal, 8)
+          if !group.title.isEmpty {
+            Text(group.title)
+              .typeStyle(.footnoteEmphasized)
+              .foregroundStyle(.gray400)
+              .padding(.horizontal, 8)
+          }
 
           LazyVStack(spacing: 2) {
             ForEach(group.contacts) { contact in

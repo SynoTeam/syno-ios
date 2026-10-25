@@ -21,8 +21,7 @@ struct ContactsDeleteRow: View {
               .foregroundStyle(.gray900)
           } else {
             Circle()
-              .stroke(Color.gray300, lineWidth: 1.5)
-              .padding(2)
+              .strokeBorder(Color.gray300, lineWidth: 1)
           }
         }
         .frame(width: 28, height: 28)

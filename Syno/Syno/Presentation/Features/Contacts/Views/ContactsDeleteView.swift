@@ -90,7 +90,8 @@ struct ContactsDeleteView: View {
     }
     confirmationAlert = DestructiveConfirmationAlert(
       title: deleteConfirmationTitle,
-      message: "연락처와 모든 노트와 파일이 삭제됩니다.\n이 작업은 되돌릴 수 없습니다."
+      message: "연락처와 모든 노트와 파일이 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.",
+      acknowledgementText: nil
     ) {
       confirmDelete()
     }

@@ -39,7 +39,7 @@ struct AddContactPhoneNumberField: View {
             .foregroundStyle(.gray500)
         }
         .frame(width: 73, height: 38)
-        .background(.gray100)
+        .background(.gray50)
         .clipShape(RoundedRectangle(cornerRadius: 12))
       }
       .buttonStyle(.plain)
@@ -53,6 +53,13 @@ struct AddContactPhoneNumberField: View {
         .focused(focusedField, equals: .phone)
         .submitLabel(.next)
         .onSubmit(onSubmit)
+
+      if focusedField.wrappedValue == .phone {
+        AddContactClearButton {
+          phone = ""
+          focusedField.wrappedValue = .phone
+        }
+      }
     }
   }
 

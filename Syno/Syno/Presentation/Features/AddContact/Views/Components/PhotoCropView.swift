@@ -24,23 +24,28 @@ struct PhotoCropView: View {
   var body: some View {
     NavigationStack {
       GeometryReader { proxy in
-        let cropSize = min(proxy.size.width - 48, 320)
+        // 첫 레이아웃에서 너비가 0일 수 있어 음수가 되지 않게 막는다.
+        let cropSize = max(min(proxy.size.width - 48, 320), 0)
 
         VStack(spacing: 0) {
           Spacer(minLength: 24)
 
           cropCanvas(cropSize: cropSize)
+            // 이미지는 화면 가운데에 두고, 안내 문구만 이미지 아래 20pt에 붙인다.
+            .overlay(alignment: .top) {
+              Text("드래그로 위치, 두 손가락으로 확대/축소할 수 있어요")
+                .typeStyle(.subheadline)
+                .foregroundStyle(.gray500)
+                .multilineTextAlignment(.center)
+                .frame(width: max(proxy.size.width - 48, 0))
+                .offset(y: cropSize + 20)
+            }
 
           Spacer(minLength: 24)
-
-          Text("드래그로 위치, 두 손가락으로 확대/축소할 수 있어요")
-            .typeStyle(.subheadline)
-            .foregroundStyle(.gray500)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // 내비게이션 바와 홈 인디케이터 영역을 포함한 화면 전체 기준으로 가운데에 놓는다.
+        .ignoresSafeArea()
         .background(Color.gray50)
         .toast(item: $toast)
         .navigationTitle("사진 조정하기")

@@ -17,57 +17,52 @@ struct ContactsSectionView: View {
   @Binding var openSwipeRow: OpenSwipeRow?
   let onToggleFavorite: (Contact.ID) -> Void
   let onDelete: (Contact) -> Void
-  
+  /// 그룹 이름을 구분 제목으로 보여줄지 정합니다. 연락처는 이미 그룹 순으로 정렬되어 있어야 합니다.
+  var showsGroupHeaders = false
+
+  private struct ContactGroup: Identifiable {
+    let title: String
+    var contacts: [Contact]
+    var id: String { title }
+  }
+
+  /// 정렬된 순서를 유지한 채 같은 그룹이 이어지는 구간끼리 묶습니다.
+  /// 제목이 필요 없으면 전체를 하나의 묶음으로 둡니다.
+  private var groupedContacts: [ContactGroup] {
+    guard showsGroupHeaders else {
+      return [ContactGroup(title: "", contacts: contacts)]
+    }
+
+    var groups: [ContactGroup] = []
+    for contact in contacts {
+      let title = contact.group.trimmingCharacters(in: .whitespacesAndNewlines)
+      if groups.last?.title == title {
+        groups[groups.count - 1].contacts.append(contact)
+      } else {
+        groups.append(ContactGroup(title: title, contacts: [contact]))
+      }
+    }
+    return groups
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       header
       
       if !isCollapsed {
-        LazyVStack(spacing: 2) {
-          ForEach(contacts) { contact in
-            FavoriteSwipeRow(
-              id: contact.id,
-              section: swipeSection,
-              openSwipeRow: $openSwipeRow,
-              isFavorite: contact.isFavorite,
-              onToggleFavorite: {
-                onToggleFavorite(contact.id)
-              },
-              onDelete: {
-                onDelete(contact)
+        LazyVStack(alignment: .leading, spacing: 16) {
+          ForEach(groupedContacts) { group in
+            VStack(alignment: .leading, spacing: 8) {
+              if showsGroupHeaders, !group.title.isEmpty {
+                Text(group.title)
+                  .typeStyle(.footnoteEmphasized)
+                  .foregroundStyle(.gray400)
+                  .padding(.horizontal, 8)
               }
-            ) {
-              ContactsRowView(
-                name: contact.name,
-                group: contact.group,
-                profileImageData: contact.profileImageData
-              )
-              .contentShape(Rectangle())
-              // Button은 가로로 민 뒤 손을 뗄 때 탭으로 인식되어 열린 행을 닫아버리므로 TapGesture를 쓴다.
-              .onTapGesture {
-                guard openSwipeRow == nil else {
-                  withAnimation(swipeSettleAnimation) {
-                    openSwipeRow = nil
-                  }
-                  return
-                }
-                onSelectContact(contact)
-              }
-              .accessibilityAddTraits(.isButton)
-              .contextMenu {
-                Button {
-                  onToggleFavorite(contact.id)
-                } label: {
-                  Label(
-                    contact.isFavorite ? "즐겨찾기 삭제하기" : "즐겨찾기 추가하기",
-                    systemImage: contact.isFavorite ? "star.slash" : "star"
-                  )
-                }
-                
-                Button(role: .destructive) {
-                  onDelete(contact)
-                } label: {
-                  Label("연락처 삭제", icon: .trash)
+
+              LazyVStack(spacing: 2) {
+                ForEach(group.contacts) { contact in
+                  contactRow(contact)
                 }
               }
             }
@@ -81,6 +76,55 @@ struct ContactsSectionView: View {
     .clipShape(RoundedRectangle(cornerRadius: 28))
   }
   
+  private func contactRow(_ contact: Contact) -> some View {
+    FavoriteSwipeRow(
+      id: contact.id,
+      section: swipeSection,
+      openSwipeRow: $openSwipeRow,
+      isFavorite: contact.isFavorite,
+      onToggleFavorite: {
+        onToggleFavorite(contact.id)
+      },
+      onDelete: {
+        onDelete(contact)
+      }
+    ) {
+      ContactsRowView(
+        name: contact.name,
+        group: contact.group,
+        profileImageData: contact.profileImageData
+      )
+      .contentShape(Rectangle())
+      // Button은 가로로 민 뒤 손을 뗄 때 탭으로 인식되어 열린 행을 닫아버리므로 TapGesture를 쓴다.
+      .onTapGesture {
+        guard openSwipeRow == nil else {
+          withAnimation(swipeSettleAnimation) {
+            openSwipeRow = nil
+          }
+          return
+        }
+        onSelectContact(contact)
+      }
+      .accessibilityAddTraits(.isButton)
+      .contextMenu {
+        Button {
+          onToggleFavorite(contact.id)
+        } label: {
+          Label(
+            contact.isFavorite ? "즐겨찾기 삭제하기" : "즐겨찾기 추가하기",
+            systemImage: contact.isFavorite ? "star.slash" : "star"
+          )
+        }
+        
+        Button(role: .destructive) {
+          onDelete(contact)
+        } label: {
+          Label("연락처 삭제", icon: .trash)
+        }
+      }
+    }
+  }
+
   private var header: some View {
     Button {
       guard !contacts.isEmpty else {
@@ -96,14 +140,8 @@ struct ContactsSectionView: View {
           .typeStyle(.calloutEmphasized)
           .foregroundStyle(.gray500)
         
-        Text("\(count)")
-          .typeStyle(.footnoteEmphasized)
-          .foregroundStyle(.violet600)
-          .padding(.horizontal, 6)
-          .padding(.vertical, 2)
-          .background(.violet100)
-          .clipShape(Capsule())
-        
+        ContactCountChip(count: count)
+
         Spacer()
         
         if !contacts.isEmpty {
@@ -189,11 +227,14 @@ private struct FavoriteSwipeRow<Content: View>: View {
   var body: some View {
     ZStack {
       HStack {
+        // 접거나 펼칠 때 행 뒤의 버튼이 비쳐 보이지 않도록 밀린 방향의 버튼만 보여준다.
         favoriteButton
+          .opacity(displayedOffset > 0 ? 1 : 0)
           .allowsHitTesting(openEdge == .favorite)
           .accessibilityHidden(openEdge != .favorite)
         Spacer()
         deleteButton
+          .opacity(displayedOffset < 0 ? 1 : 0)
           .allowsHitTesting(openEdge == .delete)
           .accessibilityHidden(openEdge != .delete)
       }
@@ -229,9 +270,9 @@ private struct FavoriteSwipeRow<Content: View>: View {
     } label: {
       Image(systemName: isFavorite ? "star.slash.fill" : "star.fill")
         .font(.system(size: 16, weight: .semibold))
-        .foregroundStyle(.violet600)
+        .foregroundStyle(isFavorite ? .gray500 : .violet600)
         .frame(width: actionWidth, height: actionWidth)
-        .background(.violet100)
+        .background(isFavorite ? Color.gray500.opacity(0.12) : Color.violet100)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     .buttonStyle(.plain)

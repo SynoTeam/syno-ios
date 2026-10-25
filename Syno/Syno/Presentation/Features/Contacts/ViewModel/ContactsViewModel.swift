@@ -33,11 +33,30 @@ final class ContactsViewModel {
   }
   
   var favoriteContacts: [Contact] {
-    contacts.filter { $0.isFavorite && !$0.isMe }
+    Self.sorted(contacts.filter { $0.isFavorite && !$0.isMe })
   }
-  
+
   var regularContacts: [Contact] {
-    contacts.filter { !$0.isMe }
+    Self.sorted(contacts.filter { !$0.isMe })
+  }
+
+  /// 그룹이 있는 연락처를 그룹 가나다 순, 같은 그룹 안에서는 이름 가나다 순으로 두고
+  /// 그룹이 없는 연락처는 이름 순으로 맨 아래에 둡니다.
+  private static func sorted(_ contacts: [Contact]) -> [Contact] {
+    contacts.sorted { lhs, rhs in
+      let lhsGroup = lhs.group.trimmingCharacters(in: .whitespacesAndNewlines)
+      let rhsGroup = rhs.group.trimmingCharacters(in: .whitespacesAndNewlines)
+
+      if lhsGroup.isEmpty != rhsGroup.isEmpty {
+        return !lhsGroup.isEmpty
+      }
+      if lhsGroup != rhsGroup {
+        let result = lhsGroup.localizedStandardCompare(rhsGroup)
+        // 로케일 비교에서 같게 나와도 문자열이 다르면 원본 값으로 가려서 같은 그룹이 항상 붙어 있게 한다.
+        return result == .orderedSame ? lhsGroup < rhsGroup : result == .orderedAscending
+      }
+      return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+    }
   }
   
   var regularContactCount: Int {

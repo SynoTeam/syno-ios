@@ -8,18 +8,18 @@ struct InitialAvatar: View {
 
   var body: some View {
     RoundedRectangle(cornerRadius: cornerRadius)
-      .fill(.violet100)
+      .fill(.gray100)
       .frame(width: size, height: size)
       .overlay {
         if let initial {
           Text(initial)
             .font(.custom("Pretendard-SemiBold", fixedSize: size * 0.4))
-            .foregroundStyle(.violet600)
+            .foregroundStyle(.gray400)
         } else {
           Image(.person)
             .resizable()
             .renderingMode(.template)
-            .foregroundStyle(.violet600)
+            .foregroundStyle(.gray400)
             .frame(width: size * 0.4, height: size * 0.4)
         }
       }

@@ -106,7 +106,8 @@ struct GroupSelectionSheet: View {
             .foregroundStyle(.gray300)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("입력 지우기")
+        // 입력이 비어 있으면 지울 내용이 없고 입력 행을 닫으므로 동작에 맞게 안내한다.
+        .accessibilityLabel(newGroup.isEmpty ? "그룹 추가 취소" : "입력 지우기")
       }
       .padding(.horizontal, 20)
       .frame(height: 54)

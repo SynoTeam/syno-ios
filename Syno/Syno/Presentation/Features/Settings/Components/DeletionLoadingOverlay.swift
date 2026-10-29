@@ -9,6 +9,9 @@ import SwiftUI
 
 /// 데이터 삭제 중에는 화면 조작을 막고 진행 상태를 알려주는 전체 화면 오버레이입니다.
 struct DeletionLoadingOverlay: View {
+  /// 진행 중인 작업을 알리는 문구입니다. 삭제와 로그아웃이 같은 오버레이를 씁니다.
+  var message = "삭제 중"
+
   @State private var isAnimating = false
 
   var body: some View {
@@ -28,7 +31,7 @@ struct DeletionLoadingOverlay: View {
           .frame(width: 68, height: 68)
           .scaleEffect(isAnimating ? 1.06 : 0.94)
 
-        Text("삭제 중")
+        Text(message)
           .typeStyle(.headline)
           .foregroundStyle(.gray950)
       }
@@ -39,7 +42,7 @@ struct DeletionLoadingOverlay: View {
       .shadow(color: .black.opacity(0.16), radius: 24, y: 10)
     }
     .accessibilityElement(children: .combine)
-    .accessibilityLabel("데이터 삭제 중")
+    .accessibilityLabel(message)
     .onAppear {
       withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
         isAnimating = true

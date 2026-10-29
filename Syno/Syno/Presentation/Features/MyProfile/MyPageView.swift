@@ -126,6 +126,8 @@ struct MyPageView: View {
         Text(displayName)
           .typeStyle(.title1Emphasized)
           .foregroundStyle(.bgBlack)
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: .infinity)
 
         Text(subtitle)
           .typeStyle(.footnote)
@@ -196,11 +198,11 @@ struct MyPageView: View {
   private var noteCard: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 4) {
-        Image(.document)
+        Image(.file)
           .resizable()
           .renderingMode(.template)
           .frame(width: 14, height: 14)
-          .foregroundStyle(.gray400)
+          .foregroundStyle(.gray200)
 
         Text("한 줄 기록")
           .typeStyle(.caption1)

@@ -121,7 +121,6 @@ struct ChatView: View {
       .navigationTitle(selection.isActive ? "\(selection.count)개 선택" : viewModel.contact.name)
       .navigationBarTitleDisplayMode(.inline)
       .synoBackButton(isHidden: selection.isActive)
-      .toolbar(.hidden, for: .tabBar)
       .toolbar { toolbarContent }
       .navigationDestination(isPresented: $isShowingArchive) {
         ArchiveView(viewModel: viewModel)
@@ -263,7 +262,12 @@ struct ChatView: View {
         // 빈 화면에서 메시지가 생기면 스크롤뷰를 새로 만들어 위의 초기 위치가 다시 적용되게 한다.
         .id(viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty)
         .scrollDismissesKeyboard(.interactively)
-        .simultaneousGesture(timeRevealGesture)
+        .gesture(
+          LeftwardPanGesture(
+            onChanged: updateTimeReveal,
+            onEnded: endTimeReveal
+          )
+        )
         .overlay(alignment: .bottom) {
           if isMessageSearchPresented, !viewModel.messageSearchResults.isEmpty {
             matchNavigator(with: proxy)
@@ -314,26 +318,20 @@ struct ChatView: View {
   }
 
   /// 목록을 왼쪽으로 밀면 말풍선이 따라 밀리며 시간이 나타나고, 손을 떼면 돌아옵니다.
-  private var timeRevealGesture: some Gesture {
-    DragGesture(minimumDistance: 12)
-      .onChanged { value in
-        guard !selection.isActive else {
-          return
-        }
-        let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
-        guard isHorizontal || timeRevealOffset > 0 else {
-          return
-        }
-        let distance = max(0, -value.translation.width)
-        // 최대 거리에 가까워질수록 저항이 생기도록 줄인다.
-        let limit = Self.maxTimeRevealOffset
-        timeRevealOffset = distance <= limit ? distance : limit + (distance - limit) * 0.2
-      }
-      .onEnded { _ in
-        withAnimation(.snappy(duration: 0.25)) {
-          timeRevealOffset = 0
-        }
-      }
+  /// 왼쪽 드래그에서만 시작해서 오른쪽으로 미는 뒤로가기 스와이프와 겹치지 않습니다.
+  private func updateTimeReveal(distance: CGFloat) {
+    guard !selection.isActive else {
+      return
+    }
+    // 최대 거리에 가까워질수록 저항이 생기도록 줄인다.
+    let limit = Self.maxTimeRevealOffset
+    timeRevealOffset = distance <= limit ? distance : limit + (distance - limit) * 0.2
+  }
+
+  private func endTimeReveal() {
+    withAnimation(.snappy(duration: 0.25)) {
+      timeRevealOffset = 0
+    }
   }
 
   private static let maxTimeRevealOffset: CGFloat = 64

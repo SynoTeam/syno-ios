@@ -14,6 +14,8 @@ struct NoteStorageManagementView: View {
   let accountResetService: AccountResetService
 
   @State private var totalUsage = "-"
+  /// 연락처에 연결되지 않은 노트의 미디어까지 포함한 전체 미디어 용량입니다.
+  @State private var totalBytes: Int64 = 0
   @State private var mediaUsages: [(contact: Contact, bytes: Int64)] = []
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
@@ -57,7 +59,7 @@ struct NoteStorageManagementView: View {
         .fixedSize(horizontal: false, vertical: true)
 
       Button {
-        requestConfirmation(for: .allMedia(contactCount: mediaUsages.count))
+        requestConfirmation(for: .allMedia)
       } label: {
         Text("전체 미디어 데이터 삭제 (\(totalUsage))")
           .typeStyle(.calloutEmphasized)
@@ -67,6 +69,10 @@ struct NoteStorageManagementView: View {
           .clipShape(RoundedRectangle(cornerRadius: 999, style: .continuous))
       }
       .buttonStyle(.plain)
+      // 지울 미디어 데이터가 없으면 누를 수 없게 한다. 전체 삭제는 연락처가 없는 노트도 지우므로
+      // 연락처별 목록이 아니라 전체 용량으로 판단한다.
+      .disabled(totalBytes == 0)
+      .opacity(totalBytes == 0 ? 0.4 : 1)
       .padding(.top, 12)
     }
   }
@@ -161,13 +167,14 @@ struct NoteStorageManagementView: View {
   }
 
   private func refreshUsage() {
-    totalUsage = (try? accountResetService.formattedStorageUsage()) ?? "-"
+    totalBytes = (try? accountResetService.noteStorageUsage()) ?? 0
+    totalUsage = accountResetService.formattedStorageUsage(for: totalBytes)
     mediaUsages = (try? accountResetService.mediaUsageByContact()) ?? []
   }
 }
 
 private enum MediaDeletionAction {
-  case allMedia(contactCount: Int)
+  case allMedia
   case contact(Contact, Int64)
 
   var title: String {
@@ -181,8 +188,8 @@ private enum MediaDeletionAction {
 
   var message: String {
     switch self {
-    case let .allMedia(contactCount):
-      "전체 \(contactCount)개 연락처의 미디어 데이터를 삭제합니다. iCloud에 백업되지 않는 데이터는 복원 할 수 없습니다."
+    case .allMedia:
+      "모든 노트의 미디어 데이터를 삭제합니다. iCloud에 백업되지 않는 데이터는 복원 할 수 없습니다."
     case .contact:
       "글 메모를 제외한 모든 미디어 데이터 (사진, 동영상, 음성, 파일)이 삭제됩니다. 이 작업은 되돌릴 수 없습니다."
     }

@@ -11,6 +11,8 @@ struct SearchView: View {
   @State private var viewModel: SearchViewModel
   @FocusState private var isSearchFocused: Bool
   @State private var confirmationAlert: DestructiveConfirmationAlert?
+  /// 검색 결과에서 열려 있는 채팅입니다. 열림 상태로 탭바 숨김을 한 번에 제어하려고 들고 있습니다.
+  @State private var selectedResult: SearchResult?
   @Environment(\.analytics) private var analytics
   private let noteRepository: any NoteRepository
   private let contactRepository: any ContactRepository
@@ -72,6 +74,13 @@ struct SearchView: View {
     .navigationBarTitleDisplayMode(.inline)
     // 제목도 버튼도 없는 빈 바가 검색창 활성 여부에 따라 접히고 나타나며 내용을 밀지 않도록 숨긴다.
     .toolbar(.hidden, for: .navigationBar)
+    // 채팅이 열려 있는 동안 탭바를 숨긴다. 열려 있지 않을 때는 .automatic으로 둔다.
+    .toolbar(selectedResult != nil ? .hidden : .automatic, for: .tabBar)
+    .navigationDestination(isPresented: isShowingResult) {
+      if let selectedResult {
+        destination(for: selectedResult)
+      }
+    }
     .searchable(text: queryBinding, prompt: "텍스트, 사진, 링크 검색")
     .searchFocused($isSearchFocused)
     .task {
@@ -316,15 +325,23 @@ struct SearchView: View {
   }
 
   private func resultLink(_ result: SearchResult) -> some View {
-    NavigationLink {
-      destination(for: result)
+    Button {
+      viewModel.recordCurrentQuery()
+      selectedResult = result
     } label: {
       SearchResultRow(result: result, highlightQuery: viewModel.query)
     }
     .buttonStyle(.plain)
-    .simultaneousGesture(
-      TapGesture().onEnded {
-        viewModel.recordCurrentQuery()
+  }
+
+  /// `SearchResult`가 `Hashable`이 아니라서 `navigationDestination(item:)`을 쓰지 못해, 열림 여부로 바꿔 연결합니다.
+  private var isShowingResult: Binding<Bool> {
+    Binding(
+      get: { selectedResult != nil },
+      set: { isShowing in
+        if !isShowing {
+          selectedResult = nil
+        }
       }
     )
   }

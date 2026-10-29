@@ -16,6 +16,7 @@ struct SettingsView: View {
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
   @State private var isDeleting = false
+  @State private var loadingMessage = "삭제 중"
   @State private var isShowingStorageSheet = false
 
   var body: some View {
@@ -38,7 +39,7 @@ struct SettingsView: View {
     .toast(item: $toast)
     .overlay {
       if isDeleting {
-        DeletionLoadingOverlay()
+        DeletionLoadingOverlay(message: loadingMessage)
       }
     }
     .sheet(isPresented: $isShowingStorageSheet, onDismiss: refreshStorageUsage) {
@@ -188,6 +189,7 @@ struct SettingsView: View {
   }
 
   private func perform(_ action: SettingsAction) {
+    loadingMessage = action.loadingMessage
     isDeleting = true
 
     Task { @MainActor in
@@ -255,6 +257,15 @@ private enum SettingsAction {
       "삭제"
     case .logout:
       "로그아웃"
+    }
+  }
+
+  var loadingMessage: String {
+    switch self {
+    case .temporaryData:
+      "삭제 중"
+    case .logout:
+      "로그아웃 중"
     }
   }
 }

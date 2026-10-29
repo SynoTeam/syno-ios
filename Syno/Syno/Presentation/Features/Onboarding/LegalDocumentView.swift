@@ -17,6 +17,8 @@ struct LegalDocumentView: View {
     .navigationTitle(title)
     .navigationBarTitleDisplayMode(.inline)
     .synoBackButton()
+    // 앱 설정에서 열릴 때 탭바가 다시 나타나지 않도록 한다. 온보딩에는 탭바가 없어 영향이 없다.
+    .toolbar(.hidden, for: .tabBar)
   }
 
   private var attributedContent: AttributedString {

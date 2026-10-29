@@ -26,25 +26,41 @@ struct DestructiveConfirmationAlert: Identifiable {
 private struct DestructiveConfirmationAlertModifier: ViewModifier {
   @Binding var item: DestructiveConfirmationAlert?
 
+  /// 알럿이 완전히 닫힌 뒤에 실행할 삭제 동작입니다. 닫히는 도중에 화면을 바꾸면 무시될 수 있어 미룹니다.
+  @State private var pendingConfirm: (() -> Void)?
+
   func body(content: Content) -> some View {
-    content
-      .overlay {
-        if let item {
+    // 내비게이션 바와 탭바까지 포함한 화면 전체를 dim 처리하려고, 화면 안의 overlay 대신
+    // 전체 화면 커버로 띄운다. 크기가 없는 배경 뷰에 붙여서 화면 본문의 애니메이션에는 영향이 없게 한다.
+    content.background {
+      Color.clear
+        .fullScreenCover(
+          item: $item,
+          onDismiss: {
+            let confirm = pendingConfirm
+            pendingConfirm = nil
+            confirm?()
+          }
+        ) { alert in
           DestructiveConfirmationAlertView(
-            alert: item,
-            onCancel: { self.item = nil },
-            onConfirm: {
-              let onConfirm = item.onConfirm
-              self.item = nil
-              onConfirm()
-            }
+            alert: alert,
+            onCancel: { dismiss(running: nil) },
+            onConfirm: { dismiss(running: alert.onConfirm) }
           )
-          // 내비게이션 바와 홈 인디케이터 영역을 포함한 화면 전체 기준으로 가운데에 놓는다.
-          .ignoresSafeArea(.container)
-          .transition(.opacity.combined(with: .scale(scale: 0.96)))
+          .presentationBackground(.clear)
         }
-      }
-      .animation(.easeOut(duration: 0.2), value: item?.id)
+        // 풀스크린 커버가 아래에서 올라오지 않고 제자리에서 나타나게 한다.
+        .transaction { $0.disablesAnimations = true }
+    }
+  }
+
+  private func dismiss(running confirm: (() -> Void)?) {
+    pendingConfirm = confirm
+    var transaction = Transaction()
+    transaction.disablesAnimations = true
+    withTransaction(transaction) {
+      item = nil
+    }
   }
 }
 
@@ -60,6 +76,7 @@ private struct DestructiveConfirmationAlertView: View {
   let onConfirm: () -> Void
 
   @State private var hasAcknowledgedWarning = false
+  @State private var isVisible = false
 
   private var isConfirmEnabled: Bool {
     alert.acknowledgementText == nil || hasAcknowledgedWarning
@@ -67,7 +84,8 @@ private struct DestructiveConfirmationAlertView: View {
 
   var body: some View {
     ZStack {
-      Color.black.opacity(0.35)
+      // 어두운 배경만 서서히 나타나게 한다. 유리 카드에 투명도·크기 애니메이션을 주면 겹이 드러나 보인다.
+      Color.black.opacity(isVisible ? 0.35 : 0)
         .ignoresSafeArea()
         .onTapGesture(perform: onCancel)
 
@@ -135,6 +153,11 @@ private struct DestructiveConfirmationAlertView: View {
       .padding(22)
       .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28))
       .padding(.horizontal, 46)
+    }
+    .onAppear {
+      withAnimation(.easeOut(duration: 0.2)) {
+        isVisible = true
+      }
     }
   }
 }

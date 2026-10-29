@@ -62,6 +62,12 @@ struct NotesView: View {
     .onChange(of: storedGroups.map { "\($0.persistentModelID):\($0.name):\($0.sortIndex)" }) {
       loadStoredNotes()
     }
+    // 채팅·노트 삭제·연락처 추가 화면의 탭바 숨김을 열림 상태로 한 번에 제어한다.
+    // 열려 있지 않을 때는 .automatic으로 두어 다른 화면의 설정을 덮어쓰지 않는다.
+    .toolbar(
+      selectedNote != nil || isShowingDeletion || isShowingAddContact ? .hidden : .automatic,
+      for: .tabBar
+    )
     .navigationDestination(isPresented: $isShowingAddContact) {
       AddContactView { contact in
         saveContact(contact)

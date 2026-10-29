@@ -59,7 +59,8 @@ private struct ActionChoiceAlertView: View {
 
   var body: some View {
     ZStack {
-      Color.black.opacity(0.35)
+      // 어두운 배경만 서서히 나타나게 한다. 유리 카드에 투명도·크기 애니메이션을 주면 겹이 드러나 보인다.
+      Color.black.opacity(isVisible ? 0.35 : 0)
         .ignoresSafeArea()
         .onTapGesture { onFinish(nil) }
 
@@ -79,8 +80,6 @@ private struct ActionChoiceAlertView: View {
       .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28))
       .padding(.horizontal, 46)
     }
-    .opacity(isVisible ? 1 : 0)
-    .scaleEffect(isVisible ? 1 : 0.96)
     .onAppear {
       withAnimation(.easeOut(duration: 0.2)) {
         isVisible = true

@@ -16,6 +16,7 @@ struct ContactsView: View {
   @State private var toast: Toast?
   @State private var contactPendingDeletion: Contact?
   @State private var selectedContact: Contact?
+  @State private var isShowingMyPage = false
   @State private var isShowingContactImportPicker = false
   
   private let noteRepository: any NoteRepository
@@ -67,23 +68,8 @@ struct ContactsView: View {
 
         VStack(alignment: .leading, spacing: 12) {
           if let myContact = viewModel.myContact {
-            NavigationLink {
-              MyPageView(
-                contact: myContact,
-                noteRepository: noteRepository,
-                noteImageAnalyzer: noteImageAnalyzer,
-                noteImageAnalysisRepository: noteImageAnalysisRepository,
-                linkPreviewFetcher: linkPreviewFetcher,
-                noteLinkPreviewRepository: noteLinkPreviewRepository,
-                labelTranslator: labelTranslator,
-                noteVoiceTranscriber: noteVoiceTranscriber,
-                noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
-                existingGroups: viewModel.existingGroups,
-                accountResetService: accountResetService,
-                onSave: { contact in
-                  _ = viewModel.saveMyContact(contact)
-                }
-              )
+            Button {
+              isShowingMyPage = true
             } label: {
               ContactsRowView(
                 name: myContact.name,
@@ -132,12 +118,34 @@ struct ContactsView: View {
       .padding(.bottom, 20)
     }
     .background(Color.gray50)
-    // 상세·삭제 화면의 탭바 숨김을 화면마다 붙이지 않고 여기서 한 번에 제어한다.
+    // 상세·삭제·내 프로필 화면의 탭바 숨김을 화면마다 붙이지 않고 여기서 한 번에 제어한다.
     // 화면마다 숨기면 iOS 26에서 뒤로 돌아올 때 탭바가 늦게 나타날 수 있다.
+    // 열려 있지 않을 때 .visible로 강제하면 NavigationLink로 열리는 연락처 추가 화면의
+    // 숨김까지 덮어쓰므로 .automatic으로 두어 각 화면에 맡긴다.
     .toolbar(
-      selectedContact != nil || contactPendingDeletion != nil ? .hidden : .visible,
+      selectedContact != nil || contactPendingDeletion != nil || isShowingMyPage ? .hidden : .automatic,
       for: .tabBar
     )
+    .navigationDestination(isPresented: $isShowingMyPage) {
+      if let myContact = viewModel.myContact {
+        MyPageView(
+          contact: myContact,
+          noteRepository: noteRepository,
+          noteImageAnalyzer: noteImageAnalyzer,
+          noteImageAnalysisRepository: noteImageAnalysisRepository,
+          linkPreviewFetcher: linkPreviewFetcher,
+          noteLinkPreviewRepository: noteLinkPreviewRepository,
+          labelTranslator: labelTranslator,
+          noteVoiceTranscriber: noteVoiceTranscriber,
+          noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
+          existingGroups: viewModel.existingGroups,
+          accountResetService: accountResetService,
+          onSave: { contact in
+            _ = viewModel.saveMyContact(contact)
+          }
+        )
+      }
+    }
     .navigationDestination(item: $contactPendingDeletion) { contact in
       ContactsDeleteView(
         viewModel: viewModel,

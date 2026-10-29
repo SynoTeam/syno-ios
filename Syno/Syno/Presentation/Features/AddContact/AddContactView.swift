@@ -58,16 +58,16 @@ struct AddContactView: View {
           }
           .frame(maxWidth: .infinity)
           contactForm
+
+          // 하단에 고정하면 키보드가 올라올 때 버튼이 같이 올라와 입력창을 가리므로 스크롤 맨 아래에 둔다.
+          deleteButton
+            .padding(.top, 4)
         }
         .padding(.horizontal, 16)
         .padding(.top, 32)
         .padding(.bottom, 24)
       }
       .toast(item: $toast)
-
-      deleteButton
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
     }
     .background(Color.gray50)
     .scrollDismissesKeyboard(.interactively)

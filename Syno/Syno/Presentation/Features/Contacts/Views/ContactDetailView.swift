@@ -348,49 +348,23 @@ struct ContactDetailView: View {
     case .none:
       content
     case let .email(raw):
-      if let url = ContactLinkURL.email(raw) {
-        Menu {
-          ControlGroup {
-            Button {
-              openURL(url)
-            } label: {
-              Label("보내기", icon: .mail)
-            }
-
-            Button {
-              copy(raw, message: "이메일 복사되었습니다")
-            } label: {
-              Label("복사", icon: .copy)
-            }
-          }
-        } label: {
-          content
-        }
-      } else {
-        content
-      }
+      copyMenu(
+        content,
+        raw: raw,
+        openURL: ContactLinkURL.email(raw),
+        openTitle: "보내기",
+        openIcon: .mail,
+        copyMessage: "이메일 복사되었습니다"
+      )
     case let .phone(raw):
-      if let url = ContactLinkURL.phone(raw) {
-        Menu {
-          ControlGroup {
-            Button {
-              openURL(url)
-            } label: {
-              Label("전화", icon: .phone)
-            }
-
-            Button {
-              copy(raw, message: "전화번호 복사되었습니다")
-            } label: {
-              Label("복사", icon: .copy)
-            }
-          }
-        } label: {
-          content
-        }
-      } else {
-        content
-      }
+      copyMenu(
+        content,
+        raw: raw,
+        openURL: ContactLinkURL.phone(raw),
+        openTitle: "전화",
+        openIcon: .phone,
+        copyMessage: "전화번호 복사되었습니다"
+      )
     case let .link(raw):
       if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         content
@@ -401,6 +375,48 @@ struct ContactDetailView: View {
           content
         }
         .buttonStyle(.plain)
+      }
+    }
+  }
+
+  /// 값이 있으면 복사 메뉴를 항상 보여주고, 열 수 있는 URL이 있을 때만 실행 항목을 함께 보여줍니다.
+  /// 형식이 맞지 않아 URL을 만들 수 없는 값도 복사할 수 있어야 합니다.
+  @ViewBuilder
+  private func copyMenu(
+    _ content: some View,
+    raw: String,
+    openURL url: URL?,
+    openTitle: String,
+    openIcon: ImageResource,
+    copyMessage: String
+  ) -> some View {
+    if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      content
+    } else {
+      Menu {
+        if let url {
+          ControlGroup {
+            Button {
+              openURL(url)
+            } label: {
+              Label(openTitle, icon: openIcon)
+            }
+
+            Button {
+              copy(raw, message: copyMessage)
+            } label: {
+              Label("복사", icon: .copy)
+            }
+          }
+        } else {
+          Button {
+            copy(raw, message: copyMessage)
+          } label: {
+            Label("복사", icon: .copy)
+          }
+        }
+      } label: {
+        content
       }
     }
   }

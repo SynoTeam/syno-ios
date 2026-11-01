@@ -27,25 +27,18 @@ struct AddContactView: View {
   let existingContact: Contact?
 
   let onSave: (Contact) -> Bool
-  let onDelete: ((Contact.ID) -> Bool)?
-  let onDeleted: (() -> Void)?
 
-  @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
 
   init(
     existingContact: Contact? = nil,
     existingGroups: [String] = [],
-    onSave: @escaping (Contact) -> Bool,
-    onDelete: ((Contact.ID) -> Bool)? = nil,
-    onDeleted: (() -> Void)? = nil
+    onSave: @escaping (Contact) -> Bool
   ) {
     _viewModel = State(initialValue: AddContactViewModel(contact: existingContact))
     self.existingContact = existingContact
     self.existingGroups = existingGroups
     self.onSave = onSave
-    self.onDelete = onDelete
-    self.onDeleted = onDeleted
   }
 
   var body: some View {
@@ -58,10 +51,6 @@ struct AddContactView: View {
           }
           .frame(maxWidth: .infinity)
           contactForm
-
-          // 하단에 고정하면 키보드가 올라올 때 버튼이 같이 올라와 입력창을 가리므로 스크롤 맨 아래에 둔다.
-          deleteButton
-            .padding(.top, 4)
         }
         .padding(.horizontal, 16)
         .padding(.top, 32)
@@ -103,7 +92,6 @@ struct AddContactView: View {
         viewModel.applyDeviceContact(contact)
       }
     }
-    .destructiveConfirmationAlert(item: $confirmationAlert)
   }
 
   private var importDeviceContactButton: some View {
@@ -147,23 +135,6 @@ struct AddContactView: View {
     }
   }
 
-  @ViewBuilder
-  private var deleteButton: some View {
-    if existingContact != nil, onDelete != nil {
-      Button(action: requestDeleteConfirmation) {
-        Label {
-          Text("연락처 삭제하기")
-        } icon: {
-          Image(.trash)
-            .resizable()
-            .renderingMode(.template)
-            .frame(width: 20, height: 20)
-        }
-      }
-      .buttonStyle(.cta(.destructive))
-    }
-  }
-
   private func binding<Value>(
     _ keyPath: ReferenceWritableKeyPath<AddContactViewModel, Value>
   ) -> Binding<Value> {
@@ -188,36 +159,6 @@ struct AddContactView: View {
     if existingContact == nil {
       analytics.track(AnalyticsEvent.contactCreated)
     }
-    dismiss()
-  }
-
-  private func requestDeleteConfirmation() {
-    confirmationAlert = DestructiveConfirmationAlert(
-      title: "해당 연락처를\n영구적으로 삭제하겠습니까?",
-      message: "연락처와 모든 노트와 파일이 삭제됩니다. 이 작업은 되돌릴 수 없습니다."
-    ) {
-      deleteContact()
-    }
-  }
-
-  private func deleteContact() {
-    guard let existingContact, let onDelete else {
-      return
-    }
-
-    guard onDelete(existingContact.id) else {
-      toast = Toast(
-        message: "연락처 삭제 실패하였습니다",
-        style: .failure,
-        action: Toast.Action(title: "다시 시도") {
-          deleteContact()
-        }
-      )
-      return
-    }
-
-    analytics.track(AnalyticsEvent.contactDeleted)
-    onDeleted?()
     dismiss()
   }
 }

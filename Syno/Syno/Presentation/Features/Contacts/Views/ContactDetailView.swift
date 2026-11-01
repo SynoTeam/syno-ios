@@ -9,7 +9,10 @@ import SwiftUI
 
 struct ContactDetailView: View {
   @Environment(\.analytics) private var analytics
+  @Environment(\.openURL) private var openURL
   @State private var toast: Toast?
+  @State private var isShowingEdit = false
+  @State private var confirmationAlert: DestructiveConfirmationAlert?
 
   /// 푸시된 뒤에도 편집 저장 결과가 바로 보이도록 화면이 직접 들고 있는 연락처입니다.
   @State private var contact: Contact
@@ -83,35 +86,92 @@ struct ContactDetailView: View {
     .synoBackButton()
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        if let viewModel {
-          NavigationLink {
-            AddContactView(
-              existingContact: contact,
-              existingGroups: existingGroups,
-              onSave: { updatedContact in
-                guard viewModel.saveMyContact(updatedContact) else {
-                  return false
-                }
-                let originalContact = contact
-                contact = updatedContact
-                showUpdatedToast(originalContact: originalContact)
-                return true
-              },
-              onDelete: { contactID in
-                viewModel.deleteContact(id: contactID)
-              },
-              onDeleted: onDeleted
-            )
+        if viewModel != nil {
+          Menu {
+            Button {
+              isShowingEdit = true
+            } label: {
+              Label("편집하기", icon: .edit)
+            }
+
+            Button(role: .destructive) {
+              requestDeleteConfirmation()
+            } label: {
+              // 메뉴가 에셋 아이콘에는 빨간색을 입히지 않아서, 색을 이미지에 직접 입혀 글자와 맞춘다.
+              Label {
+                Text("삭제하기")
+              } icon: {
+                Image(uiImage: Self.destructiveTrashIcon)
+              }
+            }
           } label: {
-            Image(.edit)
+            Image(.moreHorizontal)
               .renderingMode(.template)
           }
-          .accessibilityLabel("Edit Contact")
+          .accessibilityLabel("More")
         }
       }
     }
+    .navigationDestination(isPresented: $isShowingEdit) {
+      if let viewModel {
+        AddContactView(
+          existingContact: contact,
+          existingGroups: existingGroups,
+          onSave: { updatedContact in
+            guard viewModel.saveMyContact(updatedContact) else {
+              return false
+            }
+            let originalContact = contact
+            contact = updatedContact
+            showUpdatedToast(originalContact: originalContact)
+            return true
+          }
+        )
+      }
+    }
+    .destructiveConfirmationAlert(item: $confirmationAlert)
     .tint(.gray950)
     .trackScreen("contact_detail")
+  }
+
+  /// 삭제 메뉴 항목에 쓰는 빨간색 휴지통 아이콘입니다.
+  private static let destructiveTrashIcon = UIImage(resource: .trash)
+    .withTintColor(UIColor(Color.errorRed), renderingMode: .alwaysOriginal)
+
+  private func requestDeleteConfirmation() {
+    confirmationAlert = DestructiveConfirmationAlert(
+      title: "해당 연락처를\n영구적으로 삭제하겠습니까?",
+      message: "연락처와 모든 노트와 파일이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      acknowledgementText: nil
+    ) {
+      deleteContact()
+    }
+  }
+
+  private func deleteContact() {
+    guard let viewModel else {
+      return
+    }
+
+    guard viewModel.deleteContact(id: contact.id) else {
+      toast = Toast(
+        message: "연락처 삭제 실패하였습니다",
+        style: .failure,
+        action: Toast.Action(title: "다시 시도") {
+          deleteContact()
+        }
+      )
+      return
+    }
+
+    analytics.track(AnalyticsEvent.contactDeleted)
+    onDeleted()
+  }
+
+  /// 값을 클립보드에 복사하고 복사됐다는 토스트를 보여줍니다.
+  private func copy(_ value: String, message: String) {
+    UIPasteboard.general.string = value
+    toast = Toast(message: message, style: .success, icon: .copy)
   }
 
   private func showUpdatedToast(originalContact: Contact) {
@@ -153,9 +213,15 @@ struct ContactDetailView: View {
 
   private var profileImage: some View {
     Group {
-      if contact.profileImageData != nil {
-        Image(.logo)
-          .profileImage(data: contact.profileImageData, size: 136)
+      if
+        let data = contact.profileImageData,
+        let uiImage = UIImage(data: data)
+      {
+        Image(uiImage: uiImage)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .frame(width: 96, height: 96)
+          .clipShape(RoundedRectangle(cornerRadius: 25.6, style: .continuous))
       } else {
         InitialAvatar(name: contact.name, size: 96, cornerRadius: 25.6)
       }
@@ -168,20 +234,20 @@ struct ContactDetailView: View {
         icon: .mail,
         label: "이메일",
         value: displayValue(contact.email),
-        destination: ContactLinkURL.email(contact.email)
+        valueAction: .email(contact.email)
       )
       profileInfo(
         icon: .phone,
         label: "전화번호",
         value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)),
-        destination: ContactLinkURL.phone(contact.phone)
+        valueAction: .phone(contact.phone)
       )
       profileInfo(
         icon: .link,
         label: "URL",
         value: displayValue(contact.url),
         lineLimit: 1,
-        destination: ContactLinkURL.website(contact.url)
+        valueAction: .link(contact.url)
       )
     }
     .surfaceCard()
@@ -211,15 +277,38 @@ struct ContactDetailView: View {
   }
 
   private var noteCard: some View {
-    profileInfo(icon: .document, label: "한 줄 기록", value: contact.note)
+    profileInfo(icon: .file, label: "한 줄 기록", value: contact.note, valueStyle: .note)
       .surfaceCard()
   }
 
   @ViewBuilder
   private var socialLinksInfo: some View {
     ForEach(contact.socialLinks, id: \.self) { link in
-      profileInfo(icon: .link, label: link.platform, value: displayValue(link.handle), lineLimit: 1)
+      profileInfo(
+        icon: .link,
+        label: link.platform,
+        value: displayValue(link.handle),
+        lineLimit: 1,
+        valueAction: .link(link.handle)
+      )
     }
+  }
+
+  /// 값을 눌렀을 때의 동작입니다.
+  private enum ValueAction {
+    case none
+    /// 이메일 보내기와 복사 중에서 고릅니다.
+    case email(String)
+    /// 전화 걸기와 복사 중에서 고릅니다.
+    case phone(String)
+    /// 메뉴 없이 바로 복사합니다.
+    case link(String)
+  }
+
+  /// 값 글자의 스타일입니다.
+  private enum ValueStyle {
+    case standard
+    case note
   }
 
   private func profileInfo(
@@ -227,9 +316,11 @@ struct ContactDetailView: View {
     label: String,
     value: String,
     lineLimit: Int? = nil,
-    destination: URL? = nil
+    valueStyle: ValueStyle = .standard,
+    valueAction: ValueAction = .none
   ) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
+    // 값 글자만이 아니라 아이콘·제목·값을 모두 포함한 영역 전체가 눌리도록 하나로 묶는다.
+    let content = VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 4) {
         Image(icon)
           .resizable()
@@ -242,20 +333,82 @@ struct ContactDetailView: View {
           .foregroundStyle(.gray400)
       }
 
-      if let destination {
-        Link(destination: destination) {
-          profileValueText(value, lineLimit: lineLimit)
+      profileValueText(value, lineLimit: lineLimit, style: valueStyle)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .contentShape(Rectangle())
+
+    return interactive(content, action: valueAction)
+  }
+
+  /// 영역을 눌렀을 때의 동작을 붙입니다. 동작이 없거나 값이 비어 있으면 그대로 보여줍니다.
+  @ViewBuilder
+  private func interactive(_ content: some View, action: ValueAction) -> some View {
+    switch action {
+    case .none:
+      content
+    case let .email(raw):
+      if let url = ContactLinkURL.email(raw) {
+        Menu {
+          ControlGroup {
+            Button {
+              openURL(url)
+            } label: {
+              Label("보내기", icon: .mail)
+            }
+
+            Button {
+              copy(raw, message: "이메일 복사되었습니다")
+            } label: {
+              Label("복사", icon: .copy)
+            }
+          }
+        } label: {
+          content
         }
       } else {
-        profileValueText(value, lineLimit: lineLimit)
+        content
+      }
+    case let .phone(raw):
+      if let url = ContactLinkURL.phone(raw) {
+        Menu {
+          ControlGroup {
+            Button {
+              openURL(url)
+            } label: {
+              Label("전화", icon: .phone)
+            }
+
+            Button {
+              copy(raw, message: "전화번호 복사되었습니다")
+            } label: {
+              Label("복사", icon: .copy)
+            }
+          }
+        } label: {
+          content
+        }
+      } else {
+        content
+      }
+    case let .link(raw):
+      if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        content
+      } else {
+        Button {
+          copy(raw, message: "링크 복사되었습니다")
+        } label: {
+          content
+        }
+        .buttonStyle(.plain)
       }
     }
   }
 
-  private func profileValueText(_ value: String, lineLimit: Int?) -> some View {
+  private func profileValueText(_ value: String, lineLimit: Int?, style: ValueStyle) -> some View {
     Text(value)
-      .typeStyle(.headline)
-      .foregroundStyle(.gray800)
+      .typeStyle(style == .note ? .footnote : .headline)
+      .foregroundStyle(style == .note ? .gray400 : .gray800)
       .lineLimit(lineLimit)
       .truncationMode(.tail)
       .multilineTextAlignment(.leading)

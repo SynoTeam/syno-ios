@@ -30,8 +30,7 @@ struct GroupSelectionSheet: View {
         title: "그룹 선택",
         onCancel: { dismiss() }
       ) {
-        onApply(canonicalGroupName(for: draftGroup))
-        dismiss()
+        applySelection()
       }
 
       ScrollView {
@@ -60,6 +59,8 @@ struct GroupSelectionSheet: View {
 
     return Button {
       draftGroup = group
+      // 새 그룹을 입력하다가 다른 그룹을 고르면 마지막 선택이 적용되도록 입력을 접는다.
+      cancelNewGroup()
     } label: {
       HStack(spacing: 8) {
         Image(.check)
@@ -96,7 +97,7 @@ struct GroupSelectionSheet: View {
           .focused($isNewGroupFieldFocused)
           .onAppear { isNewGroupFieldFocused = true }
           .submitLabel(.done)
-          .onSubmit(confirmNewGroup)
+          .onSubmit { confirmNewGroup() }
 
         Button(action: clearOrCancelNewGroup) {
           Image(.xCircle)
@@ -142,14 +143,35 @@ struct GroupSelectionSheet: View {
   /// 입력한 내용이 있으면 지우고, 이미 비어 있으면 그룹 추가 입력을 닫습니다.
   private func clearOrCancelNewGroup() {
     if newGroup.isEmpty {
-      isAddingNewGroup = false
-      isNewGroupFieldFocused = false
+      cancelNewGroup()
     } else {
       newGroup = ""
     }
   }
 
-  private func confirmNewGroup() {
+  /// 입력하던 새 그룹 이름을 버리고 입력 행을 닫습니다.
+  private func cancelNewGroup() {
+    newGroup = ""
+    isAddingNewGroup = false
+    isNewGroupFieldFocused = false
+  }
+
+  /// 새 그룹 이름을 입력하던 중에 상단 완료 버튼을 눌러도 그 그룹을 만들어 선택하고 닫습니다.
+  private func applySelection() {
+    let hasPendingGroup = isAddingNewGroup
+      && !newGroup.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+    if hasPendingGroup, !confirmNewGroup() {
+      return
+    }
+
+    onApply(canonicalGroupName(for: draftGroup))
+    dismiss()
+  }
+
+  /// 입력한 이름으로 그룹을 만들고 선택합니다. 만들지 못하면 토스트를 띄우고 false를 반환합니다.
+  @discardableResult
+  private func confirmNewGroup() -> Bool {
     do {
       let group = try GroupService(modelContext: modelContext).createGroup(named: newGroup)
       if let group {
@@ -158,8 +180,10 @@ struct GroupSelectionSheet: View {
       newGroup = ""
       isAddingNewGroup = false
       isNewGroupFieldFocused = false
+      return true
     } catch {
       toast = Toast(message: "그룹 추가에 실패했습니다", style: .failure)
+      return false
     }
   }
 

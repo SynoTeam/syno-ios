@@ -62,8 +62,9 @@ struct ContactsSectionView: View {
                 .typeStyle(.footnoteEmphasized)
                 .foregroundStyle(.gray400)
                 .padding(.horizontal, 8)
-                .padding(.top, group.id == firstGroupID ? 0 : 14)
-                .padding(.bottom, 6)
+                // 대그룹 헤더와는 떨어뜨리고(첫 그룹 4), 자기 연락처와는 붙여서(아래 2) 한 묶음으로 보이게 한다.
+                .padding(.top, group.id == firstGroupID ? 4 : 14)
+                .padding(.bottom, 2)
             } else if showsGroupHeaders, group.id != firstGroupID {
               // 그룹이 없는 연락처 구간도 앞 그룹과 간격을 둔다.
               Color.clear.frame(height: 14)
@@ -82,6 +83,12 @@ struct ContactsSectionView: View {
     .clipShape(RoundedRectangle(cornerRadius: 28))
   }
   
+  /// 행에 보이는 값이 바뀌면 식별자도 바뀌어서, 이름·그룹·사진이 바뀐 행을 SwiftUI가 새로 만들게 한다.
+  /// 사진은 내용을 해시하면 비싸서 크기만 쓴다.
+  private func rowIdentity(_ contact: Contact) -> String {
+    "\(contact.id)|\(contact.name)|\(contact.group)|\(contact.profileImageData?.count ?? 0)"
+  }
+
   private func contactRow(_ contact: Contact) -> some View {
     FavoriteSwipeRow(
       id: contact.id,
@@ -129,6 +136,7 @@ struct ContactsSectionView: View {
         }
       }
     }
+    .id(rowIdentity(contact))
   }
 
   private var header: some View {

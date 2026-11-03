@@ -24,7 +24,7 @@ struct GroupManagementSheet: View {
   var body: some View {
     VStack(spacing: 0) {
       AddContactSheetHeader(title: "그룹 편집", onCancel: { dismiss() }) {
-        dismiss()
+        finishEditing()
       }
 
       sortPicker
@@ -117,9 +117,11 @@ struct GroupManagementSheet: View {
       .typeStyle(.callout)
       .focused($isNewGroupFocused)
       .submitLabel(.done)
-      .onSubmit(addGroup)
+      .onSubmit { addGroup() }
 
-      Button(action: addGroup) {
+      Button {
+        addGroup()
+      } label: {
         Image(.plusCircle)
           .resizable()
           .renderingMode(.template)
@@ -135,12 +137,26 @@ struct GroupManagementSheet: View {
     .clipShape(RoundedRectangle(cornerRadius: 999))
   }
 
-  private func addGroup() {
+  /// 입력창에 적어 둔 이름이 있으면 추가 버튼을 누르지 않았어도 함께 저장하고 닫습니다.
+  private func finishEditing() {
+    let hasPendingGroup = !newGroup.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+    if hasPendingGroup, !addGroup() {
+      return
+    }
+    dismiss()
+  }
+
+  /// 입력한 이름으로 그룹을 만듭니다. 만들지 못하면 토스트를 띄우고 false를 반환합니다.
+  @discardableResult
+  private func addGroup() -> Bool {
     do {
       _ = try GroupService(modelContext: modelContext).createGroup(named: newGroup)
       newGroup = ""
+      return true
     } catch {
       toast = Toast(message: "그룹 추가에 실패했습니다", style: .failure)
+      return false
     }
   }
 

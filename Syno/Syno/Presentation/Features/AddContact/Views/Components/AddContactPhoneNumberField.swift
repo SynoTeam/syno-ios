@@ -61,6 +61,15 @@ struct AddContactPhoneNumberField: View {
         }
       }
     }
+    // 전화번호 키패드에는 return 키가 없어서 다음 필드로 넘어갈 버튼을 키보드 위에 둔다.
+    .toolbar {
+      ToolbarItemGroup(placement: .keyboard) {
+        if focusedField.wrappedValue == .phone {
+          Spacer()
+          Button("다음", action: onSubmit)
+        }
+      }
+    }
   }
 
   private var formattedPhone: Binding<String> {

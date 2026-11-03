@@ -231,16 +231,16 @@ struct ContactDetailView: View {
   private var contactInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
       profileInfo(
-        icon: .mail,
-        label: "이메일",
-        value: displayValue(contact.email),
-        valueAction: .email(contact.email)
-      )
-      profileInfo(
         icon: .phone,
         label: "전화번호",
         value: displayValue(ContactPhoneNumberFormatter.displayFormatted(contact.phone)),
         valueAction: .phone(contact.phone)
+      )
+      profileInfo(
+        icon: .mail,
+        label: "이메일",
+        value: displayValue(contact.email),
+        valueAction: .email(contact.email)
       )
       profileInfo(
         icon: .link,

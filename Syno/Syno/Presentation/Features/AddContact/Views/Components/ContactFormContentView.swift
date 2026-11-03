@@ -56,7 +56,7 @@ struct ContactFormContentView: View {
           field: .givenName,
           focusedField: focusedField
         ) {
-          focusedField.wrappedValue = .email
+          focusedField.wrappedValue = .phone
         }
       }
     }
@@ -65,26 +65,26 @@ struct ContactFormContentView: View {
   private var contactSection: some View {
     AddContactFormSection(title: "연락처") {
       AddContactStackedFields {
-        AddContactTextField(
-          "이메일",
-          text: $email,
-          field: .email,
-          focusedField: focusedField
-        ) {
-          focusedField.wrappedValue = .phone
-        }
-        .keyboardType(.emailAddress)
-        .textInputAutocapitalization(.never)
-        Divider()
-          .background(.gray50)
         AddContactPhoneNumberField(
           countryCode: countryCode,
           phone: $phone,
           focusedField: focusedField,
           onCountryCodeTap: onCountryCodeTap
         ) {
+          focusedField.wrappedValue = .email
+        }
+        Divider()
+          .background(.gray50)
+        AddContactTextField(
+          "이메일",
+          text: $email,
+          field: .email,
+          focusedField: focusedField
+        ) {
           focusedField.wrappedValue = .url
         }
+        .keyboardType(.emailAddress)
+        .textInputAutocapitalization(.never)
         Divider()
           .background(.gray50)
         AddContactTextField(

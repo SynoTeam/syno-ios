@@ -151,8 +151,8 @@ struct MyPageView: View {
 
   private var contactInfoCard: some View {
     VStack(alignment: .leading, spacing: 24) {
-      profileInfo(icon: .mail, label: "이메일", value: emailText, destination: emailURL)
       profileInfo(icon: .phone, label: "전화번호", value: phoneText, destination: phoneURL)
+      profileInfo(icon: .mail, label: "이메일", value: emailText, destination: emailURL)
       profileInfo(icon: .link, label: "URL", value: urlText, lineLimit: 1, destination: websiteURL)
     }
     .surfaceCard()

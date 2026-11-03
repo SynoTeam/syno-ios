@@ -30,8 +30,7 @@ struct GroupSelectionSheet: View {
         title: "그룹 선택",
         onCancel: { dismiss() }
       ) {
-        onApply(canonicalGroupName(for: draftGroup))
-        dismiss()
+        applySelection()
       }
 
       ScrollView {
@@ -96,7 +95,7 @@ struct GroupSelectionSheet: View {
           .focused($isNewGroupFieldFocused)
           .onAppear { isNewGroupFieldFocused = true }
           .submitLabel(.done)
-          .onSubmit(confirmNewGroup)
+          .onSubmit { confirmNewGroup() }
 
         Button(action: clearOrCancelNewGroup) {
           Image(.xCircle)
@@ -149,7 +148,22 @@ struct GroupSelectionSheet: View {
     }
   }
 
-  private func confirmNewGroup() {
+  /// 새 그룹 이름을 입력하던 중에 상단 완료 버튼을 눌러도 그 그룹을 만들어 선택하고 닫습니다.
+  private func applySelection() {
+    let hasPendingGroup = isAddingNewGroup
+      && !newGroup.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+    if hasPendingGroup, !confirmNewGroup() {
+      return
+    }
+
+    onApply(canonicalGroupName(for: draftGroup))
+    dismiss()
+  }
+
+  /// 입력한 이름으로 그룹을 만들고 선택합니다. 만들지 못하면 토스트를 띄우고 false를 반환합니다.
+  @discardableResult
+  private func confirmNewGroup() -> Bool {
     do {
       let group = try GroupService(modelContext: modelContext).createGroup(named: newGroup)
       if let group {
@@ -158,8 +172,10 @@ struct GroupSelectionSheet: View {
       newGroup = ""
       isAddingNewGroup = false
       isNewGroupFieldFocused = false
+      return true
     } catch {
       toast = Toast(message: "그룹 추가에 실패했습니다", style: .failure)
+      return false
     }
   }
 

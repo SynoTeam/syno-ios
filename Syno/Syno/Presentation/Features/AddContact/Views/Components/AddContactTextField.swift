@@ -62,6 +62,11 @@ struct AddContactTextField: View {
       }
     }
     .frame(height: 54)
+    // 글자 줄 바깥의 여백을 눌러도 입력창에 포커스가 가게 해서 행 전체를 터치 영역으로 쓴다.
+    .contentShape(Rectangle())
+    .onTapGesture {
+      focusedField.wrappedValue = field
+    }
   }
 }
 

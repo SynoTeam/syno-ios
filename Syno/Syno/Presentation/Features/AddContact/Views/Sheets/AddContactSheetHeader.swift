@@ -33,6 +33,8 @@ struct AddContactSheetHeader: View {
       }
       .buttonStyle(.glass)
       .buttonBorderShape(.circle)
+      .accessibilityLabel("취소")
+      .accessibilityIdentifier("sheetHeader.cancel")
 
       Spacer()
 
@@ -52,6 +54,8 @@ struct AddContactSheetHeader: View {
       .buttonStyle(.glassProminent)
       .buttonBorderShape(.circle)
       .tint(.violet600)
+      .accessibilityLabel("완료")
+      .accessibilityIdentifier("sheetHeader.apply")
       .disabled(!isApplyEnabled)
       .opacity(isApplyEnabled ? 1 : 0.4)
     }

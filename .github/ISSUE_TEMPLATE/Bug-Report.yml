@@ -23,6 +23,19 @@ body:
     validations:
       required: true
 
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "🎯 재현 조건과 수용 기준"
+      description: "재현 조건, 기대 동작, 실제 동작을 적고, 수정 후 판정할 기준을 \"~하면, 시스템은 ~한다\" 문장으로 작성해주세요. (선택)"
+      placeholder: |
+        - 재현 조건: 연락처 편집에서 그룹을 바꾼 뒤 목록으로 돌아간다
+        - 기대 동작: 연락처 행에 바뀐 그룹명이 보인다
+        - 실제 동작: 이전 그룹명이 보인다
+        - 수용 기준: 연락처의 그룹을 바꾸면, 시스템은 목록 행의 그룹명을 즉시 갱신한다
+    validations:
+      required: false
+
   - type: input
     id: links
     attributes:

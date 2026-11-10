@@ -48,7 +48,7 @@ xcodebuild test \
 - `Syno/Syno/Data`: SwiftData 구현과 시스템 서비스
 - `Syno/Syno/DesignSystem`: 도메인에 독립적인 UI 구성요소
 - `Syno/SynoShareExtension`: 공유 확장
-- `Docs`: 제품 배경과 조사 자료
+- `Docs`: 제품 배경, 기능 명세(`Docs/specs`), 조사 자료
 
 ## Hard constraints
 
@@ -95,10 +95,30 @@ View → ViewModel → Repository/Service → SwiftData 또는 시스템 API
 - 서드파티 의존성은 먼저 묻고 추가합니다.
 - 코드, 타입, 파일, 함수 이름은 영어로 씁니다. 주석은 한국어입니다.
 
+### 명세와 테스트
+
+- 기준은 이슈의 수용 기준과 `Docs/specs/`의 명세입니다. 명세 양식은 `Docs/specs/_TEMPLATE.md`입니다.
+- 코드와 명세가 다르면 코드를 명세에 맞춥니다. 기능이 바뀌면 명세 → 테스트 → 코드 순서로 고칩니다.
+- 명세와 테스트의 기대값은 요청 없이 고치지 않습니다. 테스트가 실패하면 코드를 고칩니다.
+- 새 동작은 실패하는 테스트를 먼저 확인한 뒤 구현합니다. 경계값을 테스트에 넣습니다.
+- 확률적인 결과(Vision, Speech, 임베딩 점수)는 테스트 대역으로 고정하고, 결정적인 규칙은 예시표로 테스트합니다.
+- 작업이 끝나면 테스트 결과(통과·실패 수)와 바뀐 파일 목록을 보고합니다. 테스트를 실행하지 못했다면 실행하지 못했다고 말합니다.
+
 ### Git
 
 - 사용자가 명시적으로 요청한 경우에만 브랜치를 만들거나 커밋합니다. 푸시와 PR 생성도 요청받았을 때만 합니다.
-- 브랜치: `feature/#이슈/설명`. `fix`, `refactor`, `docs`도 같은 형식입니다. 통합 브랜치는 `develop`입니다.
+- 브랜치: `feature/#이슈/설명`. 접두어는 이슈 템플릿 종류를 따릅니다(`feature`, `bugfix`, `refactor`, `docs`, `design`, `setting`, `deploy`, `test`). 통합 브랜치는 `develop`입니다.
 - 커밋: `[#이슈번호] type: 한국어 설명` (예: `[#67] fix: 공유 확장의 StoredNote 스키마에 photoGroupId 추가`)
 - type은 `feat`, `fix`, `refactor`, `docs`, `chore`, `test`를 씁니다.
 - PR은 저장소의 PR 템플릿(관련 이슈, 요약, 스크린샷, 테스트, 공유 사항, 리뷰 가이드)을 따릅니다.
+
+## Review guidelines
+
+PR을 리뷰할 때 다음 기준을 따릅니다.
+
+- 이슈의 수용 기준, `Docs/specs/` 명세와 다르거나 빠진 부분을 먼저 봅니다.
+- 테스트의 기대값을 바꾸거나 검증 범위를 줄인 변경이 있는지 확인합니다.
+- 버그, 크래시, 데이터 손실, 개인정보 노출(로그의 `privacy: .public`, AI 전송)을 우선합니다.
+- Hard constraints와 Gotchas 위반을 확인합니다. 특히 Presentation의 SwiftData 직접 접근과 공유 확장 스키마 누락을 봅니다.
+- 스타일과 이름 취향은 지적하지 않습니다. 범위 밖 개선은 "범위 밖"으로 한 줄만 남깁니다.
+- 지적마다 심각도(필수 수정 / 권장 / 질문), 위치(파일:줄), 실패하는 시나리오를 적습니다. 추측이면 추측이라고 표시합니다.

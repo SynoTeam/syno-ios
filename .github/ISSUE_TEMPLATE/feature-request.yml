@@ -22,6 +22,17 @@ body:
     validations:
       required: true
 
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "🎯 수용 기준"
+      description: "완료를 판정할 기준을 \"~하면, 시스템은 ~한다\" 문장으로 작성해주세요. 경계값을 포함하면 좋습니다. 큰 기능은 Docs/specs/_TEMPLATE.md로 명세를 작성합니다. (선택)"
+      placeholder: |
+        - 새 그룹 입력 중 기존 그룹을 선택하면, 시스템은 입력을 닫고 마지막 선택을 적용한다
+        - 그룹 이름이 비어 있으면, 시스템은 저장 버튼을 비활성화한다
+    validations:
+      required: false
+
   - type: input
     id: links
     attributes:

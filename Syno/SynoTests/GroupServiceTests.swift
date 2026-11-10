@@ -60,7 +60,7 @@ final class GroupServiceTests: XCTestCase {
     try ModelContainer(
       for: StoredContact.self,
       StoredGroup.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 

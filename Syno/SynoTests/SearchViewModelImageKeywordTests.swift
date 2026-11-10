@@ -8,7 +8,7 @@ final class SearchViewModelImageKeywordTests: XCTestCase {
     let container = try ModelContainer(
       for: StoredContact.self,
       StoredNote.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
     let noteId = UUID()
     container.mainContext.insert(

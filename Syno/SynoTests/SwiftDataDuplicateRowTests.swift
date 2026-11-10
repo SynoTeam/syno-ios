@@ -169,7 +169,7 @@ final class SwiftDataDuplicateRowTests: XCTestCase {
       for: StoredNoteEmbedding.self,
       StoredContactEmbedding.self,
       StoredNoteVoiceTranscript.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 }

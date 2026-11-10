@@ -200,7 +200,7 @@ final class SwiftDataNoteRepositoryTests: XCTestCase {
       StoredNoteImageAnalysis.self,
       StoredNoteVoiceTranscript.self,
       StoredNoteEmbedding.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 }

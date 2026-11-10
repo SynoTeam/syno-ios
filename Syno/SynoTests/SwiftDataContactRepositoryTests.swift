@@ -38,7 +38,7 @@ final class SwiftDataContactRepositoryTests: XCTestCase {
       StoredNoteVoiceTranscript.self,
       StoredNoteEmbedding.self,
       StoredContactEmbedding.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 }

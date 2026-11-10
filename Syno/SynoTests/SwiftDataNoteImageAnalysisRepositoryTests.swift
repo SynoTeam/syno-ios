@@ -7,7 +7,7 @@ final class SwiftDataNoteImageAnalysisRepositoryTests: XCTestCase {
   func testSaveCanBeReadByNoteIdAndBulkFetch() async throws {
     let container = try ModelContainer(
       for: StoredNoteImageAnalysis.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
     let repository = SwiftDataNoteImageAnalysisRepository(
       modelContainer: container
@@ -34,7 +34,7 @@ final class SwiftDataNoteImageAnalysisRepositoryTests: XCTestCase {
   func testSaveUpdatesExistingAnalysisWithoutCreatingDuplicate() async throws {
     let container = try ModelContainer(
       for: StoredNoteImageAnalysis.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
     let repository = SwiftDataNoteImageAnalysisRepository(
       modelContainer: container

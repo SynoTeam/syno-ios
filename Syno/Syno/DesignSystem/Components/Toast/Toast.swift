@@ -100,6 +100,7 @@ struct ToastView: View {
     }
     .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     .accessibilityLabel(toast.message)
+    .accessibilityIdentifier("toast")
   }
 }
 

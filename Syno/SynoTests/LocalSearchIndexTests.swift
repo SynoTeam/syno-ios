@@ -152,7 +152,7 @@ final class LocalSearchIndexTests: XCTestCase {
     try ModelContainer(
       for: StoredNoteEmbedding.self,
       StoredContactEmbedding.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 }

@@ -118,7 +118,7 @@ final class AccountResetServiceTests: XCTestCase {
       StoredNoteImageAnalysis.self,
       StoredNoteLinkPreview.self,
       StoredNoteVoiceTranscript.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 }

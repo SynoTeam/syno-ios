@@ -87,7 +87,7 @@ final class ContactProfileIdentityTests: XCTestCase {
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(
       for: StoredContact.self,
-      configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+      configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     )
   }
 }

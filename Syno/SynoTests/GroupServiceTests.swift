@@ -5,7 +5,9 @@ import XCTest
 final class GroupServiceTests: XCTestCase {
   @MainActor
   func testBackfillCreatesDistinctGroupsFromExistingContacts() async throws {
-    let context = try makeContainer().mainContext
+    // 컨테이너가 먼저 해제되면 mainContext 사용 시 크래시가 나므로 테스트 동안 붙잡아 둡니다.
+    let container = try makeContainer()
+    let context = container.mainContext
     context.insert(StoredContact(contact: Contact(name: "A", role: "", company: "", group: "스터디")))
     context.insert(StoredContact(contact: Contact(name: "B", role: "", company: "", group: "study")))
     context.insert(StoredContact(contact: Contact(name: "C", role: "", company: "", group: "스터디")))
@@ -20,7 +22,8 @@ final class GroupServiceTests: XCTestCase {
 
   @MainActor
   func testDeleteGroupClearsMatchingContactGroups() async throws {
-    let context = try makeContainer().mainContext
+    let container = try makeContainer()
+    let context = container.mainContext
     let group = StoredGroup(name: "프로젝트", sortIndex: 0)
     let matchingContact = StoredContact(contact: Contact(name: "A", role: "", company: "", group: "프로젝트"))
     let otherContact = StoredContact(contact: Contact(name: "B", role: "", company: "", group: "친구"))
@@ -38,7 +41,8 @@ final class GroupServiceTests: XCTestCase {
 
   @MainActor
   func testUpdateSortIndexesPersistsCustomOrder() async throws {
-    let context = try makeContainer().mainContext
+    let container = try makeContainer()
+    let context = container.mainContext
     let first = StoredGroup(name: "첫 번째", sortIndex: 0)
     let second = StoredGroup(name: "두 번째", sortIndex: 1)
     context.insert(first)

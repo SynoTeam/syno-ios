@@ -2,8 +2,9 @@ import XCTest
 @testable import Syno
 
 final class AddContactViewModelTests: XCTestCase {
+  // 동기 테스트에서는 @MainActor ViewModel 해제 시 런타임 크래시가 나서 async로 실행합니다.
   @MainActor
-  func testEditModePreservesOriginalIdentityAndAdditionalFields() {
+  func testEditModePreservesOriginalIdentityAndAdditionalFields() async {
     let original = Contact(
       id: UUID(),
       name: "김 테스트",

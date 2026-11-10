@@ -52,7 +52,7 @@ struct FullTextMessageView: View {
             Button(role: .destructive) {
               requestDeleteConfirmation()
             } label: {
-              Label("삭제하기", icon: .trash)
+              Label("삭제하기", destructiveIcon: .trash)
             }
           } label: {
             Image(.moreHorizontal)

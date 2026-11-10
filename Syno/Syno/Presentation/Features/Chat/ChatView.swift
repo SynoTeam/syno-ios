@@ -259,9 +259,13 @@ struct ChatView: View {
         }
         // 목록이 처음 생길 때 맨 위에서 내려가지 않고 처음부터 맨 아래 위치로 그려진다.
         .defaultScrollAnchor(.bottom, for: .initialOffset)
+        // 그린 뒤에 말풍선 높이가 바뀌어도(지연 렌더링되는 행의 실제 높이, 이미지 로드 등) 맨 아래 기준 위치를 유지한다.
+        .defaultScrollAnchor(.bottom, for: .sizeChanges)
         // 빈 화면에서 메시지가 생기면 스크롤뷰를 새로 만들어 위의 초기 위치가 다시 적용되게 한다.
         .id(viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty)
         .scrollDismissesKeyboard(.interactively)
+        // 메시지 사이 빈 곳이나 바탕을 누르면 키보드를 내린다. 말풍선 안의 버튼과 탭은 그대로 먼저 동작한다.
+        .dismissKeyboardOnTap($isInputFocused)
         .gesture(
           LeftwardPanGesture(
             onChanged: updateTimeReveal,
@@ -502,6 +506,11 @@ struct ChatView: View {
 
   private func messageActions(for message: Note) -> ChatMessageActions {
     ChatMessageActions(
+      onCopied: {
+        // 메뉴가 닫힐 때 입력창으로 포커스가 돌아가 키보드가 올라오지 않게 한다.
+        isInputFocused = false
+        toast = Toast(message: "노트가 복사되었습니다", style: .success, icon: .copy)
+      },
       onDelete: { requestDelete(ids: [message.id]) },
       onShowFullText: { fullTextNote = message },
       onShowFile: { filePreviewNoteID = message.id },

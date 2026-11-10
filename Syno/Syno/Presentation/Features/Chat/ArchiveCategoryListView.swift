@@ -196,7 +196,7 @@ struct ArchiveCategoryListView: View {
             } label: {
               Label("복사하기", icon: .copy)
             }
-            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", icon: .trash) }
+            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", destructiveIcon: .trash) }
           }
         }
       }
@@ -211,7 +211,7 @@ struct ArchiveCategoryListView: View {
       LazyVStack(alignment: .leading, spacing: 12) {
         ForEach(voiceMemoNotes) { note in
           VoiceMemoCard(note: note)
-            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", icon: .trash) } }
+            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", destructiveIcon: .trash) } }
         }
       }.padding(16)
     }
@@ -249,7 +249,7 @@ struct ArchiveCategoryListView: View {
                 Label("공유하기", icon: .share)
               }
             }
-            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", icon: .trash) }
+            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", destructiveIcon: .trash) }
           }
         }
       }
@@ -304,7 +304,7 @@ struct ArchiveCategoryListView: View {
                   Button(role: .destructive) {
                     requestDelete(note)
                   } label: {
-                    Label("삭제하기", icon: .trash)
+                    Label("삭제하기", destructiveIcon: .trash)
                   }
                 }
               }
@@ -342,7 +342,7 @@ struct ArchiveCategoryListView: View {
                 Button(role: .destructive) {
                   requestDelete(note)
                 } label: {
-                  Label("삭제하기", icon: .trash)
+                  Label("삭제하기", destructiveIcon: .trash)
                 }
               }
           }

@@ -142,38 +142,49 @@ final class ChatViewModel {
   }
 
   func loadMessages() async {
+    let loadedMessages: [Note]
     do {
-      messages = try repository.fetch(contactId: contact.id)
-      persistenceError = nil
-      isLoadingMessages = false
+      loadedMessages = try repository.fetch(contactId: contact.id)
     } catch {
       isLoadingMessages = false
       handle(error)
       return
     }
 
+    // 링크 카드와 STT 결과는 말풍선 높이를 바꾼다. 메시지를 먼저 보여주고 나중에 붙이면
+    // 처음 잡은 맨 아래 위치가 위로 밀리므로, 캐시를 먼저 읽고 메시지와 한 번에 반영한다.
+    let messageIds = Set(loadedMessages.map(\.id))
+    var loadedImageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
+    var loadedLinkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
+    var loadedVoiceMemoStates: [Note.ID: VoiceMemoState] = [:]
     do {
-      let messageIds = Set(messages.map(\.id))
-      imageAnalyses = try await imageAnalysisRepository.fetchAll()
+      loadedImageAnalyses = try await imageAnalysisRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
-      linkPreviews = try await linkPreviewRepository.fetchAll()
+      loadedLinkPreviews = try await linkPreviewRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
       let transcripts = try await voiceTranscriptRepository.fetchAll()
-      voiceMemoStates = Dictionary(
-        messages.compactMap { note in
+      loadedVoiceMemoStates = Dictionary(
+        loadedMessages.compactMap { note in
           guard note.voiceMemoData != nil, let transcript = transcripts[note.id] else { return nil }
           return (note.id, .transcribed(transcript))
         },
         uniquingKeysWith: { first, _ in first }
       )
     } catch {
-      imageAnalyses = [:]
-      linkPreviews = [:]
-      voiceMemoStates = [:]
+      loadedImageAnalyses = [:]
+      loadedLinkPreviews = [:]
+      loadedVoiceMemoStates = [:]
       logger.debug(
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
     }
+
+    messages = loadedMessages
+    imageAnalyses = loadedImageAnalyses
+    linkPreviews = loadedLinkPreviews
+    voiceMemoStates = loadedVoiceMemoStates
+    persistenceError = nil
+    isLoadingMessages = false
 
     for note in messages
       where note.fileName != nil

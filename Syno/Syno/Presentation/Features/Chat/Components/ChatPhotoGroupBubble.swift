@@ -38,7 +38,7 @@ struct ChatPhotoGroupBubble: View {
 
           if let onDelete {
             Button(role: .destructive, action: onDelete) {
-              Label("삭제하기", icon: .trash)
+              Label("삭제하기", destructiveIcon: .trash)
             }
           }
         }

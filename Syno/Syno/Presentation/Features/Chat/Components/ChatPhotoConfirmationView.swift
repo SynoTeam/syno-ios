@@ -24,7 +24,7 @@ struct ChatPhotoConfirmationView: View {
   var body: some View {
     VStack(spacing: 0) {
       AddContactSheetHeader(
-        title: images.count > 1 ? "\(images.count)장" : "",
+        title: images.count > 1 ? "사진 업로드 (\(images.count))" : "사진 업로드",
         onCancel: { dismiss() },
         onApply: send
       )

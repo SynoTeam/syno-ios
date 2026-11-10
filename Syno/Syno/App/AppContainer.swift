@@ -61,30 +61,60 @@ final class AppContainer {
     try? groupService.backfillGroupsIfNeeded()
   }
 
+  /// 앱이 저장하는 SwiftData 모델 전체입니다.
+  static let schema = Schema([
+    UserProfile.self,
+    StoredContact.self,
+    StoredGroup.self,
+    StoredNote.self,
+    StoredContactEmbedding.self,
+    StoredNoteEmbedding.self,
+    StoredNoteImageAnalysis.self,
+    StoredNoteLinkPreview.self,
+    StoredNoteVoiceTranscript.self
+  ])
+
   /// 실제 저장소(App Group, CloudKit)를 사용하는 운영용 컨테이너를 조립합니다.
   static func live() -> AppContainer {
+    guard let appGroupContainerURL = FileManager.default.containerURL(
+      forSecurityApplicationGroupIdentifier: "group.com.synoteam.Syno"
+    ) else {
+      fatalError("App Group container unavailable: group.com.synoteam.Syno")
+    }
+    let configuration = ModelConfiguration(
+      schema: schema,
+      url: appGroupContainerURL.appendingPathComponent("Syno.sqlite"),
+      cloudKitDatabase: .private("iCloud.com.synoteam.Syno")
+    )
+    return make(configuration: configuration, linkPreviewFetcher: URLSessionLinkPreviewFetcher())
+  }
+
+  #if DEBUG
+  /// 테스트용 컨테이너입니다. 메모리에만 저장하고 CloudKit과 네트워크를 쓰지 않습니다.
+  /// 단위 테스트의 호스트 앱이 운영 저장소를 건드리지 않게 할 때 씁니다.
+  static func inMemory() -> AppContainer {
+    let configuration = ModelConfiguration(
+      schema: schema,
+      isStoredInMemoryOnly: true,
+      cloudKitDatabase: .none
+    )
+    return make(configuration: configuration, linkPreviewFetcher: NoopNoteLinkPreviewFetcher())
+  }
+
+  /// UI 테스트용 컨테이너입니다. 메모리 저장소에 고정된 샘플 데이터를 넣어 둡니다.
+  static func uiTest() -> AppContainer {
+    let container = inMemory()
+    UITestFixtureSeeder.seed(into: container.modelContainer.mainContext)
+    return container
+  }
+  #endif
+
+  /// 저장소 설정만 다르게 해서 같은 방식으로 컨테이너를 조립합니다.
+  static func make(
+    configuration: ModelConfiguration,
+    linkPreviewFetcher: any NoteLinkPreviewFetching
+  ) -> AppContainer {
     do {
-      let schema = Schema([
-        UserProfile.self,
-        StoredContact.self,
-        StoredGroup.self,
-        StoredNote.self,
-        StoredContactEmbedding.self,
-        StoredNoteEmbedding.self,
-        StoredNoteImageAnalysis.self,
-        StoredNoteLinkPreview.self,
-        StoredNoteVoiceTranscript.self
-      ])
-      guard let appGroupContainerURL = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: "group.com.synoteam.Syno"
-      ) else {
-        fatalError("App Group container unavailable: group.com.synoteam.Syno")
-      }
-      let configuration = ModelConfiguration(
-        schema: schema,
-        url: appGroupContainerURL.appendingPathComponent("Syno.sqlite"),
-        cloudKitDatabase: .private("iCloud.com.synoteam.Syno")
-      )
       let container = try ModelContainer(
         for: schema,
         configurations: configuration
@@ -115,7 +145,7 @@ final class AppContainer {
         searchIndex: index,
         noteImageAnalyzer: VisionNoteImageAnalyzer(),
         noteImageAnalysisRepository: imageAnalysisRepository,
-        linkPreviewFetcher: URLSessionLinkPreviewFetcher(),
+        linkPreviewFetcher: linkPreviewFetcher,
         noteLinkPreviewRepository: SwiftDataNoteLinkPreviewRepository(modelContainer: container),
         labelTranslator: staticLabelDictionary,
         noteVoiceTranscriber: SpeechNoteVoiceTranscriber(),

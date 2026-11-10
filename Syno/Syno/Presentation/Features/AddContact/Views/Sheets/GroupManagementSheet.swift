@@ -1,24 +1,17 @@
-import SwiftData
 import SwiftUI
 
 /// 그룹을 삭제하고 사용자 지정 순서를 변경하는 바텀시트입니다.
 /// 그룹 추가는 연락처 편집의 그룹 선택 시트에서만 합니다.
 struct GroupManagementSheet: View {
-  private enum SortMode: String, CaseIterable, Identifiable {
-    case alphabetical = "가나다순"
-    case custom = "사용자 설정 순"
-
-    var id: String { rawValue }
-  }
-
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
-
-  @AppStorage("GroupManagementSheet.sortMode") private var sortModeRawValue = SortMode.alphabetical.rawValue
-  @State private var groupPendingDeletion: StoredGroup?
+  @State private var viewModel: GroupManagementViewModel
+  @State private var groupPendingDeletion: ContactGroup?
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
+
+  init(groupRepository: any GroupRepository) {
+    _viewModel = State(initialValue: GroupManagementViewModel(groupRepository: groupRepository))
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -32,50 +25,49 @@ struct GroupManagementSheet: View {
         .padding(.bottom, 16)
 
       List {
-        ForEach(displayedGroups, id: \.persistentModelID) { group in
+        ForEach(viewModel.displayedGroups) { group in
           groupRow(group)
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
             // 흰 알약을 행 배경으로 그려야 시스템 순서 변경 핸들이 알약 안쪽에 들어간다.
             .listRowBackground(Capsule().fill(.white))
         }
-        .onMove(perform: moveGroups)
-        .moveDisabled(sortMode != .custom)
+        .onMove(perform: viewModel.moveGroups)
+        .moveDisabled(!viewModel.canReorder)
       }
       .listStyle(.plain)
       .listRowSpacing(8)
       .scrollContentBackground(.hidden)
       // 사용자 설정 순에서만 편집 모드를 켜서 시스템 순서 변경 핸들을 하나만 보여준다.
-      .environment(\.editMode, .constant(sortMode == .custom ? .active : .inactive))
+      .environment(\.editMode, .constant(viewModel.canReorder ? .active : .inactive))
       .padding(.horizontal, 16)
     }
     .padding(.top, 16)
     .background(Color.gray50)
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
-  }
-
-  private var sortMode: SortMode {
-    SortMode(rawValue: sortModeRawValue) ?? .alphabetical
-  }
-
-  private var sortModeBinding: Binding<SortMode> {
-    Binding(
-      get: { sortMode },
-      set: { sortModeRawValue = $0.rawValue }
-    )
+    .onAppear {
+      viewModel.load()
+    }
+    .onChange(of: viewModel.failureMessage) { _, message in
+      guard let message else {
+        return
+      }
+      toast = Toast(message: message, style: .failure)
+      viewModel.failureMessage = nil
+    }
   }
 
   private var sortPicker: some View {
-    Picker("정렬", selection: sortModeBinding) {
-      ForEach(SortMode.allCases) { mode in
+    Picker("정렬", selection: $viewModel.sortMode) {
+      ForEach(GroupManagementViewModel.SortMode.allCases) { mode in
         Text(mode.rawValue).tag(mode)
       }
     }
     .pickerStyle(.segmented)
   }
 
-  private func groupRow(_ group: StoredGroup) -> some View {
+  private func groupRow(_ group: ContactGroup) -> some View {
     HStack(spacing: 12) {
       Text(group.name)
         .typeStyle(.callout)
@@ -84,8 +76,7 @@ struct GroupManagementSheet: View {
       Spacer()
 
       Button {
-        groupPendingDeletion = group
-        requestDeleteConfirmation()
+        requestDeleteConfirmation(for: group)
       } label: {
         Image(.minusCircle)
           .resizable()
@@ -100,38 +91,10 @@ struct GroupManagementSheet: View {
     .frame(height: 54)
   }
 
-  private func moveGroups(from source: IndexSet, to destination: Int) {
-    guard sortMode == .custom else {
-      return
-    }
-
-    var groups = displayedGroups
-    groups.move(fromOffsets: source, toOffset: destination)
-    do {
-      try GroupService(modelContext: modelContext).updateSortIndexes(for: groups)
-    } catch {
-      toast = Toast(message: "그룹 순서 저장에 실패했습니다", style: .failure)
-    }
-  }
-
-  private var displayedGroups: [StoredGroup] {
-    switch sortMode {
-    case .custom:
-      storedGroups
-    case .alphabetical:
-      storedGroups.sorted {
-        $0.name.localizedStandardCompare($1.name) == .orderedAscending
-      }
-    }
-  }
-
-  private func requestDeleteConfirmation() {
-    guard let groupPendingDeletion else {
-      return
-    }
-
+  private func requestDeleteConfirmation(for group: ContactGroup) {
+    groupPendingDeletion = group
     confirmationAlert = DestructiveConfirmationAlert(
-      title: "\(groupPendingDeletion.name) 그룹을\n삭제하겠습니까?",
+      title: "\(group.name) 그룹을\n삭제하겠습니까?",
       message: "이 그룹을 사용 중인 연락처는 '선택 안 함'으로 변경됩니다. 이 작업은 되돌릴 수 없습니다.",
       acknowledgementText: nil
     ) {
@@ -143,17 +106,12 @@ struct GroupManagementSheet: View {
     guard let groupPendingDeletion else {
       return
     }
-
-    do {
-      try GroupService(modelContext: modelContext).deleteGroup(groupPendingDeletion)
-      self.groupPendingDeletion = nil
-    } catch {
-      toast = Toast(message: "그룹 삭제에 실패했습니다", style: .failure)
-    }
+    viewModel.deleteGroup(named: groupPendingDeletion.name)
+    self.groupPendingDeletion = nil
   }
 }
 
 #Preview {
-  GroupManagementSheet()
-    .modelContainer(for: [StoredGroup.self, StoredContact.self], inMemory: true)
+  GroupManagementSheet(groupRepository: PreviewRepositories.appContainer.groupService)
+    .previewModelContainer()
 }

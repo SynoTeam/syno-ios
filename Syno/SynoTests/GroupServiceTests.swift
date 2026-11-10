@@ -55,6 +55,56 @@ final class GroupServiceTests: XCTestCase {
     XCTAssertEqual(groups.map(\.name), ["두 번째", "첫 번째"])
   }
 
+  // MARK: - 같은 이름의 중복 행 (기기마다 백필한 그룹이 CloudKit으로 합쳐질 때 생김)
+
+  @MainActor
+  func testFetchGroupsShowsDuplicateRowsAsOneGroup() async throws {
+    let container = try makeContainer()
+    let context = try insertDuplicatedGroups(into: container)
+
+    let groups = try makeService(context: context).fetchGroups()
+
+    XCTAssertEqual(groups.map(\.name), ["Study", "Work"])
+  }
+
+  @MainActor
+  func testDeleteGroupNamedRemovesEveryDuplicateRow() async throws {
+    let container = try makeContainer()
+    let context = try insertDuplicatedGroups(into: container)
+
+    try makeService(context: context).deleteGroup(named: "Study")
+
+    let names = try context.fetch(FetchDescriptor<StoredGroup>()).map(\.name)
+    XCTAssertEqual(names, ["Work"])
+  }
+
+  @MainActor
+  func testUpdateSortOrderAppliesToEveryDuplicateRow() async throws {
+    let container = try makeContainer()
+    let context = try insertDuplicatedGroups(into: container)
+    let service = makeService(context: context)
+
+    try service.updateSortOrder(["Work", "Study"])
+
+    XCTAssertEqual(try service.fetchGroups().map(\.name), ["Work", "Study"])
+    let studyRows = try context.fetch(FetchDescriptor<StoredGroup>()).filter {
+      $0.name.compare("Study", options: .caseInsensitive) == .orderedSame
+    }
+    XCTAssertEqual(studyRows.map(\.sortIndex), [1, 1, 1])
+  }
+
+  /// "Study"가 같은 이름과 대소문자만 다른 이름으로 3개 행에 중복된 상태를 만듭니다.
+  @MainActor
+  private func insertDuplicatedGroups(into container: ModelContainer) throws -> ModelContext {
+    let context = container.mainContext
+    context.insert(StoredGroup(name: "Study", sortIndex: 0))
+    context.insert(StoredGroup(name: "Work", sortIndex: 1))
+    context.insert(StoredGroup(name: "Study", sortIndex: 2))
+    context.insert(StoredGroup(name: "STUDY", sortIndex: 3))
+    try context.save()
+    return context
+  }
+
   @MainActor
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(

@@ -102,3 +102,56 @@ final class GroupService {
     }
   }
 }
+
+/// 그룹은 이름(대소문자 무시)으로 구분합니다. 기기마다 백필한 그룹이 CloudKit으로 합쳐지면
+/// 같은 이름의 행이 여러 개 생길 수 있어서, 같은 이름의 행은 모두 하나의 그룹으로 다룹니다.
+extension GroupService: GroupRepository {
+  func fetchGroups() throws -> [ContactGroup] {
+    var seenKeys: Set<String> = []
+    return try storedGroupsInSortOrder().compactMap { group in
+      guard seenKeys.insert(Self.groupKey(group.name)).inserted else {
+        return nil
+      }
+      return ContactGroup(name: group.name, sortIndex: group.sortIndex)
+    }
+  }
+
+  func deleteGroup(named name: String) throws {
+    let key = Self.groupKey(name)
+    let rows = try storedGroupsInSortOrder().filter { Self.groupKey($0.name) == key }
+    guard let first = rows.first else {
+      return
+    }
+
+    // 연락처 그룹 비우기는 첫 행을 지울 때 함께 처리되고, 나머지 중복 행은 그대로 지운다.
+    for duplicate in rows.dropFirst() {
+      modelContext.delete(duplicate)
+    }
+    try deleteGroup(first)
+  }
+
+  func updateSortOrder(_ names: [String]) throws {
+    let rowsByKey = Dictionary(grouping: try storedGroupsInSortOrder()) { Self.groupKey($0.name) }
+    for (index, name) in names.enumerated() {
+      for row in rowsByKey[Self.groupKey(name)] ?? [] {
+        row.sortIndex = index
+      }
+    }
+
+    do {
+      try modelContext.save()
+    } catch {
+      modelContext.rollback()
+      throw error
+    }
+  }
+
+  private func storedGroupsInSortOrder() throws -> [StoredGroup] {
+    try modelContext.fetch(FetchDescriptor<StoredGroup>(sortBy: [SortDescriptor(\.sortIndex)]))
+  }
+
+  /// 대소문자만 다른 이름을 같은 그룹으로 보기 위한 비교 키입니다. `createGroup`의 중복 판정과 같은 기준입니다.
+  private static func groupKey(_ name: String) -> String {
+    name.lowercased()
+  }
+}

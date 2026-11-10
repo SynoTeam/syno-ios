@@ -19,6 +19,23 @@ xcodebuild \
   build
 ```
 
+단위 테스트는 `Unit` 테스트 플랜으로 실행합니다. CI(`.github/workflows/ci.yml`)도 같은 명령을 씁니다.
+
+```bash
+xcodebuild test \
+  -project Syno/Syno.xcodeproj \
+  -scheme Syno \
+  -testPlan Unit \
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
+  -derivedDataPath /tmp/SynoDerivedData \
+  CODE_SIGN_IDENTITY=- \
+  CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM= \
+  PROVISIONING_PROFILE_SPECIFIER=
+```
+
+- 테스트 호스트 앱이 App Group을 쓰므로 테스트에서는 `CODE_SIGNING_ALLOWED=NO` 대신 ad-hoc 서명(`CODE_SIGN_IDENTITY=-`)을 씁니다.
+- `Unit` 플랜은 Spike 테스트를 제외합니다. Spike 테스트는 `-testPlan Spike`로 따로 실행합니다. 새 Spike 테스트를 추가하면 두 플랜 모두에 반영합니다.
 - 타깃: `Syno`, `SynoTests`, `SynoShareExtension`
 - 에러와 경고는 구분해서 보고합니다.
 - 샌드박스 때문에 빌드가 막히면 막혔다고 알리고, 빌드한 것처럼 말하지 않습니다.

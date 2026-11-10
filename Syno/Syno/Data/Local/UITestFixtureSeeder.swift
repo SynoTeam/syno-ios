@@ -11,6 +11,8 @@ enum UITestFixtureSeeder {
     static let contactName = "테스트 연락처"
     static let oldestMessage = "첫 번째 메시지"
     static let latestMessage = "마지막 메시지"
+    /// 사용자 설정 순서입니다. 가나다순(가족, 스터디, 회사)과 다르게 둬서 두 정렬을 구분할 수 있게 합니다.
+    static let groupsInCustomOrder = ["스터디", "회사", "가족"]
   }
 
   /// 대화 길이입니다. 채팅방 진입 위치와 스크롤을 확인할 수 있을 만큼 화면보다 길게 둡니다.
@@ -20,7 +22,11 @@ enum UITestFixtureSeeder {
     // 온보딩을 건너뛰고 메인 탭에서 시작하게 한다.
     context.insert(UserProfile(familyName: "테", givenName: "스터"))
 
-    let contact = Contact(name: Text.contactName, role: "", company: "")
+    for (index, name) in Text.groupsInCustomOrder.enumerated() {
+      context.insert(StoredGroup(name: name, sortIndex: index))
+    }
+
+    let contact = Contact(name: Text.contactName, role: "", company: "", group: Text.groupsInCustomOrder[0])
     context.insert(StoredContact(contact: contact))
 
     let baseDate = Date(timeIntervalSince1970: 1_793_000_000)

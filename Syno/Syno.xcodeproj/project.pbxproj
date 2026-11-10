@@ -12,6 +12,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		3CB2771C30A2FE8B007A6D56 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3C1540992FEFC4CE00E89F11;
+			remoteInfo = Syno;
+		};
 		3CDFBB4D301A732800C7637C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C1540922FEFC4CE00E89F11 /* Project object */;
@@ -44,6 +51,7 @@
 
 /* Begin PBXFileReference section */
 		3C15409A2FEFC4CE00E89F11 /* Syno.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Syno.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CB2771630A2FE8B007A6D56 /* SynoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CDFBB45301A732800C7637C /* SynoShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SynoShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A0000013000000000000001 /* SynoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SynoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A1000013000000000000001 /* Analytics.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Analytics.xcconfig; sourceTree = "<group>"; };
@@ -75,6 +83,11 @@
 			path = Syno;
 			sourceTree = "<group>";
 		};
+		3CB2771730A2FE8B007A6D56 /* SynoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SynoUITests;
+			sourceTree = "<group>";
+		};
 		3CDFBB46301A732800C7637C /* SynoShareExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -96,6 +109,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C17B06A306159A7009D1D7A /* AmplitudeUnified in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3CB2771330A2FE8B007A6D56 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -123,6 +143,7 @@
 				3C15409C2FEFC4CE00E89F11 /* Syno */,
 				7A0000023000000000000002 /* SynoTests */,
 				3CDFBB46301A732800C7637C /* SynoShareExtension */,
+				3CB2771730A2FE8B007A6D56 /* SynoUITests */,
 				3C17B068306159A7009D1D7A /* Frameworks */,
 				3C15409B2FEFC4CE00E89F11 /* Products */,
 			);
@@ -134,6 +155,7 @@
 				3C15409A2FEFC4CE00E89F11 /* Syno.app */,
 				7A0000013000000000000001 /* SynoTests.xctest */,
 				3CDFBB45301A732800C7637C /* SynoShareExtension.appex */,
+				3CB2771630A2FE8B007A6D56 /* SynoUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -180,6 +202,29 @@
 			productName = Syno;
 			productReference = 3C15409A2FEFC4CE00E89F11 /* Syno.app */;
 			productType = "com.apple.product-type.application";
+		};
+		3CB2771530A2FE8B007A6D56 /* SynoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3CB2771E30A2FE8B007A6D56 /* Build configuration list for PBXNativeTarget "SynoUITests" */;
+			buildPhases = (
+				3CB2771230A2FE8B007A6D56 /* Sources */,
+				3CB2771330A2FE8B007A6D56 /* Frameworks */,
+				3CB2771430A2FE8B007A6D56 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3CB2771D30A2FE8B007A6D56 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3CB2771730A2FE8B007A6D56 /* SynoUITests */,
+			);
+			name = SynoUITests;
+			packageProductDependencies = (
+			);
+			productName = SynoUITests;
+			productReference = 3CB2771630A2FE8B007A6D56 /* SynoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		3CDFBB44301A732800C7637C /* SynoShareExtension */ = {
 			isa = PBXNativeTarget;
@@ -247,6 +292,10 @@
 							};
 						};
 					};
+					3CB2771530A2FE8B007A6D56 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 3C1540992FEFC4CE00E89F11;
+					};
 					3CDFBB44301A732800C7637C = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -276,12 +325,20 @@
 				3C1540992FEFC4CE00E89F11 /* Syno */,
 				7A0000053000000000000005 /* SynoTests */,
 				3CDFBB44301A732800C7637C /* SynoShareExtension */,
+				3CB2771530A2FE8B007A6D56 /* SynoUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		3C1540982FEFC4CE00E89F11 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3CB2771430A2FE8B007A6D56 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -312,6 +369,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3CB2771230A2FE8B007A6D56 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3CDFBB41301A732800C7637C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -329,6 +393,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3CB2771D30A2FE8B007A6D56 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3C1540992FEFC4CE00E89F11 /* Syno */;
+			targetProxy = 3CB2771C30A2FE8B007A6D56 /* PBXContainerItemProxy */;
+		};
 		3CDFBB4E301A732800C7637C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 3CDFBB44301A732800C7637C /* SynoShareExtension */;
@@ -547,6 +616,46 @@
 			};
 			name = Release;
 		};
+		3CB2771F30A2FE8B007A6D56 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D8KHM6Q8SA;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.SynoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Syno;
+			};
+			name = Debug;
+		};
+		3CB2772030A2FE8B007A6D56 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D8KHM6Q8SA;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.synoteam.SynoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Syno;
+			};
+			name = Release;
+		};
 		3CDFBB51301A732800C7637C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -678,6 +787,15 @@
 			buildConfigurations = (
 				3C1540A62FEFC4D000E89F11 /* Debug */,
 				3C1540A72FEFC4D000E89F11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3CB2771E30A2FE8B007A6D56 /* Build configuration list for PBXNativeTarget "SynoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3CB2771F30A2FE8B007A6D56 /* Debug */,
+				3CB2772030A2FE8B007A6D56 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

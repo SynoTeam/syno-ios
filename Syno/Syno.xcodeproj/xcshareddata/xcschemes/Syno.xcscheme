@@ -36,6 +36,9 @@
          <TestPlanReference
             reference = "container:Spike.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:UI.xctestplan">
+         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction

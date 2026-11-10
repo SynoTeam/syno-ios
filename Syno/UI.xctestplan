@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "18D5AB60-9180-4BB3-AD12-0B153CF07A36",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Syno.xcodeproj",
+        "identifier" : "3CB2771530A2FE8B007A6D56",
+        "name" : "SynoUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

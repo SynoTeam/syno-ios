@@ -42,6 +42,7 @@ struct ChatInputBar: View {
           .typeStyle(.body)
           .lineLimit(1...6)
           .focused(isFocused)
+          .accessibilityIdentifier("chat.inputField")
           .padding(.leading, 16)
           .padding(.vertical, 12)
       }

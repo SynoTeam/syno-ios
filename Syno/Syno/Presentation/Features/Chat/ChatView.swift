@@ -264,6 +264,7 @@ struct ChatView: View {
         // 빈 화면에서 메시지가 생기면 스크롤뷰를 새로 만들어 위의 초기 위치가 다시 적용되게 한다.
         .id(viewModel.messages.isEmpty && viewModel.pendingMessages.isEmpty)
         .scrollDismissesKeyboard(.interactively)
+        .accessibilityIdentifier("chat.messageList")
         // 메시지 사이 빈 곳이나 바탕을 누르면 키보드를 내린다. 말풍선 안의 버튼과 탭은 그대로 먼저 동작한다.
         .dismissKeyboardOnTap($isInputFocused)
         .gesture(

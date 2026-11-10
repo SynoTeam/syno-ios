@@ -137,6 +137,61 @@ final class ChatViewModelImageAnalysisTests: XCTestCase {
     XCTAssertTrue(viewModel.pendingMessages.isEmpty)
     XCTAssertEqual(viewModel.messages.map(\.content), ["전송 실패 메시지"])
   }
+
+  /// 링크 카드처럼 말풍선 높이를 바꾸는 캐시가 메시지보다 늦게 붙으면 처음 잡은 맨 아래 위치가 밀린다.
+  @MainActor
+  func testLoadMessagesPublishesMessagesOnlyAfterLinkPreviewsAreLoaded() async throws {
+    let contact = Contact(name: "홍길동", role: "", company: "")
+    let note = Note(contactId: contact.id, contactName: contact.name, content: "https://example.com")
+    let noteRepository = NoteRepositorySpy()
+    try noteRepository.save(note)
+    let preview = NoteLinkPreviewResult(
+      title: "Example",
+      imageURL: nil,
+      siteURL: try XCTUnwrap(URL(string: "https://example.com"))
+    )
+    let linkPreviewRepository = LinkPreviewRepositoryProbe(previews: [note.id: preview])
+    let viewModel = ChatViewModel(
+      contact: contact,
+      repository: noteRepository,
+      imageAnalyzer: FailingImageAnalyzer(),
+      imageAnalysisRepository: ImageAnalysisRepositorySpy(),
+      linkPreviewRepository: linkPreviewRepository,
+      labelTranslator: StaticLabelDictionary(translations: [:]),
+      voiceTranscriber: UnusedVoiceTranscriberStub(),
+      voiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub()
+    )
+    linkPreviewRepository.viewModel = viewModel
+
+    await viewModel.loadMessages()
+
+    XCTAssertEqual(linkPreviewRepository.messageCountAtFetch, 0)
+    XCTAssertEqual(viewModel.messages.map(\.id), [note.id])
+    XCTAssertEqual(viewModel.linkPreviews[note.id], preview)
+  }
+}
+
+/// 링크 미리보기를 읽는 시점에 화면에 이미 메시지가 반영되어 있었는지 기록합니다.
+@MainActor
+private final class LinkPreviewRepositoryProbe: NoteLinkPreviewRepository {
+  weak var viewModel: ChatViewModel?
+  private(set) var messageCountAtFetch: Int?
+  private let previews: [Note.ID: NoteLinkPreviewResult]
+
+  init(previews: [Note.ID: NoteLinkPreviewResult]) {
+    self.previews = previews
+  }
+
+  func fetch(noteId: Note.ID) async throws -> NoteLinkPreviewResult? {
+    previews[noteId]
+  }
+
+  func fetchAll() async throws -> [Note.ID: NoteLinkPreviewResult] {
+    messageCountAtFetch = viewModel?.messages.count
+    return previews
+  }
+
+  func save(noteId: Note.ID, result: NoteLinkPreviewResult, fetchedAt: Date) async throws {}
 }
 
 @MainActor

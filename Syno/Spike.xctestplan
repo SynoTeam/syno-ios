@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "72225E2F-9916-425E-A680-68395249738F",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "selectedTests" : [
+        "FoundationModelsLabelTranslationSpikeTests",
+        "NLEmbeddingKoreanSpikeTests",
+        "TranslationFrameworkSpikeTests"
+      ],
+      "target" : {
+        "containerPath" : "container:Syno.xcodeproj",
+        "identifier" : "7A0000053000000000000005",
+        "name" : "SynoTests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -17,7 +17,7 @@ concurrency:
 jobs:
   unit-test:
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
 
@@ -41,7 +41,24 @@ jobs:
             -testPlan Unit \
             -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
             -clonedSourcePackagesDirPath SourcePackages \
-            -resultBundlePath TestResults.xcresult \
+            -derivedDataPath DerivedData \
+            -resultBundlePath TestResults-Unit.xcresult \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM= \
+            PROVISIONING_PROFILE_SPECIFIER=
+
+      # 위 단계의 빌드 결과(DerivedData)를 그대로 써서 UI 테스트 타깃만 추가로 빌드합니다.
+      - name: UI 테스트 (UI 플랜)
+        run: |
+          xcodebuild test \
+            -project Syno/Syno.xcodeproj \
+            -scheme Syno \
+            -testPlan UI \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' \
+            -clonedSourcePackagesDirPath SourcePackages \
+            -derivedDataPath DerivedData \
+            -resultBundlePath TestResults-UI.xcresult \
             CODE_SIGN_IDENTITY=- \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM= \
@@ -52,5 +69,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: TestResults
-          path: TestResults.xcresult
+          path: TestResults-*.xcresult
           retention-days: 7

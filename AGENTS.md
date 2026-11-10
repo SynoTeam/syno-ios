@@ -36,6 +36,9 @@ xcodebuild test \
 
 - 테스트 호스트 앱이 App Group을 쓰므로 테스트에서는 `CODE_SIGNING_ALLOWED=NO` 대신 ad-hoc 서명(`CODE_SIGN_IDENTITY=-`)을 씁니다.
 - `Unit` 플랜은 Spike 테스트를 제외합니다. Spike 테스트는 `-testPlan Spike`로 따로 실행합니다. 새 Spike 테스트를 추가하면 두 플랜 모두에 반영합니다.
+- UI 테스트는 같은 명령에서 `-testPlan UI`로 실행합니다(`SynoUITests` 타깃). 앱은 실행 인자 `-UITestFixtures`로 메모리 저장소와 고정 샘플 데이터(`Data/Local/UITestFixtureSeeder.swift`)로 시작합니다. 운영 저장소와 CloudKit은 쓰지 않습니다.
+- UI 테스트는 화면 요소를 `accessibilityIdentifier`나 보이는 문구로 찾고, 내부 구현에 의존하지 않게 씁니다. 화면 구조를 리팩터링해도 같은 테스트가 통과해야 합니다.
+- 단위 테스트에서 메모리 `ModelContainer`를 만들 때는 `cloudKitDatabase: .none`을 지정합니다. 지정하지 않으면 앱의 CloudKit 권한 때문에 동기화를 시도합니다.
 - 타깃: `Syno`, `SynoTests`, `SynoShareExtension`
 - 에러와 경고는 구분해서 보고합니다.
 - 샌드박스 때문에 빌드가 막히면 막혔다고 알리고, 빌드한 것처럼 말하지 않습니다.

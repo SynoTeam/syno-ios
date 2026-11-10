@@ -118,23 +118,40 @@ extension GroupService: GroupRepository {
 
   func deleteGroup(named name: String) throws {
     let key = Self.groupKey(name)
+    // 조회를 모두 끝낸 뒤에 변경한다. 중간에 조회가 실패해도 컨텍스트에 반쯤 바뀐 상태가 남지 않게 하기 위해서다.
     let rows = try storedGroupsInSortOrder().filter { Self.groupKey($0.name) == key }
-    guard let first = rows.first else {
+    guard !rows.isEmpty else {
       return
     }
+    let contacts = try modelContext.fetch(FetchDescriptor<StoredContact>())
 
-    // 연락처 그룹 비우기는 첫 행을 지울 때 함께 처리되고, 나머지 중복 행은 그대로 지운다.
-    for duplicate in rows.dropFirst() {
-      modelContext.delete(duplicate)
+    for contact in contacts where Self.groupKey(contact.group) == key {
+      contact.group = ""
     }
-    try deleteGroup(first)
+    for row in rows {
+      modelContext.delete(row)
+    }
+
+    do {
+      try modelContext.save()
+    } catch {
+      modelContext.rollback()
+      throw error
+    }
   }
 
   func updateSortOrder(_ names: [String]) throws {
     let rowsByKey = Dictionary(grouping: try storedGroupsInSortOrder()) { Self.groupKey($0.name) }
     for (index, name) in names.enumerated() {
-      for row in rowsByKey[Self.groupKey(name)] ?? [] {
-        row.sortIndex = index
+      let rows = rowsByKey[Self.groupKey(name)] ?? []
+      // 중복 행에 같은 순서를 주면 읽을 때 대표 이름이 매번 달라질 수 있어서,
+      // 화면에 보이던 이름의 행 하나만 남기고 나머지는 지운다. 연락처는 이름으로 그룹을 참조하므로 영향이 없다.
+      guard let kept = rows.first(where: { $0.name == name }) ?? rows.first else {
+        continue
+      }
+      kept.sortIndex = index
+      for duplicate in rows where duplicate !== kept {
+        modelContext.delete(duplicate)
       }
     }
 

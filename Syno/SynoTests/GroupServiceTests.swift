@@ -78,8 +78,10 @@ final class GroupServiceTests: XCTestCase {
     XCTAssertEqual(names, ["Work"])
   }
 
+  /// 중복 행에 같은 순서를 주면 읽을 때 대표 이름(Study/STUDY)이 매번 달라질 수 있어서,
+  /// 순서를 저장할 때 화면에서 보던 이름의 행 하나만 남기고 정리한다.
   @MainActor
-  func testUpdateSortOrderAppliesToEveryDuplicateRow() async throws {
+  func testUpdateSortOrderMergesDuplicateRowsIntoTheShownName() async throws {
     let container = try makeContainer()
     let context = try insertDuplicatedGroups(into: container)
     let service = makeService(context: context)
@@ -87,10 +89,9 @@ final class GroupServiceTests: XCTestCase {
     try service.updateSortOrder(["Work", "Study"])
 
     XCTAssertEqual(try service.fetchGroups().map(\.name), ["Work", "Study"])
-    let studyRows = try context.fetch(FetchDescriptor<StoredGroup>()).filter {
-      $0.name.compare("Study", options: .caseInsensitive) == .orderedSame
-    }
-    XCTAssertEqual(studyRows.map(\.sortIndex), [1, 1, 1])
+    let rows = try context.fetch(FetchDescriptor<StoredGroup>(sortBy: [SortDescriptor(\.sortIndex)]))
+    XCTAssertEqual(rows.map(\.name), ["Work", "Study"])
+    XCTAssertEqual(rows.map(\.sortIndex), [0, 1])
   }
 
   /// "Study"가 같은 이름과 대소문자만 다른 이름으로 3개 행에 중복된 상태를 만듭니다.

@@ -43,69 +43,33 @@ final class GroupService {
     }
     userDefaults.set(true, forKey: Self.backfillCompletedKey)
   }
-
-  /// 그룹을 만들고, 대소문자만 다른 기존 그룹이 있으면 그 그룹을 반환합니다.
-  func createGroup(named value: String) throws -> StoredGroup? {
-    let name = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !name.isEmpty else {
-      return nil
-    }
-
-    let groups = try modelContext.fetch(FetchDescriptor<StoredGroup>())
-    if let existing = groups.first(where: {
-      $0.name.compare(name, options: .caseInsensitive) == .orderedSame
-    }) {
-      return existing
-    }
-
-    let nextSortIndex = (groups.map(\.sortIndex).max() ?? -1) + 1
-    let group = StoredGroup(name: name, sortIndex: nextSortIndex)
-    modelContext.insert(group)
-    do {
-      try modelContext.save()
-      return group
-    } catch {
-      modelContext.rollback()
-      throw error
-    }
-  }
-
-  /// 그룹을 삭제하고 해당 그룹을 사용하던 연락처의 그룹 값을 비웁니다.
-  func deleteGroup(_ group: StoredGroup) throws {
-    let groupName = group.name
-    let contacts = try modelContext.fetch(FetchDescriptor<StoredContact>())
-
-    for contact in contacts where contact.group.compare(groupName, options: .caseInsensitive) == .orderedSame {
-      contact.group = ""
-    }
-
-    modelContext.delete(group)
-    do {
-      try modelContext.save()
-    } catch {
-      modelContext.rollback()
-      throw error
-    }
-  }
-
-  /// 전달된 순서를 사용자 지정 순서로 저장합니다.
-  func updateSortIndexes(for groups: [StoredGroup]) throws {
-    for (index, group) in groups.enumerated() {
-      group.sortIndex = index
-    }
-
-    do {
-      try modelContext.save()
-    } catch {
-      modelContext.rollback()
-      throw error
-    }
-  }
 }
 
 /// 그룹은 이름(대소문자 무시)으로 구분합니다. 기기마다 백필한 그룹이 CloudKit으로 합쳐지면
 /// 같은 이름의 행이 여러 개 생길 수 있어서, 같은 이름의 행은 모두 하나의 그룹으로 다룹니다.
 extension GroupService: GroupRepository {
+  func createGroup(named value: String) throws -> ContactGroup? {
+    let name = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !name.isEmpty else {
+      return nil
+    }
+
+    let groups = try storedGroupsInSortOrder()
+    if let existing = groups.first(where: { Self.groupKey($0.name) == Self.groupKey(name) }) {
+      return ContactGroup(name: existing.name, sortIndex: existing.sortIndex)
+    }
+
+    let nextSortIndex = (groups.map(\.sortIndex).max() ?? -1) + 1
+    modelContext.insert(StoredGroup(name: name, sortIndex: nextSortIndex))
+    do {
+      try modelContext.save()
+      return ContactGroup(name: name, sortIndex: nextSortIndex)
+    } catch {
+      modelContext.rollback()
+      throw error
+    }
+  }
+
   func fetchGroups() throws -> [ContactGroup] {
     var seenKeys: Set<String> = []
     return try storedGroupsInSortOrder().compactMap { group in
@@ -167,7 +131,7 @@ extension GroupService: GroupRepository {
     try modelContext.fetch(FetchDescriptor<StoredGroup>(sortBy: [SortDescriptor(\.sortIndex)]))
   }
 
-  /// 대소문자만 다른 이름을 같은 그룹으로 보기 위한 비교 키입니다. `createGroup`의 중복 판정과 같은 기준입니다.
+  /// 대소문자만 다른 이름을 같은 그룹으로 보기 위한 비교 키입니다.
   private static func groupKey(_ name: String) -> String {
     name.lowercased()
   }

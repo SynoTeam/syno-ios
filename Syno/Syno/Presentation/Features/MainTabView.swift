@@ -32,7 +32,8 @@ struct MainTabView: View {
             labelTranslator: container.labelTranslator,
             noteVoiceTranscriber: container.noteVoiceTranscriber,
             noteVoiceTranscriptRepository: container.noteVoiceTranscriptRepository,
-            accountResetService: container.accountResetService
+            accountResetService: container.accountResetService,
+            groupRepository: container.groupService
           )
         }
         // 탭바 선택색(보라)은 TabView의 tint를 쓰고, 화면 안의 기본 강조색은 검은색으로 덮어쓴다.

@@ -21,7 +21,7 @@ struct AddContactView: View {
   @State private var isShowingDeviceContactPicker = false
 
   /// 저장된 연락처에서 수집한 그룹 목록입니다.
-  let existingGroups: [String]
+  let groupRepository: any GroupRepository
 
   /// 편집할 기존 연락처입니다. 값이 없으면 새 연락처를 추가합니다.
   let existingContact: Contact?
@@ -32,12 +32,12 @@ struct AddContactView: View {
 
   init(
     existingContact: Contact? = nil,
-    existingGroups: [String] = [],
+    groupRepository: any GroupRepository,
     onSave: @escaping (Contact) -> Bool
   ) {
     _viewModel = State(initialValue: AddContactViewModel(contact: existingContact))
     self.existingContact = existingContact
-    self.existingGroups = existingGroups
+    self.groupRepository = groupRepository
     self.onSave = onSave
   }
 
@@ -73,7 +73,7 @@ struct AddContactView: View {
     .sheet(isPresented: $isShowingGroupSheet) {
       GroupSelectionSheet(
         selectedGroup: viewModel.group,
-        existingGroups: existingGroups
+        groupRepository: groupRepository
       ) { selectedGroup in
         viewModel.selectGroup(selectedGroup)
       }
@@ -165,6 +165,6 @@ struct AddContactView: View {
 
 #Preview {
   NavigationStack {
-    AddContactView(existingGroups: ["스터디", "Portfolio"]) { _ in true }
+    AddContactView(groupRepository: PreviewRepositories.appContainer.groupService) { _ in true }
   }
 }

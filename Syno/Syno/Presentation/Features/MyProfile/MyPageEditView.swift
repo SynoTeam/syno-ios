@@ -18,17 +18,17 @@ struct MyPageEditView: View {
   @State private var isShowingCountryCodeSheet = false
 
   /// 저장된 연락처에서 수집한 그룹 목록입니다.
-  let existingGroups: [String]
+  let groupRepository: any GroupRepository
 
   let onSave: (Contact) -> Void
 
   init(
     contact: Contact,
-    existingGroups: [String] = [],
+    groupRepository: any GroupRepository,
     onSave: @escaping (Contact) -> Void
   ) {
     _viewModel = State(initialValue: MyPageEditViewModel(contact: contact))
-    self.existingGroups = existingGroups
+    self.groupRepository = groupRepository
     self.onSave = onSave
   }
 
@@ -58,7 +58,7 @@ struct MyPageEditView: View {
     .sheet(isPresented: $isShowingGroupSheet) {
       GroupSelectionSheet(
         selectedGroup: viewModel.group,
-        existingGroups: existingGroups
+        groupRepository: groupRepository
       ) { selectedGroup in
         viewModel.selectGroup(selectedGroup)
       }
@@ -124,7 +124,8 @@ struct MyPageEditView: View {
         phone: "+82 010-1234-5678",
         url: "https://www.linkedin.com/in/syno",
         note: "프로필 편집 예시"
-      )
+      ),
+      groupRepository: PreviewRepositories.appContainer.groupService
     ) { _ in }
   }
 }

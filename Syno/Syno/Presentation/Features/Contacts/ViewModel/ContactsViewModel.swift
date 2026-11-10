@@ -81,13 +81,6 @@ final class ContactsViewModel {
     regularContacts.count
   }
 
-  /// 저장된 연락처에 사용된 중복 없는 그룹 목록입니다.
-  var existingGroups: [String] {
-    GroupOptions.merged(
-      existingGroups: contacts.map(\.group),
-      draftGroup: ""
-    )
-  }
   
   func loadContacts() {
     do {

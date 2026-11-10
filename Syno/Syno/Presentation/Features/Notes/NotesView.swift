@@ -70,7 +70,7 @@ struct NotesView: View {
       for: .tabBar
     )
     .navigationDestination(isPresented: $isShowingAddContact) {
-      AddContactView { contact in
+      AddContactView(groupRepository: groupRepository) { contact in
         saveContact(contact)
       }
     }

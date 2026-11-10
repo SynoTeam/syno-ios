@@ -11,6 +11,8 @@ import UIKit
 /// 말풍선에서 사용자가 할 수 있는 동작입니다. 값이 nil이면 그 동작을 제공하지 않습니다.
 /// 예를 들어 `onDelete`가 없으면 길게 눌렀을 때 삭제 메뉴가 나타나지 않습니다.
 struct ChatMessageActions {
+  /// 메시지 내용을 클립보드에 복사한 뒤에 불립니다.
+  var onCopied: (() -> Void)?
   var onDelete: (() -> Void)?
   var onShowFullText: (() -> Void)?
   var onShowFile: (() -> Void)?
@@ -71,6 +73,7 @@ struct ChatMessageBubble: View {
       if note.fileName == nil {
         Button {
           UIPasteboard.general.string = note.content
+          actions.onCopied?()
         } label: {
           Label("복사하기", icon: .copy)
         }
@@ -80,7 +83,7 @@ struct ChatMessageBubble: View {
 
       if let onDelete = actions.onDelete {
         Button(role: .destructive, action: onDelete) {
-          Label("삭제하기", icon: .trash)
+          Label("삭제하기", destructiveIcon: .trash)
         }
       }
     }
@@ -92,6 +95,7 @@ struct ChatMessageBubble: View {
 
       if let linkPreview = state.linkPreview {
         LinkPreviewCard(preview: linkPreview)
+          .frame(width: 228)
       }
       if let voiceMemoState = state.voiceMemoState { voiceTranscriptView(voiceMemoState) }
       if state.fileSendFailed { transferFailedView(title: "전송 실패", onRetry: actions.onRetryFileSend) }
@@ -133,10 +137,13 @@ struct ChatMessageBubble: View {
         }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("사진 크게 보기")
+    } else if isLinkOnlyMessage {
+      // 링크만 보낸 메시지는 주소 텍스트 없이 아래의 링크 미리보기 카드만 보여준다.
+      EmptyView()
     } else {
       VStack(alignment: .leading, spacing: 0) {
         contentText
-          .typeStyle(.body)
+          .typeStyle(.subheadline)
           .foregroundStyle(.gray900)
           .multilineTextAlignment(.leading)
           .lineLimit(shouldShowFullTextLink ? 10 : nil)
@@ -176,27 +183,19 @@ struct ChatMessageBubble: View {
         HStack(spacing: 6) {
           ProgressView().controlSize(.small)
           Text("STT 변환 중")
-            .typeStyle(.body)
+            .typeStyle(.subheadline)
             .foregroundStyle(.gray500)
         }
       }
     case let .transcribed(result):
       transcriptBox {
         Text(result.text)
-          .typeStyle(.body)
+          .typeStyle(.subheadline)
           .foregroundStyle(.gray900)
           .multilineTextAlignment(.leading)
       }
     case .transcriptFailed:
-      HStack {
-        Text("STT 변환 실패")
-          .foregroundStyle(.errorRed)
-        if let onRetryTranscription = actions.onRetryTranscription {
-          Button("다시 시도", action: onRetryTranscription)
-            .foregroundStyle(.violet500)
-        }
-      }
-      .typeStyle(.caption1)
+      transferFailedView(title: "STT 변환 실패", onRetry: actions.onRetryTranscription)
     case .sendFailed:
       HStack {
         Text("전송에 실패했습니다")
@@ -252,6 +251,26 @@ struct ChatMessageBubble: View {
 
   private var shouldShowFullTextLink: Bool {
     note.content.count > 180
+  }
+
+  /// 미리보기 카드가 있고 내용이 링크 하나뿐일 때 true입니다. 이때 주소 텍스트 말풍선을 숨깁니다.
+  private var isLinkOnlyMessage: Bool {
+    state.linkPreview != nil && Self.isLinkOnly(note.content)
+  }
+
+  /// 앞뒤 공백을 뺀 내용 전체가 링크 하나인지 판정합니다.
+  /// 링크와 다른 글이 섞여 있거나 링크가 여러 개면 글이 사라지지 않도록 false입니다.
+  static func isLinkOnly(_ content: String) -> Bool {
+    let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+    let range = NSRange(trimmed.startIndex..., in: trimmed)
+    guard
+      !trimmed.isEmpty,
+      let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue),
+      let match = detector.firstMatch(in: trimmed, range: range)
+    else {
+      return false
+    }
+    return match.range == range
   }
 
   @ViewBuilder
@@ -313,22 +332,34 @@ struct LinkPreviewCard: View {
   var body: some View {
     Link(destination: preview.siteURL) {
       VStack(alignment: .leading, spacing: 0) {
-        if let imageURL = preview.imageURL {
-          AsyncImage(url: imageURL) { image in
-            image.resizable().aspectRatio(contentMode: .fill)
-          } placeholder: {
-            Color.gray100
-          }
-          .frame(maxWidth: .infinity)
+        // 카드 높이를 모두 같게 맞추려고 이미지 영역은 이미지가 없어도 항상 120을 차지한다.
+        // 채우기(fill) 이미지는 원본 비율대로 커지려 해서 카드 폭을 밀어내므로,
+        // 크기는 바탕 색이 정하고 이미지는 overlay로 얹어 바깥에서 준 폭을 넘지 않게 한다.
+        Color.gray100
           .frame(height: 120)
+          .overlay {
+            if let imageURL = preview.imageURL {
+              AsyncImage(url: imageURL) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+              } placeholder: {
+                Color.gray100
+              }
+            } else {
+              Image(.link)
+                .resizable()
+                .renderingMode(.template)
+                .frame(width: 28, height: 28)
+                .foregroundStyle(.gray400)
+            }
+          }
           .clipped()
-        }
 
         VStack(alignment: .leading, spacing: 4) {
           Text(preview.title)
             .typeStyle(.footnoteEmphasized)
             .foregroundStyle(.gray900)
-            .lineLimit(2)
+            // 제목이 한 줄이어도 두 줄 공간을 확보해 카드 높이를 맞춘다.
+            .lineLimit(2, reservesSpace: true)
             .multilineTextAlignment(.leading)
           Text(preview.siteURL.host ?? preview.siteURL.absoluteString)
             .typeStyle(.caption1)

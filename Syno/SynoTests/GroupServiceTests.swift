@@ -55,6 +55,57 @@ final class GroupServiceTests: XCTestCase {
     XCTAssertEqual(groups.map(\.name), ["두 번째", "첫 번째"])
   }
 
+  // MARK: - 같은 이름의 중복 행 (기기마다 백필한 그룹이 CloudKit으로 합쳐질 때 생김)
+
+  @MainActor
+  func testFetchGroupsShowsDuplicateRowsAsOneGroup() async throws {
+    let container = try makeContainer()
+    let context = try insertDuplicatedGroups(into: container)
+
+    let groups = try makeService(context: context).fetchGroups()
+
+    XCTAssertEqual(groups.map(\.name), ["Study", "Work"])
+  }
+
+  @MainActor
+  func testDeleteGroupNamedRemovesEveryDuplicateRow() async throws {
+    let container = try makeContainer()
+    let context = try insertDuplicatedGroups(into: container)
+
+    try makeService(context: context).deleteGroup(named: "Study")
+
+    let names = try context.fetch(FetchDescriptor<StoredGroup>()).map(\.name)
+    XCTAssertEqual(names, ["Work"])
+  }
+
+  /// 중복 행에 같은 순서를 주면 읽을 때 대표 이름(Study/STUDY)이 매번 달라질 수 있어서,
+  /// 순서를 저장할 때 화면에서 보던 이름의 행 하나만 남기고 정리한다.
+  @MainActor
+  func testUpdateSortOrderMergesDuplicateRowsIntoTheShownName() async throws {
+    let container = try makeContainer()
+    let context = try insertDuplicatedGroups(into: container)
+    let service = makeService(context: context)
+
+    try service.updateSortOrder(["Work", "Study"])
+
+    XCTAssertEqual(try service.fetchGroups().map(\.name), ["Work", "Study"])
+    let rows = try context.fetch(FetchDescriptor<StoredGroup>(sortBy: [SortDescriptor(\.sortIndex)]))
+    XCTAssertEqual(rows.map(\.name), ["Work", "Study"])
+    XCTAssertEqual(rows.map(\.sortIndex), [0, 1])
+  }
+
+  /// "Study"가 같은 이름과 대소문자만 다른 이름으로 3개 행에 중복된 상태를 만듭니다.
+  @MainActor
+  private func insertDuplicatedGroups(into container: ModelContainer) throws -> ModelContext {
+    let context = container.mainContext
+    context.insert(StoredGroup(name: "Study", sortIndex: 0))
+    context.insert(StoredGroup(name: "Work", sortIndex: 1))
+    context.insert(StoredGroup(name: "Study", sortIndex: 2))
+    context.insert(StoredGroup(name: "STUDY", sortIndex: 3))
+    try context.save()
+    return context
+  }
+
   @MainActor
   private func makeContainer() throws -> ModelContainer {
     try ModelContainer(

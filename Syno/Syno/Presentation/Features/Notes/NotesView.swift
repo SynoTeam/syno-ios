@@ -30,6 +30,7 @@ struct NotesView: View {
   let labelTranslator: any LabelTranslating
   let noteVoiceTranscriber: any NoteVoiceTranscribing
   let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
+  let groupRepository: any GroupRepository
 
   var body: some View {
     ScrollView {
@@ -104,7 +105,7 @@ struct NotesView: View {
       )
     }
     .sheet(isPresented: $isShowingGroupManagement) {
-      GroupManagementSheet()
+      GroupManagementSheet(groupRepository: groupRepository)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
@@ -359,7 +360,8 @@ private struct StoredNoteChangeToken: Equatable {
     noteLinkPreviewRepository: PreviewRepositories.noteLinkPreview,
     labelTranslator: PreviewRepositories.labelTranslator,
     noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
-    noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript
+    noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
+    groupRepository: PreviewRepositories.appContainer.groupService
   )
     .modelContainer(for: [StoredNote.self, StoredContact.self, StoredGroup.self], inMemory: true)
 }

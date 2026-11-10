@@ -52,7 +52,8 @@ struct MainTabView: View {
             noteLinkPreviewRepository: container.noteLinkPreviewRepository,
             labelTranslator: container.labelTranslator,
             noteVoiceTranscriber: container.noteVoiceTranscriber,
-            noteVoiceTranscriptRepository: container.noteVoiceTranscriptRepository
+            noteVoiceTranscriptRepository: container.noteVoiceTranscriptRepository,
+            groupRepository: container.groupService
           )
         }
         .tint(.gray950)

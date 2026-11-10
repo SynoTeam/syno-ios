@@ -1,7 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// 그룹을 추가·삭제하고 사용자 지정 순서를 변경하는 바텀시트입니다.
+/// 그룹을 삭제하고 사용자 지정 순서를 변경하는 바텀시트입니다.
+/// 그룹 추가는 연락처 편집의 그룹 선택 시트에서만 합니다.
 struct GroupManagementSheet: View {
   private enum SortMode: String, CaseIterable, Identifiable {
     case alphabetical = "가나다순"
@@ -14,8 +15,6 @@ struct GroupManagementSheet: View {
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
 
-  @State private var newGroup = ""
-  @FocusState private var isNewGroupFocused: Bool
   @AppStorage("GroupManagementSheet.sortMode") private var sortModeRawValue = SortMode.alphabetical.rawValue
   @State private var groupPendingDeletion: StoredGroup?
   @State private var confirmationAlert: DestructiveConfirmationAlert?
@@ -24,7 +23,7 @@ struct GroupManagementSheet: View {
   var body: some View {
     VStack(spacing: 0) {
       AddContactSheetHeader(title: "그룹 편집", onCancel: { dismiss() }) {
-        finishEditing()
+        dismiss()
       }
 
       sortPicker
@@ -42,15 +41,9 @@ struct GroupManagementSheet: View {
         }
         .onMove(perform: moveGroups)
         .moveDisabled(sortMode != .custom)
-
-        addGroupRow
-          .listRowInsets(EdgeInsets())
-          .listRowSeparator(.hidden)
-          .listRowBackground(Color.clear)
       }
       .listStyle(.plain)
       .listRowSpacing(8)
-      .scrollDismissesKeyboard(.interactively)
       .scrollContentBackground(.hidden)
       // 사용자 설정 순에서만 편집 모드를 켜서 시스템 순서 변경 핸들을 하나만 보여준다.
       .environment(\.editMode, .constant(sortMode == .custom ? .active : .inactive))
@@ -58,7 +51,6 @@ struct GroupManagementSheet: View {
     }
     .padding(.top, 16)
     .background(Color.gray50)
-    .dismissKeyboardOnTap($isNewGroupFocused)
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
   }
@@ -108,58 +100,6 @@ struct GroupManagementSheet: View {
     .frame(height: 54)
   }
 
-  private var addGroupRow: some View {
-    HStack(spacing: 12) {
-      TextField("그룹 만들기", text: Binding(
-        get: { newGroup },
-        set: { newGroup = String($0.prefix(20)) }
-      ))
-      .typeStyle(.callout)
-      .focused($isNewGroupFocused)
-      .submitLabel(.done)
-      .onSubmit { addGroup() }
-
-      Button {
-        addGroup()
-      } label: {
-        Image(.plusCircle)
-          .resizable()
-          .renderingMode(.template)
-          .frame(width: 24, height: 24)
-          .foregroundStyle(.violet500)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("그룹 추가")
-    }
-    .padding(.horizontal, 16)
-    .frame(height: 54)
-    .background(.white)
-    .clipShape(RoundedRectangle(cornerRadius: 999))
-  }
-
-  /// 입력창에 적어 둔 이름이 있으면 추가 버튼을 누르지 않았어도 함께 저장하고 닫습니다.
-  private func finishEditing() {
-    let hasPendingGroup = !newGroup.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
-    if hasPendingGroup, !addGroup() {
-      return
-    }
-    dismiss()
-  }
-
-  /// 입력한 이름으로 그룹을 만듭니다. 만들지 못하면 토스트를 띄우고 false를 반환합니다.
-  @discardableResult
-  private func addGroup() -> Bool {
-    do {
-      _ = try GroupService(modelContext: modelContext).createGroup(named: newGroup)
-      newGroup = ""
-      return true
-    } catch {
-      toast = Toast(message: "그룹 추가에 실패했습니다", style: .failure)
-      return false
-    }
-  }
-
   private func moveGroups(from source: IndexSet, to destination: Int) {
     guard sortMode == .custom else {
       return
@@ -192,7 +132,8 @@ struct GroupManagementSheet: View {
 
     confirmationAlert = DestructiveConfirmationAlert(
       title: "\(groupPendingDeletion.name) 그룹을\n삭제하겠습니까?",
-      message: "이 그룹을 사용 중인 연락처는 '선택 안 함'으로 변경됩니다. 이 작업은 되돌릴 수 없습니다."
+      message: "이 그룹을 사용 중인 연락처는 '선택 안 함'으로 변경됩니다. 이 작업은 되돌릴 수 없습니다.",
+      acknowledgementText: nil
     ) {
       deletePendingGroup()
     }

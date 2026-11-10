@@ -140,12 +140,7 @@ struct NotesView: View {
         Button(role: .destructive) {
           isShowingDeletion = true
         } label: {
-          // 메뉴 tint(gray700)가 템플릿 아이콘에 먼저 적용되므로, 삭제 아이콘은 빨간색 원본 이미지로 고정한다.
-          Label {
-            Text("선택 삭제하기")
-          } icon: {
-            Image(uiImage: UIImage(resource: .trash).withTintColor(UIColor(resource: .errorRed), renderingMode: .alwaysOriginal))
-          }
+          Label("선택 삭제하기", destructiveIcon: .trash)
         }
       } label: {
         HeaderCircleIcon(.moreHorizontal)

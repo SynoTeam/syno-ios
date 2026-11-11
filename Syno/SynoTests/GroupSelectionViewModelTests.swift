@@ -19,6 +19,24 @@ struct GroupSelectionViewModelTests {
     #expect(viewModel.groups.map(\.name) == ["Study", "회사"])
   }
 
+  @Test("연락처에 대소문자만 다르게 저장된 그룹은 열 때부터 저장된 그룹에 체크된다")
+  func loadNormalizesSelectedGroupToSavedName() {
+    let viewModel = makeViewModel(selectedGroup: "study")
+
+    viewModel.load()
+
+    #expect(viewModel.selectedGroup == "Study")
+  }
+
+  @Test("목록에 없는 그룹이나 선택 안 함은 열 때 그대로 둔다", arguments: ["삭제된 그룹", ""])
+  func loadKeepsUnknownOrEmptySelection(selectedGroup: String) {
+    let viewModel = makeViewModel(selectedGroup: selectedGroup)
+
+    viewModel.load()
+
+    #expect(viewModel.selectedGroup == selectedGroup)
+  }
+
   @Test("다른 그룹을 고르면 선택이 바뀌고 입력 중이던 새 그룹은 닫힌다")
   func selectingGroupCancelsNewGroupInput() {
     let viewModel = makeViewModel(selectedGroup: "")

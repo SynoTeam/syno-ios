@@ -37,6 +37,8 @@ final class GroupSelectionViewModel {
     } catch {
       groups = []
     }
+    // 연락처에 대소문자만 다르게 저장된 그룹도 열 때부터 해당 행에 체크가 보이도록 저장된 이름으로 맞춘다.
+    selectedGroup = canonicalName(for: selectedGroup)
   }
 
   /// 그룹을 고릅니다. 새 그룹을 입력하다 다른 그룹을 고르면 마지막 선택이 적용되도록 입력을 접습니다.

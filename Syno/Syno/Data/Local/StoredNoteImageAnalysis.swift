@@ -20,17 +20,4 @@ final class StoredNoteImageAnalysis {
     self.ocrText = ocrText
     self.analyzedAt = analyzedAt
   }
-
-  convenience init(
-    noteId: UUID,
-    result: NoteImageAnalysisResult,
-    analyzedAt: Date = Date()
-  ) {
-    self.init(
-      noteId: noteId,
-      labels: result.labels,
-      ocrText: result.ocrText,
-      analyzedAt: analyzedAt
-    )
-  }
 }

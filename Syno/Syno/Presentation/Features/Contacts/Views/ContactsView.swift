@@ -28,6 +28,7 @@ struct ContactsView: View {
   private let noteVoiceTranscriber: any NoteVoiceTranscribing
   private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   private let accountResetService: AccountResetService
+  private let groupRepository: any GroupRepository
   
   init(
     userProfile: UserProfile? = nil,
@@ -40,7 +41,8 @@ struct ContactsView: View {
     labelTranslator: any LabelTranslating,
     noteVoiceTranscriber: any NoteVoiceTranscribing,
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
-    accountResetService: AccountResetService
+    accountResetService: AccountResetService,
+    groupRepository: any GroupRepository
   ) {
     let myProfileId = userProfile?.id ?? UUID()
     self.noteRepository = noteRepository
@@ -52,6 +54,7 @@ struct ContactsView: View {
     self.noteVoiceTranscriber = noteVoiceTranscriber
     self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.accountResetService = accountResetService
+    self.groupRepository = groupRepository
     _viewModel = State(
       initialValue: ContactsViewModel(
         repository: contactRepository,
@@ -138,7 +141,7 @@ struct ContactsView: View {
           labelTranslator: labelTranslator,
           noteVoiceTranscriber: noteVoiceTranscriber,
           noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
-          existingGroups: viewModel.existingGroups,
+          groupRepository: groupRepository,
           accountResetService: accountResetService,
           onSave: { contact in
             _ = viewModel.saveMyContact(contact)
@@ -165,7 +168,7 @@ struct ContactsView: View {
         noteVoiceTranscriber: noteVoiceTranscriber,
         noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
         viewModel: viewModel,
-        existingGroups: viewModel.existingGroups,
+        groupRepository: groupRepository,
         onDeleted: {
           selectedContact = nil
           showContactDeletedToast()
@@ -199,7 +202,7 @@ struct ContactsView: View {
     TabRootHeader(title: "Contacts") {
       Menu {
         NavigationLink {
-          AddContactView(existingGroups: viewModel.existingGroups) { contact in
+          AddContactView(groupRepository: groupRepository) { contact in
             guard viewModel.addContact(contact) else {
               return false
             }
@@ -315,7 +318,8 @@ struct ContactsView: View {
       labelTranslator: PreviewRepositories.labelTranslator,
       noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
       noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
-      accountResetService: PreviewRepositories.accountReset
+      accountResetService: PreviewRepositories.accountReset,
+      groupRepository: PreviewRepositories.appContainer.groupService
     )
   }
 }

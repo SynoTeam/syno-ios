@@ -122,35 +122,3 @@ struct GroupManagementViewModelTests {
     return userDefaults
   }
 }
-
-@MainActor
-private final class GroupRepositorySpy: GroupRepository {
-  private var groups: [ContactGroup]
-  var shouldFail = false
-  private(set) var deletedNames: [String] = []
-  private(set) var savedSortOrders: [[String]] = []
-
-  init(groups: [ContactGroup]) {
-    self.groups = groups
-  }
-
-  func fetchGroups() throws -> [ContactGroup] {
-    groups.sorted { $0.sortIndex < $1.sortIndex }
-  }
-
-  func deleteGroup(named name: String) throws {
-    if shouldFail { throw SpyError.failed }
-    deletedNames.append(name)
-    groups.removeAll { $0.name == name }
-  }
-
-  func updateSortOrder(_ names: [String]) throws {
-    if shouldFail { throw SpyError.failed }
-    savedSortOrders.append(names)
-    groups = names.enumerated().map { ContactGroup(name: $1, sortIndex: $0) }
-  }
-
-  private enum SpyError: Error {
-    case failed
-  }
-}

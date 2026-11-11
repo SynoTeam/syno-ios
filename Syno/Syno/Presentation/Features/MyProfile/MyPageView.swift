@@ -21,7 +21,7 @@ struct MyPageView: View {
   let labelTranslator: any LabelTranslating
   let noteVoiceTranscriber: any NoteVoiceTranscribing
   let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
-  let existingGroups: [String]
+  let groupRepository: any GroupRepository
   let accountResetService: AccountResetService
   let onSave: (Contact) -> Void
 
@@ -39,7 +39,7 @@ struct MyPageView: View {
     labelTranslator: any LabelTranslating,
     noteVoiceTranscriber: any NoteVoiceTranscribing,
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
-    existingGroups: [String] = [],
+    groupRepository: any GroupRepository,
     accountResetService: AccountResetService,
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
@@ -52,7 +52,7 @@ struct MyPageView: View {
     self.labelTranslator = labelTranslator
     self.noteVoiceTranscriber = noteVoiceTranscriber
     self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
-    self.existingGroups = existingGroups
+    self.groupRepository = groupRepository
     self.accountResetService = accountResetService
     self.onSave = onSave
   }
@@ -93,7 +93,7 @@ struct MyPageView: View {
         NavigationLink {
           MyPageEditView(
             contact: contact,
-            existingGroups: existingGroups,
+            groupRepository: groupRepository,
             onSave: { updatedContact in
               contact = updatedContact
               onSave(updatedContact)
@@ -345,6 +345,7 @@ struct MyPageView: View {
     labelTranslator: PreviewRepositories.labelTranslator,
     noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
     noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
+    groupRepository: PreviewRepositories.appContainer.groupService,
     accountResetService: PreviewRepositories.accountReset
   )
 }

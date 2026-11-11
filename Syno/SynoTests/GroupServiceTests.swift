@@ -32,7 +32,7 @@ final class GroupServiceTests: XCTestCase {
     context.insert(otherContact)
     try context.save()
 
-    try GroupService(modelContext: context).deleteGroup(group)
+    try GroupService(modelContext: context).deleteGroup(named: group.name)
 
     XCTAssertTrue(try context.fetch(FetchDescriptor<StoredGroup>()).isEmpty)
     XCTAssertEqual(matchingContact.group, "")
@@ -49,10 +49,51 @@ final class GroupServiceTests: XCTestCase {
     context.insert(second)
     try context.save()
 
-    try GroupService(modelContext: context).updateSortIndexes(for: [second, first])
+    try GroupService(modelContext: context).updateSortOrder([second.name, first.name])
 
     let groups = try context.fetch(FetchDescriptor<StoredGroup>(sortBy: [SortDescriptor(\.sortIndex)]))
     XCTAssertEqual(groups.map(\.name), ["두 번째", "첫 번째"])
+  }
+
+  // MARK: - 그룹 만들기
+
+  @MainActor
+  func testCreateGroupTrimsNameAndAppendsToTheEnd() async throws {
+    let container = try makeContainer()
+    let context = container.mainContext
+    context.insert(StoredGroup(name: "스터디", sortIndex: 0))
+    context.insert(StoredGroup(name: "회사", sortIndex: 1))
+    try context.save()
+    let service = makeService(context: context)
+
+    let group = try service.createGroup(named: "  동아리 ")
+
+    XCTAssertEqual(group, ContactGroup(name: "동아리", sortIndex: 2))
+    XCTAssertEqual(try service.fetchGroups().map(\.name), ["스터디", "회사", "동아리"])
+  }
+
+  @MainActor
+  func testCreateGroupReturnsExistingGroupForCaseVariant() async throws {
+    let container = try makeContainer()
+    let context = container.mainContext
+    context.insert(StoredGroup(name: "Study", sortIndex: 0))
+    try context.save()
+    let service = makeService(context: context)
+
+    let group = try service.createGroup(named: "STUDY")
+
+    XCTAssertEqual(group, ContactGroup(name: "Study", sortIndex: 0))
+    XCTAssertEqual(try context.fetch(FetchDescriptor<StoredGroup>()).count, 1)
+  }
+
+  @MainActor
+  func testCreateGroupIgnoresBlankName() async throws {
+    let container = try makeContainer()
+    let context = container.mainContext
+    let service = makeService(context: context)
+
+    XCTAssertNil(try service.createGroup(named: "   "))
+    XCTAssertTrue(try context.fetch(FetchDescriptor<StoredGroup>()).isEmpty)
   }
 
   // MARK: - 같은 이름의 중복 행 (기기마다 백필한 그룹이 CloudKit으로 합쳐질 때 생김)

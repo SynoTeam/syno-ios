@@ -1,15 +1,9 @@
-import SwiftData
 import SwiftUI
 
-/// `StoredGroup`을 단일 소스로 사용해 연락처 그룹을 선택하는 바텀시트입니다.
+/// 연락처 그룹을 고르거나 새 그룹을 만들어 고르는 바텀시트입니다.
 struct GroupSelectionSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \StoredGroup.sortIndex) private var storedGroups: [StoredGroup]
-
-  @State private var draftGroup: String
-  @State private var newGroup = ""
-  @State private var isAddingNewGroup = false
+  @State private var viewModel: GroupSelectionViewModel
   @State private var toast: Toast?
   @FocusState private var isNewGroupFieldFocused: Bool
 
@@ -17,10 +11,12 @@ struct GroupSelectionSheet: View {
 
   init(
     selectedGroup: String,
-    existingGroups _: [String] = [],
+    groupRepository: any GroupRepository,
     onApply: @escaping (String) -> Void
   ) {
-    _draftGroup = State(initialValue: selectedGroup)
+    _viewModel = State(
+      initialValue: GroupSelectionViewModel(selectedGroup: selectedGroup, groupRepository: groupRepository)
+    )
     self.onApply = onApply
   }
 
@@ -37,7 +33,7 @@ struct GroupSelectionSheet: View {
         VStack(spacing: 8) {
           groupRow(title: "선택 안 함", group: "")
 
-          ForEach(storedGroups, id: \.persistentModelID) { group in
+          ForEach(viewModel.groups) { group in
             groupRow(title: group.name, group: group.name)
           }
 
@@ -52,15 +48,24 @@ struct GroupSelectionSheet: View {
     .padding(.top, 32)
     .background(Color.gray50)
     .toast(item: $toast)
+    .onAppear {
+      viewModel.load()
+    }
+    .onChange(of: viewModel.failureMessage) { _, message in
+      guard let message else {
+        return
+      }
+      toast = Toast(message: message, style: .failure)
+      viewModel.failureMessage = nil
+    }
   }
 
   private func groupRow(title: String, group: String) -> some View {
-    let isSelected = draftGroup == group
+    let isSelected = viewModel.selectedGroup == group
 
     return Button {
-      draftGroup = group
-      // 새 그룹을 입력하다가 다른 그룹을 고르면 마지막 선택이 적용되도록 입력을 접는다.
-      cancelNewGroup()
+      viewModel.select(group)
+      isNewGroupFieldFocused = false
     } label: {
       HStack(spacing: 8) {
         Image(.check)
@@ -88,9 +93,9 @@ struct GroupSelectionSheet: View {
 
   @ViewBuilder
   private var addNewGroupRow: some View {
-    if isAddingNewGroup {
+    if viewModel.isAddingNewGroup {
       HStack(spacing: 12) {
-        TextField("그룹 이름", text: newGroupBinding)
+        TextField("그룹 이름", text: $viewModel.newGroupName)
           .typeStyle(.body)
           .foregroundStyle(.gray950)
           .lineLimit(1)
@@ -108,7 +113,7 @@ struct GroupSelectionSheet: View {
         }
         .buttonStyle(.plain)
         // 입력이 비어 있으면 지울 내용이 없고 입력 행을 닫으므로 동작에 맞게 안내한다.
-        .accessibilityLabel(newGroup.isEmpty ? "그룹 추가 취소" : "입력 지우기")
+        .accessibilityLabel(viewModel.newGroupName.isEmpty ? "그룹 추가 취소" : "입력 지우기")
       }
       .padding(.horizontal, 20)
       .frame(height: 54)
@@ -117,7 +122,7 @@ struct GroupSelectionSheet: View {
       .clipShape(RoundedRectangle(cornerRadius: 9999))
     } else {
       Button {
-        isAddingNewGroup = true
+        viewModel.startAddingGroup()
         isNewGroupFieldFocused = true
       } label: {
         Label("그룹 추가하기", icon: .plusCircle)
@@ -133,68 +138,33 @@ struct GroupSelectionSheet: View {
     }
   }
 
-  private var newGroupBinding: Binding<String> {
-    Binding(
-      get: { newGroup },
-      set: { newGroup = String($0.prefix(20)) }
-    )
-  }
-
-  /// 입력한 내용이 있으면 지우고, 이미 비어 있으면 그룹 추가 입력을 닫습니다.
   private func clearOrCancelNewGroup() {
-    if newGroup.isEmpty {
-      cancelNewGroup()
-    } else {
-      newGroup = ""
+    viewModel.clearOrCancelNewGroup()
+    if !viewModel.isAddingNewGroup {
+      isNewGroupFieldFocused = false
     }
   }
 
-  /// 입력하던 새 그룹 이름을 버리고 입력 행을 닫습니다.
-  private func cancelNewGroup() {
-    newGroup = ""
-    isAddingNewGroup = false
-    isNewGroupFieldFocused = false
+  private func confirmNewGroup() {
+    if viewModel.confirmNewGroup() {
+      isNewGroupFieldFocused = false
+    }
   }
 
-  /// 새 그룹 이름을 입력하던 중에 상단 완료 버튼을 눌러도 그 그룹을 만들어 선택하고 닫습니다.
+  /// 새 그룹을 입력하던 중에 상단 완료를 눌러도 그 그룹을 만들어 선택하고 닫습니다.
   private func applySelection() {
-    let hasPendingGroup = isAddingNewGroup
-      && !newGroup.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
-    if hasPendingGroup, !confirmNewGroup() {
+    guard let group = viewModel.apply() else {
       return
     }
-
-    onApply(canonicalGroupName(for: draftGroup))
+    onApply(group)
     dismiss()
-  }
-
-  /// 입력한 이름으로 그룹을 만들고 선택합니다. 만들지 못하면 토스트를 띄우고 false를 반환합니다.
-  @discardableResult
-  private func confirmNewGroup() -> Bool {
-    do {
-      let group = try GroupService(modelContext: modelContext).createGroup(named: newGroup)
-      if let group {
-        draftGroup = group.name
-      }
-      newGroup = ""
-      isAddingNewGroup = false
-      isNewGroupFieldFocused = false
-      return true
-    } catch {
-      toast = Toast(message: "그룹 추가에 실패했습니다", style: .failure)
-      return false
-    }
-  }
-
-  private func canonicalGroupName(for group: String) -> String {
-    storedGroups.first {
-      $0.name.compare(group, options: .caseInsensitive) == .orderedSame
-    }?.name ?? group
   }
 }
 
 #Preview {
-  GroupSelectionSheet(selectedGroup: "커피챗") { _ in }
-    .modelContainer(for: [StoredGroup.self], inMemory: true)
+  GroupSelectionSheet(
+    selectedGroup: "커피챗",
+    groupRepository: PreviewRepositories.appContainer.groupService
+  ) { _ in }
+    .previewModelContainer()
 }

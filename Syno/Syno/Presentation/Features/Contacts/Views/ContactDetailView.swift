@@ -25,7 +25,7 @@ struct ContactDetailView: View {
   let noteVoiceTranscriber: any NoteVoiceTranscribing
   let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   let viewModel: ContactsViewModel?
-  let existingGroups: [String]
+  let groupRepository: any GroupRepository
   let onDeleted: () -> Void
 
   init(
@@ -39,7 +39,7 @@ struct ContactDetailView: View {
     noteVoiceTranscriber: any NoteVoiceTranscribing,
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     viewModel: ContactsViewModel?,
-    existingGroups: [String],
+    groupRepository: any GroupRepository,
     onDeleted: @escaping () -> Void
   ) {
     _contact = State(initialValue: contact)
@@ -52,7 +52,7 @@ struct ContactDetailView: View {
     self.noteVoiceTranscriber = noteVoiceTranscriber
     self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.viewModel = viewModel
-    self.existingGroups = existingGroups
+    self.groupRepository = groupRepository
     self.onDeleted = onDeleted
   }
 
@@ -116,7 +116,7 @@ struct ContactDetailView: View {
       if let viewModel {
         AddContactView(
           existingContact: contact,
-          existingGroups: existingGroups,
+          groupRepository: groupRepository,
           onSave: { updatedContact in
             guard viewModel.saveMyContact(updatedContact) else {
               return false
@@ -493,7 +493,7 @@ struct ContactDetailView: View {
       noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
       noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
       viewModel: nil,
-      existingGroups: [],
+      groupRepository: PreviewRepositories.appContainer.groupService,
       onDeleted: {}
     )
   }

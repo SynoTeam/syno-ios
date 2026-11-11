@@ -171,7 +171,8 @@ struct ShareExtensionView: View {
 
   private func openContainerAndLoadContacts() {
     do {
-      let schema = Schema([StoredContact.self, StoredNote.self])
+      // 모델 일부만으로 열면 Core Data가 빠진 모델의 테이블을 지우므로 앱과 같은 전체 목록으로 연다 (#124).
+      let schema = SynoSchema.schema
       let configuration = ModelConfiguration(schema: schema, url: SharedAppGroup.storeURL)
       let container = try ModelContainer(for: schema, configurations: configuration)
       modelContainer = container

@@ -10,11 +10,17 @@ final class StoredNoteLinkPreview {
   var siteURLString: String = ""
   var fetchedAt: Date = Date()
 
-  init(noteId: UUID, result: NoteLinkPreviewResult, fetchedAt: Date = Date()) {
+  init(
+    noteId: UUID,
+    title: String,
+    imageURLString: String?,
+    siteURLString: String,
+    fetchedAt: Date = Date()
+  ) {
     self.noteId = noteId
-    title = result.title
-    imageURLString = result.imageURL?.absoluteString
-    siteURLString = result.siteURL.absoluteString
+    self.title = title
+    self.imageURLString = imageURLString
+    self.siteURLString = siteURLString
     self.fetchedAt = fetchedAt
   }
 }

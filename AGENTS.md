@@ -77,7 +77,9 @@ View → ViewModel → Repository/Service → SwiftData 또는 시스템 API
 
 ## Gotchas
 
-- `StoredNote`, `StoredContact` 등 SwiftData 모델을 바꾸면 `SynoShareExtension/SharedModels.swift`의 사본도 같은 스키마로 함께 수정합니다. 빠지면 다른 앱에서 공유할 때 오류가 납니다.
+- 공유 확장은 앱과 같은 저장소를 `Data/Local`의 모델 파일과 `SynoSchema`를 함께 컴파일해서 엽니다. 모델 일부만으로 저장소를 열면 Core Data가 빠진 모델의 테이블을 지우므로, 두 타깃 모두 `SynoSchema.schema` 전체로 엽니다.
+  - 모델을 추가하면 `SynoSchema`에 넣고, 모델 파일을 확장 타깃에도 포함합니다(`.pbxproj`의 `Exceptions for "Syno" folder in "SynoShareExtension" target`).
+  - 모델 파일에는 저장 속성과 기본 init만 둡니다. Domain 타입 변환은 `Stored*+Domain.swift`처럼 앱 전용 파일에 둡니다. 확장 타깃이 Domain 타입을 끌고 오지 않게 하기 위해서입니다.
 - 새 속성은 옵셔널이거나 기본값을 둬서 경량 마이그레이션이 되게 합니다.
 - 모델에 속성을 추가하거나 바꿨다면 출시 전에 CloudKit 운영(Production) 스키마 배포를 확인합니다. 개발 환경에서는 새 필드가 자동으로 만들어지지만 TestFlight와 App Store 빌드(운영 환경)에서는 아니라서, 배포하지 않으면 동기화에 실패할 수 있습니다. 운영 스키마는 필드를 지울 수 없으니 속성 삭제, 이름 변경, 타입 변경은 피하고 필요하면 먼저 사용자와 논의합니다.
 - 메모 본문, 검색어, OCR 텍스트는 로그에 `privacy: .public`으로 남기지 않습니다.

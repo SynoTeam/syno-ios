@@ -61,18 +61,8 @@ final class AppContainer {
     try? groupService.backfillGroupsIfNeeded()
   }
 
-  /// 앱이 저장하는 SwiftData 모델 전체입니다.
-  static let schema = Schema([
-    UserProfile.self,
-    StoredContact.self,
-    StoredGroup.self,
-    StoredNote.self,
-    StoredContactEmbedding.self,
-    StoredNoteEmbedding.self,
-    StoredNoteImageAnalysis.self,
-    StoredNoteLinkPreview.self,
-    StoredNoteVoiceTranscript.self
-  ])
+  /// 앱이 저장하는 SwiftData 모델 전체입니다. 공유 확장과 같은 목록을 씁니다.
+  static let schema = SynoSchema.schema
 
   /// 실제 저장소(App Group, CloudKit)를 사용하는 운영용 컨테이너를 조립합니다.
   static func live() -> AppContainer {

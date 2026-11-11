@@ -3,13 +3,13 @@ import SwiftData
 import Testing
 @testable import Syno
 
-/// 공유 확장은 앱과 같은 SQLite 파일을 `StoredContact`, `StoredNote` 두 모델로만 엽니다 (#124).
-/// 모델 구성이 다른 채로 같은 파일을 열고 저장해도 앱의 나머지 데이터가 유지되는지 확인합니다.
-/// 확장 스키마는 앱의 모델 타입으로 구성합니다. 확장 사본(`SharedModels.swift`)이 앱 모델과 같다는 전제입니다.
+/// 공유 확장은 앱과 같은 SQLite 파일을 따로 엽니다 (#124).
+/// 확장이 같은 파일을 열고 저장해도 앱의 나머지 데이터가 유지되는지 확인합니다.
+/// 예전처럼 모델 일부(`StoredContact`, `StoredNote`)만으로 열면 Core Data가 빠진 모델의 테이블을 지워 이 테스트가 실패합니다.
 @MainActor
 struct ShareExtensionStoreCompatibilityTests {
   /// `ShareExtensionView.openContainerAndLoadContacts`와 같은 모델 구성입니다.
-  private static let extensionSchema = Schema([StoredContact.self, StoredNote.self])
+  private static let extensionSchema = SynoSchema.schema
 
   private let storeURL: URL
 

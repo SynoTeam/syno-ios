@@ -65,6 +65,23 @@
 			);
 			target = 3C1540992FEFC4CE00E89F11 /* Syno */;
 		};
+		3C7A1240310C5E1000A1B2C4 /* Exceptions for "Syno" folder in "SynoShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Data/Local/StoredContact.swift,
+				Data/Local/StoredContactEmbedding.swift,
+				Data/Local/StoredGroup.swift,
+				Data/Local/StoredNote.swift,
+				Data/Local/StoredNoteEmbedding.swift,
+				Data/Local/StoredNoteImageAnalysis.swift,
+				Data/Local/StoredNoteLinkPreview.swift,
+				Data/Local/StoredNoteVoiceTranscript.swift,
+				Data/Local/SynoSchema.swift,
+				Data/Local/UserProfile.swift,
+				Domain/Entities/ContactSocialLink.swift,
+			);
+			target = 3CDFBB44301A732800C7637C /* SynoShareExtension */;
+		};
 		3CDFBB53301A732800C7637C /* Exceptions for "SynoShareExtension" folder in "SynoShareExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -79,6 +96,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				3CCD81B43008BAA40082EA06 /* Exceptions for "Syno" folder in "Syno" target */,
+				3C7A1240310C5E1000A1B2C4 /* Exceptions for "Syno" folder in "SynoShareExtension" target */,
 			);
 			path = Syno;
 			sourceTree = "<group>";

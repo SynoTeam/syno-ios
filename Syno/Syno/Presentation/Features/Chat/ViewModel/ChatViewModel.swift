@@ -574,13 +574,21 @@ final class ChatViewModel {
   }
 
   private func fetchAndStoreLinkPreview(noteId: Note.ID, url: URL) async {
+    // 기다리는 동안이나 요청 중에 삭제된 노트의 미리보기를 저장하면, 삭제로 지운 캐시가 되살아난다.
+    guard containsMessage(noteId) else { return }
     do {
       let result = try await linkPreviewFetcher.fetchPreview(for: url)
+      guard containsMessage(noteId) else { return }
       try await linkPreviewRepository.save(noteId: noteId, result: result, fetchedAt: Date())
+      guard containsMessage(noteId) else { return }
       linkPreviews[noteId] = result
     } catch {
       logger.debug("Link preview unavailable: \(error.localizedDescription, privacy: .public)")
     }
+  }
+
+  private func containsMessage(_ id: Note.ID) -> Bool {
+    messages.contains { $0.id == id }
   }
 
   private func firstURL(in text: String) -> URL? {

@@ -90,6 +90,41 @@ struct ChatLinkPreviewBackfillTests {
     #expect(secondOpen.linkPreviews[note.id] == preview)
   }
 
+  @Test("미리보기를 기다리는 동안 삭제된 노트는 요청하지 않는다")
+  func deletedPendingNoteIsNotRequested() async throws {
+    let first = makeNote("https://example.com/a")
+    let second = makeNote("https://example.com/b")
+    let fetcher = LinkPreviewFetcherSpy(result: preview)
+    let repository = LinkPreviewRepositorySpy()
+    let viewModel = makeViewModel(notes: [first, second], fetcher: fetcher, repository: repository)
+    // 첫 링크를 가져오는 동안 사용자가 두 번째 링크를 지운다.
+    fetcher.onFetch = { url in
+      if url.absoluteString.hasSuffix("/a") { viewModel.deleteMessages(ids: [second.id]) }
+    }
+
+    await viewModel.loadMessages()
+    await viewModel.linkPreviewBackfillTask?.value
+
+    #expect(fetcher.requestedURLs.map(\.absoluteString) == ["https://example.com/a"])
+    #expect(repository.savedNoteIds == [first.id])
+    #expect(viewModel.linkPreviews[second.id] == nil)
+  }
+
+  @Test("미리보기를 가져오는 중에 삭제된 노트는 결과를 저장하지 않는다")
+  func noteDeletedDuringFetchIsNotSaved() async throws {
+    let note = makeNote("https://example.com")
+    let fetcher = LinkPreviewFetcherSpy(result: preview)
+    let repository = LinkPreviewRepositorySpy()
+    let viewModel = makeViewModel(notes: [note], fetcher: fetcher, repository: repository)
+    fetcher.onFetch = { _ in viewModel.deleteMessages(ids: [note.id]) }
+
+    await viewModel.loadMessages()
+    await viewModel.linkPreviewBackfillTask?.value
+
+    #expect(repository.savedNoteIds.isEmpty)
+    #expect(viewModel.linkPreviews[note.id] == nil)
+  }
+
   @Test("저장된 미리보기를 읽지 못하면 이미 저장된 링크까지 다시 요청하지 않도록 이번에는 가져오지 않는다")
   func cacheLoadFailureSkipsBackfill() async throws {
     let note = makeNote("https://example.com")
@@ -136,6 +171,8 @@ struct ChatLinkPreviewBackfillTests {
 @MainActor
 private final class LinkPreviewFetcherSpy: NoteLinkPreviewFetching {
   private(set) var requestedURLs: [URL] = []
+  /// 요청을 받은 순간 실행할 동작입니다. 요청 중 사용자 동작을 흉내 낼 때 씁니다.
+  var onFetch: ((URL) -> Void)?
   private let result: NoteLinkPreviewResult?
 
   init(result: NoteLinkPreviewResult?) {
@@ -144,6 +181,7 @@ private final class LinkPreviewFetcherSpy: NoteLinkPreviewFetching {
 
   func fetchPreview(for url: URL) async throws -> NoteLinkPreviewResult {
     requestedURLs.append(url)
+    onFetch?(url)
     guard let result else { throw URLError(.notConnectedToInternet) }
     return result
   }

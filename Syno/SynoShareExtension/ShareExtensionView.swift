@@ -22,7 +22,11 @@ struct ShareExtensionView: View {
   @State private var modelContainer: ModelContainer?
   @State private var sharedContent: SharedContent?
   @State private var isLoadingContent = true
-  @State private var contacts: [StoredContact] = []
+  @State private var candidates: [ShareContactCandidate] = []
+  @State private var latestNotes: [UUID: ShareLatestNote] = [:]
+  @State private var groupNames: [String] = []
+  /// 고른 그룹 칩입니다. nil이면 전체입니다.
+  @State private var selectedGroup: String?
   @State private var searchText = ""
   @State private var selectedContactID: UUID?
   @State private var isSaving = false
@@ -30,31 +34,17 @@ struct ShareExtensionView: View {
   @State private var errorMessage: String?
 
   var body: some View {
-    NavigationStack {
-      Group {
-        if didSave {
-          successView
-        } else if isLoadingContent {
-          ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-          pickerView
-        }
-      }
-      .navigationTitle("공유하기")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("취소", action: onCancel)
-        }
-        if !didSave {
-          ToolbarItem(placement: .confirmationAction) {
-            Button("저장", action: save)
-              .disabled(selectedContactID == nil || isSaving)
-          }
-        }
+    Group {
+      if didSave {
+        successView
+      } else if isLoadingContent {
+        ProgressView()
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else {
+        pickerView
       }
     }
+    .background(Color.gray50)
     .task {
       sharedContent = await Self.loadSharedContent(from: extensionItems)
       isLoadingContent = false
@@ -64,71 +54,103 @@ struct ShareExtensionView: View {
 
   private var pickerView: some View {
     VStack(spacing: 0) {
-      previewSection
+      AddContactSheetHeader(
+        title: "공유하기",
+        onCancel: onCancel,
+        isApplyEnabled: selectedContactID != nil && !isSaving,
+        onApply: save
+      )
+
+      groupChips
 
       if let errorMessage {
         Text(errorMessage)
-          .font(.footnote)
+          .typeStyle(.footnote)
           .foregroundStyle(.red)
+          .frame(maxWidth: .infinity, alignment: .leading)
           .padding(.horizontal, 16)
-          .padding(.top, 8)
+          .padding(.bottom, 8)
       }
 
-      List(filteredContacts, id: \.id) { contact in
-        Button {
-          selectedContactID = contact.id
-        } label: {
-          HStack(spacing: 12) {
-            contactAvatar(contact)
-
-            VStack(alignment: .leading, spacing: 2) {
-              Text(contact.name)
-                .foregroundStyle(.primary)
-              if !contact.group.isEmpty {
-                Text(contact.group)
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
+      ScrollView {
+        LazyVStack(spacing: 8) {
+          if rows.isEmpty {
+            Text(candidates.isEmpty ? "연락처가 없습니다." : "검색결과가 없습니다.")
+              .typeStyle(.body)
+              .foregroundStyle(.gray400)
+              .frame(maxWidth: .infinity)
+              .frame(height: 180)
+          } else {
+            ForEach(rows) { row in
+              ShareContactRowView(
+                row: row,
+                isSelected: selectedContactID == row.id,
+                onSelect: { selectedContactID = row.id }
+              )
             }
-
-            Spacer()
-
-            Image(systemName: selectedContactID == contact.id ? "checkmark.circle.fill" : "circle")
-              .foregroundStyle(selectedContactID == contact.id ? Color.accentColor : Color.secondary.opacity(0.4))
           }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 88)
       }
-      .listStyle(.plain)
-      .searchable(text: $searchText, prompt: "연락처 검색")
+      .scrollDismissesKeyboard(.immediately)
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        searchField
+      }
     }
+    .padding(.top, 16)
   }
 
-  private var previewSection: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      switch sharedContent {
-      case let .text(text):
-        Text(text)
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-          .lineLimit(3)
-      case let .url(url):
-        Text(url.absoluteString)
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      case .image:
-        Text("사진")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-      case nil:
-        Text("공유할 내용을 확인할 수 없습니다.")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
+  private var groupChips: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 8) {
+        NoteFilterChip(title: "All", isSelected: selectedGroup == nil) {
+          selectedGroup = nil
+        }
+        ForEach(groupNames, id: \.self) { name in
+          NoteFilterChip(title: name, isSelected: selectedGroup == name) {
+            selectedGroup = name
+          }
+        }
       }
+      .padding(.horizontal, 16)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(16)
+    .padding(.bottom, 8)
+  }
+
+  private var searchField: some View {
+    HStack(spacing: 8) {
+      Image(.search)
+        .resizable()
+        .renderingMode(.template)
+        .frame(width: 20, height: 20)
+        .foregroundStyle(.gray500)
+
+      TextField("연락처 검색", text: $searchText)
+        .typeStyle(.body)
+        .foregroundStyle(.gray950)
+        .autocorrectionDisabled()
+
+      Button {
+        searchText = ""
+      } label: {
+        Image(.xCircle)
+          .resizable()
+          .renderingMode(.template)
+          .frame(width: 20, height: 20)
+          .foregroundStyle(.gray400)
+      }
+      .buttonStyle(.plain)
+      .disabled(searchText.isEmpty)
+      .opacity(searchText.isEmpty ? 0.4 : 1)
+      .accessibilityLabel("검색어 지우기")
+    }
+    .padding(.horizontal, 16)
+    .frame(height: 48)
+    .glassEffect(.regular, in: .capsule)
+    .padding(.horizontal, 16)
+    .padding(.bottom, 8)
   }
 
   private var successView: some View {
@@ -146,27 +168,13 @@ struct ShareExtensionView: View {
     }
   }
 
-  private var filteredContacts: [StoredContact] {
-    let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else {
-      return contacts
-    }
-    return contacts.filter { $0.name.localizedStandardContains(trimmed) }
-  }
-
-  @ViewBuilder
-  private func contactAvatar(_ contact: StoredContact) -> some View {
-    if let data = contact.profileImageData, let uiImage = UIImage(data: data) {
-      Image(uiImage: uiImage)
-        .resizable()
-        .aspectRatio(contentMode: .fill)
-        .frame(width: 40, height: 40)
-        .clipShape(Circle())
-    } else {
-      Circle()
-        .fill(Color.secondary.opacity(0.2))
-        .frame(width: 40, height: 40)
-    }
+  private var rows: [ShareContactRow] {
+    ShareContactList.rows(
+      from: candidates,
+      latestNotes: latestNotes,
+      group: selectedGroup,
+      searchText: searchText
+    )
   }
 
   private func openContainerAndLoadContacts() {
@@ -176,8 +184,30 @@ struct ShareExtensionView: View {
       let configuration = ModelConfiguration(schema: schema, url: SharedAppGroup.storeURL)
       let container = try ModelContainer(for: schema, configurations: configuration)
       modelContainer = container
-      let descriptor = FetchDescriptor<StoredContact>(sortBy: [SortDescriptor(\.name)])
-      contacts = try container.mainContext.fetch(descriptor).filter { !$0.isMe }
+      let context = container.mainContext
+
+      candidates = try context.fetch(FetchDescriptor<StoredContact>()).map {
+        ShareContactCandidate(
+          id: $0.id,
+          name: $0.name,
+          group: $0.group,
+          isMe: $0.isMe,
+          profileImageData: $0.profileImageData
+        )
+      }
+
+      groupNames = ShareContactList.groupNames(
+        try context.fetch(FetchDescriptor<StoredGroup>()).map { (name: $0.name, sortIndex: $0.sortIndex) }
+      )
+
+      // 확장은 메모리 제한이 작으므로 사진·음성·파일 데이터는 읽지 않고 필요한 속성만 가져온다.
+      var noteDescriptor = FetchDescriptor<StoredNote>()
+      noteDescriptor.propertiesToFetch = [\.contactId, \.content, \.createdAt]
+      latestNotes = ShareContactList.latestNotes(
+        try context.fetch(noteDescriptor).map {
+          (contactId: $0.contactId, content: $0.content, createdAt: $0.createdAt)
+        }
+      )
     } catch {
       errorMessage = "연락처를 불러오지 못했습니다."
     }
@@ -187,7 +217,7 @@ struct ShareExtensionView: View {
     guard
       let modelContainer,
       let selectedContactID,
-      let contact = contacts.first(where: { $0.id == selectedContactID })
+      let contact = candidates.first(where: { $0.id == selectedContactID })
     else {
       return
     }

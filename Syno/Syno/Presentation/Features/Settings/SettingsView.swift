@@ -80,10 +80,10 @@ struct SettingsView: View {
   private var accountSection: some View {
     settingsCard(title: nil) {
       Button {
-        requestConfirmation(for: .logout)
+        requestConfirmation(for: .dataReset)
       } label: {
         HStack {
-          Text("로그아웃")
+          Text("데이터 초기화")
             .typeStyle(.callout)
             .foregroundStyle(.errorRed)
 
@@ -207,11 +207,12 @@ struct SettingsView: View {
             AnalyticsEvent.accountDataReset,
             properties: [AnalyticsEvent.Property.resetType: "temporary"]
           )
-        case .logout:
+        case .dataReset:
           try accountResetService.resetAllData()
-          // 삭제가 iCloud로 다 올라간 다음에 로그아웃을 마쳐야, 나중에 다시 들어왔을 때
+          // 삭제가 iCloud로 다 올라간 다음에 초기화를 마쳐야, 나중에 다시 들어왔을 때
           // 덜 지워진 채로 서버에 남아있던 데이터가 되살아나는 걸 막을 수 있습니다.
           await accountResetService.waitForPendingCloudKitExport()
+          // 기존 통계와 이어지도록 이벤트 값은 예전 이름(logout)을 유지한다.
           analytics.track(
             AnalyticsEvent.accountDataReset,
             properties: [AnalyticsEvent.Property.resetType: "logout"]
@@ -231,14 +232,15 @@ struct SettingsView: View {
 
 private enum SettingsAction {
   case temporaryData
-  case logout
+  /// 이 기기와 iCloud의 모든 데이터를 지웁니다. 앱에 로그인이 없으므로 "로그아웃"이라고 부르지 않습니다 (#130).
+  case dataReset
 
   var title: String {
     switch self {
     case .temporaryData:
       "임시 데이터를 삭제하겠습니까?"
-    case .logout:
-      "로그아웃 하시겠습니까?"
+    case .dataReset:
+      "데이터를 초기화하시겠습니까?"
     }
   }
 
@@ -246,8 +248,8 @@ private enum SettingsAction {
     switch self {
     case .temporaryData:
       "캐시에 임시 저장된 기타 데이터를 삭제하고 정리합니다. 노트 내 텍스트, 사진, 동영상, 음성메시지 파일은 그대로 유지됩니다."
-    case .logout:
-      ""
+    case .dataReset:
+      "이 기기와 iCloud에 저장된 연락처, 노트, 그룹, 내 프로필 등 Syno의 모든 데이터가 삭제됩니다. 같은 iCloud 계정을 쓰는 다른 기기에서도 삭제되며, 되돌릴 수 없습니다."
     }
   }
 
@@ -255,8 +257,8 @@ private enum SettingsAction {
     switch self {
     case .temporaryData:
       "삭제"
-    case .logout:
-      "로그아웃"
+    case .dataReset:
+      "초기화"
     }
   }
 
@@ -264,8 +266,8 @@ private enum SettingsAction {
     switch self {
     case .temporaryData:
       "삭제 중"
-    case .logout:
-      "로그아웃 중"
+    case .dataReset:
+      "초기화 중"
     }
   }
 }

@@ -47,7 +47,14 @@ struct ShareContactRowView: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .accessibilityLabel("\(row.name), \(isSelected ? "선택됨" : "선택 안 됨")")
+    .accessibilityLabel(accessibilityLabel)
+  }
+
+  /// 이름이 같은 연락처도 구분할 수 있게 두 번째 줄을 함께 읽어 줍니다.
+  private var accessibilityLabel: String {
+    let selection = isSelected ? "선택됨" : "선택 안 됨"
+    guard !row.subtitle.isEmpty else { return "\(row.name), \(selection)" }
+    return "\(row.name), \(row.subtitle), \(selection)"
   }
 
   private var selectionIndicator: some View {

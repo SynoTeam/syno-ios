@@ -38,8 +38,13 @@ struct ShareExtensionView: View {
       if didSave {
         successView
       } else if isLoadingContent {
-        ProgressView()
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // 사진처럼 공유 내용을 늦게 받는 경우에도 취소할 수 있게 헤더를 함께 보여준다.
+        VStack(spacing: 0) {
+          header
+          ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .padding(.top, 16)
       } else {
         pickerView
       }
@@ -52,14 +57,18 @@ struct ShareExtensionView: View {
     }
   }
 
+  private var header: some View {
+    AddContactSheetHeader(
+      title: "공유하기",
+      onCancel: onCancel,
+      isApplyEnabled: visibleSelectedContactID != nil && !isSaving,
+      onApply: save
+    )
+  }
+
   private var pickerView: some View {
     VStack(spacing: 0) {
-      AddContactSheetHeader(
-        title: "공유하기",
-        onCancel: onCancel,
-        isApplyEnabled: visibleSelectedContactID != nil && !isSaving,
-        onApply: save
-      )
+      header
 
       groupChips
 

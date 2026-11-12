@@ -62,7 +62,10 @@ nonisolated enum ShareContactList {
       .filter { !$0.isMe }
       .filter { contact in
         guard let group else { return true }
-        return contact.group.compare(group, options: .caseInsensitive) == .orderedSame
+        // 칩 이름(groupNames)과 같은 규칙으로 앞뒤 공백을 지우고 비교한다.
+        return contact.group
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+          .compare(group, options: .caseInsensitive) == .orderedSame
       }
       .filter { query.isEmpty || $0.name.localizedStandardContains(query) }
       .sorted { lhs, rhs in

@@ -88,6 +88,15 @@ struct ShareContactListTests {
     #expect(rows.map(\.name) == expected)
   }
 
+  @Test("연락처 그룹에 앞뒤 공백이 있어도 같은 그룹 칩에서 보인다")
+  func groupFilterIgnoresSurroundingWhitespace() {
+    let padded = ShareContactCandidate(id: UUID(), name: "공백", group: " 회사 ", isMe: false, profileImageData: nil)
+
+    let rows = ShareContactList.rows(from: [padded], latestNotes: [:], group: "회사", searchText: "")
+
+    #expect(rows.map(\.id) == [padded.id])
+  }
+
   @Test("고른 연락처가 그룹 칩이나 검색으로 숨겨지면 선택되지 않은 것으로 보고, 다시 보이면 선택이 살아난다")
   func selectionCountsOnlyWhenVisible() {
     let visible = ShareContactList.rows(from: [minsu, jiwoo], latestNotes: [:], group: nil, searchText: "")

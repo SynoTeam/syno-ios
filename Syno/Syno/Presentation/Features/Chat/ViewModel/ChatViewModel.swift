@@ -68,6 +68,8 @@ final class ChatViewModel {
   @ObservationIgnored private var fileDownloadPollTasks: [Note.ID: Task<Void, Never>] = [:]
   /// 이 화면에서 미리보기를 이미 요청한 노트입니다. 실패한 노트는 다음에 채팅을 열 때 다시 시도합니다.
   @ObservationIgnored private var requestedLinkPreviewNoteIds: Set<Note.ID> = []
+  /// 채팅을 열 때 미리보기가 없는 링크를 하나씩 가져오는 작업입니다. 테스트는 이 작업이 끝나기를 기다립니다.
+  @ObservationIgnored private(set) var linkPreviewBackfillTask: Task<Void, Never>?
 
   let contact: Contact
   private let repository: any NoteRepository
@@ -159,6 +161,7 @@ final class ChatViewModel {
     var loadedImageAnalyses: [Note.ID: NoteImageAnalysisResult] = [:]
     var loadedLinkPreviews: [Note.ID: NoteLinkPreviewResult] = [:]
     var loadedVoiceMemoStates: [Note.ID: VoiceMemoState] = [:]
+    var didLoadCaches = true
     do {
       loadedImageAnalyses = try await imageAnalysisRepository.fetchAll()
         .filter { messageIds.contains($0.key) }
@@ -176,6 +179,7 @@ final class ChatViewModel {
       loadedImageAnalyses = [:]
       loadedLinkPreviews = [:]
       loadedVoiceMemoStates = [:]
+      didLoadCaches = false
       logger.debug(
         "Image analysis cache unavailable: \(error.localizedDescription, privacy: .public)"
       )
@@ -189,8 +193,9 @@ final class ChatViewModel {
     isLoadingMessages = false
 
     // 공유 확장으로 저장했거나 보낼 때 미리보기를 못 가져온 링크는 여기서 가져온다.
-    for note in messages where linkPreviews[note.id] == nil {
-      fetchLinkPreviewIfNeeded(for: note)
+    // 캐시를 못 읽었으면 저장된 미리보기까지 다시 요청하게 되므로 이번에는 건너뛴다.
+    if didLoadCaches {
+      startLinkPreviewBackfill()
     }
 
     for note in messages
@@ -544,13 +549,37 @@ final class ChatViewModel {
     else { return }
 
     Task { @MainActor in
-      do {
-        let result = try await linkPreviewFetcher.fetchPreview(for: url)
-        try await linkPreviewRepository.save(noteId: note.id, result: result, fetchedAt: Date())
-        linkPreviews[note.id] = result
-      } catch {
-        logger.debug("Link preview unavailable: \(error.localizedDescription, privacy: .public)")
+      await fetchAndStoreLinkPreview(noteId: note.id, url: url)
+    }
+  }
+
+  /// 미리보기가 없는 링크 노트의 미리보기를 한 번에 몰아 요청하지 않고 하나씩 가져옵니다.
+  private func startLinkPreviewBackfill() {
+    let targets: [(noteId: Note.ID, url: URL)] = messages.compactMap { note in
+      guard linkPreviews[note.id] == nil,
+            let url = firstURL(in: note.content),
+            requestedLinkPreviewNoteIds.insert(note.id).inserted
+      else { return nil }
+      return (note.id, url)
+    }
+    guard !targets.isEmpty else { return }
+
+    let previousTask = linkPreviewBackfillTask
+    linkPreviewBackfillTask = Task { @MainActor in
+      await previousTask?.value
+      for target in targets {
+        await fetchAndStoreLinkPreview(noteId: target.noteId, url: target.url)
       }
+    }
+  }
+
+  private func fetchAndStoreLinkPreview(noteId: Note.ID, url: URL) async {
+    do {
+      let result = try await linkPreviewFetcher.fetchPreview(for: url)
+      try await linkPreviewRepository.save(noteId: noteId, result: result, fetchedAt: Date())
+      linkPreviews[noteId] = result
+    } catch {
+      logger.debug("Link preview unavailable: \(error.localizedDescription, privacy: .public)")
     }
   }
 

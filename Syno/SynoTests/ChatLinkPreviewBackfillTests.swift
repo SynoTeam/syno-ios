@@ -21,7 +21,7 @@ struct ChatLinkPreviewBackfillTests {
     let viewModel = makeViewModel(notes: [note], fetcher: fetcher, repository: repository)
 
     await viewModel.loadMessages()
-    await waitUntil { viewModel.linkPreviews[note.id] != nil }
+    await viewModel.linkPreviewBackfillTask?.value
 
     #expect(fetcher.requestedURLs == [URL(string: "https://example.com")!])
     #expect(repository.savedNoteIds == [note.id])
@@ -36,7 +36,7 @@ struct ChatLinkPreviewBackfillTests {
     let viewModel = makeViewModel(notes: [note], fetcher: fetcher, repository: repository)
 
     await viewModel.loadMessages()
-    await settle()
+    await viewModel.linkPreviewBackfillTask?.value
 
     #expect(fetcher.requestedURLs.isEmpty)
     #expect(viewModel.linkPreviews[note.id] == preview)
@@ -48,7 +48,7 @@ struct ChatLinkPreviewBackfillTests {
     let viewModel = makeViewModel(notes: [makeNote(content)], fetcher: fetcher)
 
     await viewModel.loadMessages()
-    await settle()
+    await viewModel.linkPreviewBackfillTask?.value
 
     #expect(fetcher.requestedURLs.isEmpty)
   }
@@ -61,7 +61,7 @@ struct ChatLinkPreviewBackfillTests {
 
     await viewModel.loadMessages()
     await viewModel.loadMessages()
-    await settle()
+    await viewModel.linkPreviewBackfillTask?.value
 
     #expect(fetcher.requestedURLs.count == 1)
   }
@@ -74,9 +74,9 @@ struct ChatLinkPreviewBackfillTests {
     let firstOpen = makeViewModel(noteRepository: notes, fetcher: failingFetcher)
 
     await firstOpen.loadMessages()
-    await waitUntil { failingFetcher.requestedURLs.count == 1 }
-    await settle()
+    await firstOpen.linkPreviewBackfillTask?.value
 
+    #expect(failingFetcher.requestedURLs.count == 1)
     #expect(firstOpen.linkPreviews[note.id] == nil)
     #expect(firstOpen.persistenceError == nil)
 
@@ -84,10 +84,24 @@ struct ChatLinkPreviewBackfillTests {
     let secondOpen = makeViewModel(noteRepository: notes, fetcher: fetcher)
 
     await secondOpen.loadMessages()
-    await waitUntil { secondOpen.linkPreviews[note.id] != nil }
+    await secondOpen.linkPreviewBackfillTask?.value
 
     #expect(fetcher.requestedURLs.count == 1)
     #expect(secondOpen.linkPreviews[note.id] == preview)
+  }
+
+  @Test("저장된 미리보기를 읽지 못하면 이미 저장된 링크까지 다시 요청하지 않도록 이번에는 가져오지 않는다")
+  func cacheLoadFailureSkipsBackfill() async throws {
+    let note = makeNote("https://example.com")
+    let fetcher = LinkPreviewFetcherSpy(result: preview)
+    let repository = LinkPreviewRepositorySpy(failsFetchAll: true)
+    let viewModel = makeViewModel(notes: [note], fetcher: fetcher, repository: repository)
+
+    await viewModel.loadMessages()
+
+    #expect(viewModel.linkPreviewBackfillTask == nil)
+    #expect(fetcher.requestedURLs.isEmpty)
+    #expect(viewModel.messages.map(\.id) == [note.id])
   }
 
   // MARK: - Helpers
@@ -114,18 +128,6 @@ struct ChatLinkPreviewBackfillTests {
       voiceTranscriptRepository: EmptyVoiceTranscriptRepositoryStub()
     )
   }
-
-  /// 화면 밖에서 시작된 미리보기 작업이 끝날 때까지 기다립니다.
-  private func waitUntil(_ condition: () -> Bool) async {
-    for _ in 0..<100 where !condition() {
-      try? await Task.sleep(for: .milliseconds(10))
-    }
-  }
-
-  /// 요청하지 않아야 하는 경우, 혹시 시작된 작업이 끝날 시간을 줍니다.
-  private func settle() async {
-    try? await Task.sleep(for: .milliseconds(100))
-  }
 }
 
 // MARK: - Test doubles
@@ -150,10 +152,12 @@ private final class LinkPreviewFetcherSpy: NoteLinkPreviewFetching {
 @MainActor
 private final class LinkPreviewRepositorySpy: NoteLinkPreviewRepository {
   private var previews: [Note.ID: NoteLinkPreviewResult]
+  private let failsFetchAll: Bool
   private(set) var savedNoteIds: [Note.ID] = []
 
-  init(previews: [Note.ID: NoteLinkPreviewResult] = [:]) {
+  init(previews: [Note.ID: NoteLinkPreviewResult] = [:], failsFetchAll: Bool = false) {
     self.previews = previews
+    self.failsFetchAll = failsFetchAll
   }
 
   func fetch(noteId: Note.ID) async throws -> NoteLinkPreviewResult? {
@@ -161,7 +165,8 @@ private final class LinkPreviewRepositorySpy: NoteLinkPreviewRepository {
   }
 
   func fetchAll() async throws -> [Note.ID: NoteLinkPreviewResult] {
-    previews
+    if failsFetchAll { throw CocoaError(.fileReadUnknown) }
+    return previews
   }
 
   func save(noteId: Note.ID, result: NoteLinkPreviewResult, fetchedAt: Date) async throws {

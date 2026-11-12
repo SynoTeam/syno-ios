@@ -66,6 +66,8 @@ final class ChatViewModel {
   private(set) var fileSendFailedIds: Set<Note.ID> = []
   private(set) var fileTransferURLs: [Note.ID: URL] = [:]
   @ObservationIgnored private var fileDownloadPollTasks: [Note.ID: Task<Void, Never>] = [:]
+  /// 이 화면에서 미리보기를 이미 요청한 노트입니다. 실패한 노트는 다음에 채팅을 열 때 다시 시도합니다.
+  @ObservationIgnored private var requestedLinkPreviewNoteIds: Set<Note.ID> = []
 
   let contact: Contact
   private let repository: any NoteRepository
@@ -185,6 +187,11 @@ final class ChatViewModel {
     voiceMemoStates = loadedVoiceMemoStates
     persistenceError = nil
     isLoadingMessages = false
+
+    // 공유 확장으로 저장했거나 보낼 때 미리보기를 못 가져온 링크는 여기서 가져온다.
+    for note in messages where linkPreviews[note.id] == nil {
+      fetchLinkPreviewIfNeeded(for: note)
+    }
 
     for note in messages
       where note.fileName != nil
@@ -532,7 +539,9 @@ final class ChatViewModel {
   }
 
   private func fetchLinkPreviewIfNeeded(for note: Note) {
-    guard let url = firstURL(in: note.content) else { return }
+    guard let url = firstURL(in: note.content),
+          requestedLinkPreviewNoteIds.insert(note.id).inserted
+    else { return }
 
     Task { @MainActor in
       do {

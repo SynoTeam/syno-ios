@@ -32,7 +32,7 @@ final class AccountResetService {
     }
   }
 
-  /// 로그아웃과 계정 탈퇴에 공통으로 사용하는 전체 데이터 초기화입니다.
+  /// 설정의 데이터 초기화에서 사용하는 전체 데이터 삭제입니다.
   func resetAllData() throws {
     do {
       try modelContext.delete(model: StoredContactEmbedding.self)
@@ -51,10 +51,10 @@ final class AccountResetService {
     }
   }
 
-  /// 로그아웃/탈퇴 직전에 호출해서, 방금 저장한 변경사항이 CloudKit으로 다 올라갈 때까지 잠깐 기다립니다.
+  /// 데이터 초기화 직전에 호출해서, 방금 저장한 변경사항이 CloudKit으로 다 올라갈 때까지 잠깐 기다립니다.
   /// 이게 없으면: 공유 익스텐션 등으로 뒤늦게 들어와 아직 서버로 안 올라간 데이터가 있을 때,
   /// 그 업로드(export)와 방금 한 로컬 삭제가 겹쳐서 순서가 꼬이면 서버엔 삭제가 반영이 안 될 수
-  /// 있고, "로그아웃 후 다시 들어왔을 때" 그 데이터가 iCloud에서 다시 내려와 되살아나는 문제가
+  /// 있고, "초기화 후 다시 시작했을 때" 그 데이터가 iCloud에서 다시 내려와 되살아나는 문제가
   /// 생깁니다. 오프라인 등으로 동기화가 끝나지 않는 경우까지 무기한 기다리면 안 되므로 timeout 이후엔
   /// 그냥 진행합니다.
   func waitForPendingCloudKitExport(timeout: TimeInterval = 8) async {

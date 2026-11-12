@@ -87,6 +87,13 @@ nonisolated enum ShareContactList {
       }
   }
 
+  /// 고른 연락처가 지금 목록에 보일 때만 선택된 것으로 봅니다.
+  /// 그룹 칩이나 검색으로 숨겨진 연락처에 저장하지 않게 하기 위해서입니다.
+  static func visibleSelection(_ selectedID: UUID?, in rows: [ShareContactRow]) -> UUID? {
+    guard let selectedID, rows.contains(where: { $0.id == selectedID }) else { return nil }
+    return selectedID
+  }
+
   /// 최근 노트 내용을 한 줄로, 없으면 그룹명을 보여줍니다.
   private static func subtitle(note: ShareLatestNote?, group: String) -> String {
     let content = (note?.content ?? "")

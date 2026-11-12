@@ -88,6 +88,16 @@ struct ShareContactListTests {
     #expect(rows.map(\.name) == expected)
   }
 
+  @Test("고른 연락처가 그룹 칩이나 검색으로 숨겨지면 선택되지 않은 것으로 보고, 다시 보이면 선택이 살아난다")
+  func selectionCountsOnlyWhenVisible() {
+    let visible = ShareContactList.rows(from: [minsu, jiwoo], latestNotes: [:], group: nil, searchText: "")
+    let hidden = ShareContactList.rows(from: [minsu, jiwoo], latestNotes: [:], group: "회사", searchText: "")
+
+    #expect(ShareContactList.visibleSelection(jiwoo.id, in: visible) == jiwoo.id)
+    #expect(ShareContactList.visibleSelection(jiwoo.id, in: hidden) == nil)
+    #expect(ShareContactList.visibleSelection(nil, in: visible) == nil)
+  }
+
   @Test("검색어를 입력하면 고른 그룹 안에서 이름으로 거른다", arguments: [
     (nil, "민", ["민수"]),
     (nil, "  ", ["가나", "민수", "지우"]),

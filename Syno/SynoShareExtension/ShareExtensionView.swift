@@ -57,7 +57,7 @@ struct ShareExtensionView: View {
       AddContactSheetHeader(
         title: "공유하기",
         onCancel: onCancel,
-        isApplyEnabled: selectedContactID != nil && !isSaving,
+        isApplyEnabled: visibleSelectedContactID != nil && !isSaving,
         onApply: save
       )
 
@@ -177,6 +177,11 @@ struct ShareExtensionView: View {
     )
   }
 
+  /// 지금 목록에 보이는 경우에만 선택된 연락처입니다.
+  private var visibleSelectedContactID: UUID? {
+    ShareContactList.visibleSelection(selectedContactID, in: rows)
+  }
+
   private func openContainerAndLoadContacts() {
     do {
       // 모델 일부만으로 열면 Core Data가 빠진 모델의 테이블을 지우므로 앱과 같은 전체 목록으로 연다 (#124).
@@ -216,7 +221,8 @@ struct ShareExtensionView: View {
   private func save() {
     guard
       let modelContainer,
-      let selectedContactID,
+      // 그룹 칩이나 검색으로 숨겨진 연락처에는 저장하지 않는다.
+      let selectedContactID = visibleSelectedContactID,
       let contact = candidates.first(where: { $0.id == selectedContactID })
     else {
       return

@@ -9,6 +9,7 @@ import UIKit
 final class ShareViewController: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
+    ShareFontRegistrar.registerAppFonts()
 
     let rootView = ShareExtensionView(
       extensionItems: extensionContext?.inputItems as? [NSExtensionItem] ?? [],

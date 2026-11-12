@@ -55,7 +55,8 @@ final class ChatUITests: XCTestCase {
       : app.textViews["chat.inputField"]
 
     inputField.tap()
-    XCTAssertTrue(inputField.waitForKeyboardFocus(true, timeout: 3), "입력창에 포커스가 가지 않았습니다")
+    // CI 시뮬레이터는 처음 키보드를 띄울 때 느려서 넉넉히 기다린다 (#134).
+    XCTAssertTrue(inputField.waitForKeyboardFocus(true, timeout: 10), "입력창에 포커스가 가지 않았습니다")
     // 시뮬레이터에 하드웨어 키보드가 연결되어 있으면 소프트웨어 키보드가 뜨지 않으므로, 뜬 경우에만 사라짐까지 확인한다.
     let keyboard = app.keyboards.firstMatch
     let wasKeyboardShown = keyboard.waitForExistence(timeout: 2)
@@ -65,7 +66,7 @@ final class ChatUITests: XCTestCase {
       .coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.4))
       .tap()
 
-    XCTAssertTrue(inputField.waitForKeyboardFocus(false, timeout: 3), "바탕을 눌러도 입력창 포커스가 풀리지 않았습니다")
+    XCTAssertTrue(inputField.waitForKeyboardFocus(false, timeout: 10), "바탕을 눌러도 입력창 포커스가 풀리지 않았습니다")
     if wasKeyboardShown {
       XCTAssertTrue(keyboard.waitForNonExistence(timeout: 3), "바탕을 눌러도 키보드가 내려가지 않았습니다")
     }
@@ -82,10 +83,13 @@ final class ChatUITests: XCTestCase {
     XCTAssertTrue(copyButton.waitForExistence(timeout: 3))
     copyButton.tap()
 
-    // 토스트의 식별자는 안쪽 아이콘·글자에도 함께 붙어 노출되므로 첫 요소로 확인한다.
-    let toast = app.staticTexts.matching(identifier: "toast").firstMatch
-    XCTAssertTrue(toast.waitForExistence(timeout: 3), "복사 토스트가 나타나지 않았습니다")
-    XCTAssertEqual(toast.label, "노트가 복사되었습니다")
+    // 토스트는 2.5초 뒤 사라진다. 나타난 뒤 다시 찾아 문구를 읽으면 느린 CI에서 이미 사라져 있으므로,
+    // 식별자와 문구를 한 번의 대기 조건으로 확인한다 (#134).
+    // 식별자는 안쪽 아이콘·글자에도 함께 붙고 요소 종류도 환경마다 달리 잡혀 종류를 한정하지 않는다.
+    let toast = app.descendants(matching: .any)
+      .matching(NSPredicate(format: "identifier == %@ AND label == %@", "toast", "노트가 복사되었습니다"))
+      .firstMatch
+    XCTAssertTrue(toast.waitForExistence(timeout: 5), "복사 토스트가 나타나지 않았습니다")
     XCTAssertFalse(app.keyboards.firstMatch.exists, "복사 후 키보드가 올라왔습니다")
   }
 

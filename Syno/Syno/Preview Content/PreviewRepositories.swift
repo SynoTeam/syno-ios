@@ -57,6 +57,14 @@ enum PreviewRepositories {
 
   static let accountReset = AccountResetService(modelContext: container.mainContext)
 
+  static let cloudSync = CloudSyncService(
+    preference: CloudSyncPreference(defaults: previewDefaults),
+    history: CloudSyncHistory(defaults: previewDefaults),
+    accountStatusChecker: FixedCloudAccountStatusChecker(state: .available)
+  )
+
+  private static let previewDefaults = UserDefaults(suiteName: "SynoPreviewCloudSync") ?? .standard
+
   static let appContainer = AppContainer(
     modelContainer: container,
     contactRepository: contact,
@@ -77,7 +85,8 @@ enum PreviewRepositories {
       noteImageAnalysisRepository: noteImageAnalysis,
       labelTranslator: labelTranslator
     ),
-    groupService: GroupService(modelContext: container.mainContext)
+    groupService: GroupService(modelContext: container.mainContext),
+    cloudSyncService: cloudSync
   )
 }
 

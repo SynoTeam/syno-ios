@@ -23,6 +23,7 @@ struct MyPageView: View {
   let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   let groupRepository: any GroupRepository
   let accountResetService: AccountResetService
+  let cloudSyncService: CloudSyncService
   let onSave: (Contact) -> Void
 
   init(
@@ -41,6 +42,7 @@ struct MyPageView: View {
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     groupRepository: any GroupRepository,
     accountResetService: AccountResetService,
+    cloudSyncService: CloudSyncService,
     onSave: @escaping (Contact) -> Void = { _ in }
   ) {
     _contact = State(initialValue: contact)
@@ -54,6 +56,7 @@ struct MyPageView: View {
     self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.groupRepository = groupRepository
     self.accountResetService = accountResetService
+    self.cloudSyncService = cloudSyncService
     self.onSave = onSave
   }
 
@@ -106,7 +109,10 @@ struct MyPageView: View {
         .accessibilityLabel("Edit My Page")
 
         NavigationLink {
-          SettingsView(accountResetService: accountResetService)
+          SettingsView(
+            accountResetService: accountResetService,
+            cloudSyncService: cloudSyncService
+          )
         } label: {
           Image(.settings)
             .renderingMode(.template)
@@ -346,6 +352,7 @@ struct MyPageView: View {
     noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
     noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
     groupRepository: PreviewRepositories.appContainer.groupService,
-    accountResetService: PreviewRepositories.accountReset
+    accountResetService: PreviewRepositories.accountReset,
+    cloudSyncService: PreviewRepositories.cloudSync
   )
 }

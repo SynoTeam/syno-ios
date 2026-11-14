@@ -20,6 +20,7 @@ final class AppContainer {
   let accountResetService: AccountResetService
   let searchIndexBackfillService: SearchIndexBackfillService
   let groupService: GroupService
+  let cloudSyncService: CloudSyncService
 
   init(
     modelContainer: ModelContainer,
@@ -36,7 +37,8 @@ final class AppContainer {
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     accountResetService: AccountResetService,
     searchIndexBackfillService: SearchIndexBackfillService,
-    groupService: GroupService
+    groupService: GroupService,
+    cloudSyncService: CloudSyncService
   ) {
     self.modelContainer = modelContainer
     self.contactRepository = contactRepository
@@ -53,6 +55,7 @@ final class AppContainer {
     self.accountResetService = accountResetService
     self.searchIndexBackfillService = searchIndexBackfillService
     self.groupService = groupService
+    self.cloudSyncService = cloudSyncService
   }
 
   /// 앱 시작 시 한 번 실행하는 보정 작업입니다.
@@ -71,12 +74,35 @@ final class AppContainer {
     ) else {
       fatalError("App Group container unavailable: group.com.synoteam.Syno")
     }
-    let configuration = ModelConfiguration(
-      schema: schema,
-      url: appGroupContainerURL.appendingPathComponent("Syno.sqlite"),
-      cloudKitDatabase: .private("iCloud.com.synoteam.Syno")
+    let cloudSyncService = CloudSyncService(
+      preference: CloudSyncPreference(),
+      history: CloudSyncHistory(),
+      accountStatusChecker: CloudKitAccountStatusChecker(
+        containerIdentifier: CloudSyncService.containerIdentifier
+      )
     )
-    return make(configuration: configuration, linkPreviewFetcher: URLSessionLinkPreviewFetcher())
+    let configuration = liveConfiguration(
+      storeURL: appGroupContainerURL.appendingPathComponent("Syno.sqlite"),
+      isCloudSyncEnabled: cloudSyncService.isEnabledAtLaunch
+    )
+    if cloudSyncService.isEnabledAtLaunch {
+      cloudSyncService.startRecordingSyncEvents()
+    }
+    return make(
+      configuration: configuration,
+      linkPreviewFetcher: URLSessionLinkPreviewFetcher(),
+      cloudSyncService: cloudSyncService
+    )
+  }
+
+  /// 운영 저장소 구성입니다. 동기화를 끄면 iCloud 없이 같은 파일을 엽니다.
+  /// 기존 iCloud 데이터와 기기 데이터는 지우지 않습니다.
+  static func liveConfiguration(storeURL: URL, isCloudSyncEnabled: Bool) -> ModelConfiguration {
+    ModelConfiguration(
+      schema: schema,
+      url: storeURL,
+      cloudKitDatabase: isCloudSyncEnabled ? .private(CloudSyncService.containerIdentifier) : .none
+    )
   }
 
   #if DEBUG
@@ -88,7 +114,24 @@ final class AppContainer {
       isStoredInMemoryOnly: true,
       cloudKitDatabase: .none
     )
-    return make(configuration: configuration, linkPreviewFetcher: NoopNoteLinkPreviewFetcher())
+    return make(
+      configuration: configuration,
+      linkPreviewFetcher: NoopNoteLinkPreviewFetcher(),
+      cloudSyncService: testCloudSyncService()
+    )
+  }
+
+  /// 테스트용 동기화 설정입니다. 기기의 실제 설정을 건드리지 않도록 별도 저장공간을 쓰고, 실행할 때마다 비웁니다.
+  /// iCloud 계정은 로그인된 것으로 고정하고 CloudKit은 호출하지 않습니다.
+  private static func testCloudSyncService() -> CloudSyncService {
+    let suiteName = "SynoTestCloudSync"
+    let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+    defaults.removePersistentDomain(forName: suiteName)
+    return CloudSyncService(
+      preference: CloudSyncPreference(defaults: defaults),
+      history: CloudSyncHistory(defaults: defaults),
+      accountStatusChecker: FixedCloudAccountStatusChecker(state: .available)
+    )
   }
 
   /// UI 테스트용 컨테이너입니다. 메모리 저장소에 고정된 샘플 데이터를 넣어 둡니다.
@@ -102,7 +145,8 @@ final class AppContainer {
   /// 저장소 설정만 다르게 해서 같은 방식으로 컨테이너를 조립합니다.
   static func make(
     configuration: ModelConfiguration,
-    linkPreviewFetcher: any NoteLinkPreviewFetching
+    linkPreviewFetcher: any NoteLinkPreviewFetching,
+    cloudSyncService: CloudSyncService
   ) -> AppContainer {
     do {
       let container = try ModelContainer(
@@ -147,7 +191,8 @@ final class AppContainer {
           noteImageAnalysisRepository: imageAnalysisRepository,
           labelTranslator: staticLabelDictionary
         ),
-        groupService: GroupService(modelContext: container.mainContext)
+        groupService: GroupService(modelContext: container.mainContext),
+        cloudSyncService: cloudSyncService
       )
     } catch {
       fatalError("Failed to create model container: \(error)")

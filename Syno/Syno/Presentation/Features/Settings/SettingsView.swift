@@ -10,6 +10,7 @@ import SwiftUI
 /// 계정 데이터와 앱 정보를 관리하는 설정 화면입니다.
 struct SettingsView: View {
   let accountResetService: AccountResetService
+  let cloudSyncService: CloudSyncService
 
   @Environment(\.analytics) private var analytics
   @State private var storageUsage = "-"
@@ -43,7 +44,10 @@ struct SettingsView: View {
       }
     }
     .sheet(isPresented: $isShowingStorageSheet, onDismiss: refreshStorageUsage) {
-      NoteStorageManagementView(accountResetService: accountResetService)
+      NoteStorageManagementView(
+        accountResetService: accountResetService,
+        cloudSyncService: cloudSyncService
+      )
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
     }
@@ -273,5 +277,8 @@ private enum SettingsAction {
 }
 
 #Preview {
-  SettingsView(accountResetService: PreviewRepositories.accountReset)
+  SettingsView(
+    accountResetService: PreviewRepositories.accountReset,
+    cloudSyncService: PreviewRepositories.cloudSync
+  )
 }

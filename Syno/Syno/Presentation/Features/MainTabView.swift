@@ -33,6 +33,7 @@ struct MainTabView: View {
             noteVoiceTranscriber: container.noteVoiceTranscriber,
             noteVoiceTranscriptRepository: container.noteVoiceTranscriptRepository,
             accountResetService: container.accountResetService,
+            cloudSyncService: container.cloudSyncService,
             groupRepository: container.groupService
           )
         }

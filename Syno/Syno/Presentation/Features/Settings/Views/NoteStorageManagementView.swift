@@ -7,11 +7,13 @@
 
 import SwiftUI
 
-/// 노트 원본 이미지 데이터의 전체 및 연락처별 삭제를 관리하는 시트입니다.
+/// iCloud 동기화 설정과, 노트 원본 이미지 데이터의 전체 및 연락처별 삭제를 관리하는 시트입니다.
 struct NoteStorageManagementView: View {
   @Environment(\.dismiss) private var dismiss
 
   let accountResetService: AccountResetService
+
+  @State private var cloudSyncViewModel: CloudSyncSettingsViewModel
 
   @State private var totalUsage = "-"
   /// 연락처에 연결되지 않은 노트의 미디어까지 포함한 전체 미디어 용량입니다.
@@ -21,6 +23,11 @@ struct NoteStorageManagementView: View {
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
   @State private var isDeleting = false
+
+  init(accountResetService: AccountResetService, cloudSyncService: CloudSyncService) {
+    self.accountResetService = accountResetService
+    _cloudSyncViewModel = State(initialValue: CloudSyncSettingsViewModel(service: cloudSyncService))
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -32,6 +39,7 @@ struct NoteStorageManagementView: View {
 
       ScrollView {
         VStack(alignment: .leading, spacing: 28) {
+          cloudSyncSection
           allMediaSection
           contactMediaSection
         }
@@ -43,11 +51,75 @@ struct NoteStorageManagementView: View {
     .padding(.top, 16)
     .background(Color.gray50)
     .task { refreshUsage() }
+    .task { await cloudSyncViewModel.refresh() }
     .destructiveConfirmationAlert(item: $confirmationAlert)
     .toast(item: $toast)
     .overlay {
       if isDeleting {
         DeletionLoadingOverlay()
+      }
+    }
+  }
+
+  private var cloudSyncSection: some View {
+    settingsCard(title: nil) {
+      Toggle(isOn: Binding(
+        get: { cloudSyncViewModel.isToggleOn },
+        set: { cloudSyncViewModel.setSyncEnabled($0) }
+      )) {
+        Text("iCloud 자동 동기화")
+          .typeStyle(.calloutEmphasized)
+          .foregroundStyle(.gray800)
+      }
+      .tint(.violet500)
+      .disabled(!cloudSyncViewModel.canToggle)
+
+      Text(cloudSyncViewModel.descriptionText)
+        .typeStyle(.caption1)
+        .foregroundStyle(.gray500)
+        .fixedSize(horizontal: false, vertical: true)
+
+      if let accountMessage = cloudSyncViewModel.accountMessage {
+        Text(accountMessage)
+          .typeStyle(.caption1)
+          .foregroundStyle(.errorRed)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+
+      if let restartMessage = cloudSyncViewModel.restartMessage {
+        Text(restartMessage)
+          .typeStyle(.caption1)
+          .foregroundStyle(.violet500)
+      }
+
+      Divider()
+        .padding(.vertical, 8)
+
+      HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("마지막 동기화")
+            .typeStyle(.callout)
+            .foregroundStyle(.gray950)
+          Text(cloudSyncViewModel.lastSyncText)
+            .typeStyle(.caption1)
+            .foregroundStyle(.gray500)
+        }
+
+        Spacer()
+
+        Button {
+          Task { await cloudSyncViewModel.refresh() }
+        } label: {
+          Image(systemName: "arrow.clockwise")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.gray600)
+            .frame(width: 36, height: 36)
+            .background(.gray100)
+            .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(cloudSyncViewModel.isRefreshing)
+        .accessibilityLabel("동기화 상태 새로고침")
       }
     }
   }
@@ -116,13 +188,15 @@ struct NoteStorageManagementView: View {
   }
 
   private func settingsCard<Content: View>(
-    title: String,
+    title: String?,
     @ViewBuilder content: () -> Content
   ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text(title)
-        .typeStyle(.calloutEmphasized)
-        .foregroundStyle(.gray800)
+      if let title {
+        Text(title)
+          .typeStyle(.calloutEmphasized)
+          .foregroundStyle(.gray800)
+      }
 
       content()
     }
@@ -205,5 +279,8 @@ private enum MediaDeletionAction {
 }
 
 #Preview {
-  NoteStorageManagementView(accountResetService: PreviewRepositories.accountReset)
+  NoteStorageManagementView(
+    accountResetService: PreviewRepositories.accountReset,
+    cloudSyncService: PreviewRepositories.cloudSync
+  )
 }

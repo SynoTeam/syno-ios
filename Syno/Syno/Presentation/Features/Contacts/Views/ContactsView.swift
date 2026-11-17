@@ -28,6 +28,7 @@ struct ContactsView: View {
   private let noteVoiceTranscriber: any NoteVoiceTranscribing
   private let noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository
   private let accountResetService: AccountResetService
+  private let cloudSyncService: CloudSyncService
   private let groupRepository: any GroupRepository
   
   init(
@@ -42,6 +43,7 @@ struct ContactsView: View {
     noteVoiceTranscriber: any NoteVoiceTranscribing,
     noteVoiceTranscriptRepository: any NoteVoiceTranscriptRepository,
     accountResetService: AccountResetService,
+    cloudSyncService: CloudSyncService,
     groupRepository: any GroupRepository
   ) {
     let myProfileId = userProfile?.id ?? UUID()
@@ -54,6 +56,7 @@ struct ContactsView: View {
     self.noteVoiceTranscriber = noteVoiceTranscriber
     self.noteVoiceTranscriptRepository = noteVoiceTranscriptRepository
     self.accountResetService = accountResetService
+    self.cloudSyncService = cloudSyncService
     self.groupRepository = groupRepository
     _viewModel = State(
       initialValue: ContactsViewModel(
@@ -143,6 +146,7 @@ struct ContactsView: View {
           noteVoiceTranscriptRepository: noteVoiceTranscriptRepository,
           groupRepository: groupRepository,
           accountResetService: accountResetService,
+          cloudSyncService: cloudSyncService,
           onSave: { contact in
             _ = viewModel.saveMyContact(contact)
           }
@@ -319,6 +323,7 @@ struct ContactsView: View {
       noteVoiceTranscriber: PreviewRepositories.noteVoiceTranscriber,
       noteVoiceTranscriptRepository: PreviewRepositories.noteVoiceTranscript,
       accountResetService: PreviewRepositories.accountReset,
+      cloudSyncService: PreviewRepositories.cloudSync,
       groupRepository: PreviewRepositories.appContainer.groupService
     )
   }

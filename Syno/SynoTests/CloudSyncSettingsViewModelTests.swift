@@ -91,7 +91,7 @@ struct CloudSyncSettingsViewModelTests {
     #expect(CloudSyncPreference(defaults: defaults).isEnabled)
   }
 
-  @Test("동기화를 끄면 설정을 저장하고, 다음 실행부터 적용된다고 안내한다")
+  @Test("동기화를 끄면 설정을 저장하고, 다시 시작하면 꺼진다고 안내한다")
   func turningOffSavesAndAsksRestart() async {
     let viewModel = makeViewModel(accountState: .available)
     await viewModel.refresh()
@@ -100,7 +100,18 @@ struct CloudSyncSettingsViewModelTests {
 
     #expect(!viewModel.isSyncEnabled)
     #expect(!CloudSyncPreference(defaults: defaults).isEnabled)
-    #expect(viewModel.needsRestart)
+    #expect(viewModel.restartMessage == "앱을 다시 시작하면 동기화가 꺼집니다.")
+  }
+
+  @Test("꺼진 채로 실행한 뒤 켜면, 다시 시작하면 켜진다고 안내한다")
+  func turningOnAsksRestart() async {
+    CloudSyncPreference(defaults: defaults).isEnabled = false
+    let viewModel = makeViewModel(accountState: .available)
+    await viewModel.refresh()
+
+    viewModel.setSyncEnabled(true)
+
+    #expect(viewModel.restartMessage == "앱을 다시 시작하면 동기화가 켜집니다.")
   }
 
   @Test("실행할 때의 값으로 되돌리면 다시 시작 안내가 사라진다")
@@ -111,7 +122,7 @@ struct CloudSyncSettingsViewModelTests {
     viewModel.setSyncEnabled(false)
     viewModel.setSyncEnabled(true)
 
-    #expect(!viewModel.needsRestart)
+    #expect(viewModel.restartMessage == nil)
   }
 
   @Test("켜짐과 꺼짐에 따라 설명 문구가 바뀐다", arguments: [
@@ -141,7 +152,7 @@ struct CloudSyncSettingsViewModelTests {
     #expect(viewModel.descriptionText == description)
     // 화면 표시만 바뀌고 저장된 설정은 그대로라, 나중에 로그인하면 원래 설정으로 돌아온다.
     #expect(CloudSyncPreference(defaults: defaults).isEnabled)
-    #expect(!viewModel.needsRestart)
+    #expect(viewModel.restartMessage == nil)
   }
 
   // MARK: - 마지막 동기화 표시

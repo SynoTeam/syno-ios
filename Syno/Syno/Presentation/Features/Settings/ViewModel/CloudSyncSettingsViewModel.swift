@@ -36,8 +36,14 @@ final class CloudSyncSettingsViewModel {
   }
 
   /// 저장소는 실행할 때 한 번 열리므로, 바꾼 설정은 다시 시작해야 적용됩니다.
-  var needsRestart: Bool {
-    isSyncEnabled != service.isEnabledAtLaunch
+  /// 설명 문구는 토글을 따르므로, 다시 시작하기 전까지는 실제 동작이 다르다는 점을 방향과 함께 알립니다.
+  var restartMessage: String? {
+    guard isSyncEnabled != service.isEnabledAtLaunch else {
+      return nil
+    }
+    return isSyncEnabled
+      ? "앱을 다시 시작하면 동기화가 켜집니다."
+      : "앱을 다시 시작하면 동기화가 꺼집니다."
   }
 
   /// iCloud를 쓸 수 없다고 확인된 상태입니다. 확인 중(nil)은 포함하지 않습니다.

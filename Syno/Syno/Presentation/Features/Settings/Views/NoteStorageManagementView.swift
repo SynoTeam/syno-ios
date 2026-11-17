@@ -86,8 +86,8 @@ struct NoteStorageManagementView: View {
           .fixedSize(horizontal: false, vertical: true)
       }
 
-      if cloudSyncViewModel.needsRestart {
-        Text("앱을 다시 시작하면 적용됩니다.")
+      if let restartMessage = cloudSyncViewModel.restartMessage {
+        Text(restartMessage)
           .typeStyle(.caption1)
           .foregroundStyle(.violet500)
       }

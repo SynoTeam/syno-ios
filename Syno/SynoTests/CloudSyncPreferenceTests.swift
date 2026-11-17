@@ -27,6 +27,17 @@ struct CloudSyncPreferenceTests {
     #expect(CloudSyncPreference(defaults: defaults).isEnabled == isEnabled)
   }
 
+  /// Xcode 실행 인자(`-cloudSyncEnabled NO`)로 넘긴 값은 Bool이 아니라 문자열로 읽힌다.
+  @Test("문자열로 들어온 값도 켜짐·꺼짐으로 읽는다", arguments: [
+    ("NO", false),
+    ("YES", true),
+  ])
+  func readsStringValue(rawValue: String, expected: Bool) {
+    defaults.set(rawValue, forKey: CloudSyncPreference.key)
+
+    #expect(CloudSyncPreference(defaults: defaults).isEnabled == expected)
+  }
+
   @Test("동기화가 켜져 있으면 앱의 iCloud 컨테이너로, 꺼져 있으면 iCloud 없이 저장소를 연다", arguments: [
     (true, "iCloud.com.synoteam.Syno"),
     (false, nil),

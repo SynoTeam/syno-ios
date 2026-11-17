@@ -33,11 +33,13 @@ final class NoteStorageCloudSyncUITests: XCTestCase {
 
     let syncToggle = app.switches["iCloud 자동 동기화"]
     XCTAssertTrue(syncToggle.waitForExistence(timeout: 5), "iCloud 자동 동기화 토글이 없습니다")
-    XCTAssertTrue(syncToggle.isEnabled, "iCloud 상태를 확인한 뒤에는 토글을 바꿀 수 있어야 합니다")
+    // 토글은 iCloud 상태 확인이 끝난 뒤에 활성화되므로, 활성화될 때까지 기다린다.
+    let enabled = expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: syncToggle)
+    wait(for: [enabled], timeout: 5)
     syncToggle.switches.firstMatch.tap()
 
     XCTAssertTrue(
-      app.staticTexts["앱을 다시 시작하면 적용됩니다."].waitForExistence(timeout: 3),
+      app.staticTexts["앱을 다시 시작하면 동기화가 꺼집니다."].waitForExistence(timeout: 3),
       "동기화를 끈 뒤 다시 시작 안내가 없습니다"
     )
     let offDescription = app.staticTexts.containing(

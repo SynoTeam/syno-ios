@@ -12,9 +12,15 @@ struct CloudSyncPreference {
   }
 
   /// 설정한 적이 없으면 켜져 있습니다. 이 기능 전부터 쓰던 사용자는 지금처럼 동기화됩니다.
-  /// Spike 동안은 Xcode 실행 인자 `-cloudSyncEnabled NO`로도 끌 수 있습니다(실행 인자가 저장값보다 우선).
+  /// 개발 중에는 Xcode 실행 인자 `-cloudSyncEnabled NO`로도 끌 수 있습니다(실행 인자가 저장값보다 우선).
+  /// 실행 인자는 문자열("NO")로 들어오므로 `as? Bool` 대신 문자열도 읽는 `bool(forKey:)`를 씁니다.
   var isEnabled: Bool {
-    get { defaults.object(forKey: Self.key) as? Bool ?? true }
+    get {
+      guard defaults.object(forKey: Self.key) != nil else {
+        return true
+      }
+      return defaults.bool(forKey: Self.key)
+    }
     nonmutating set { defaults.set(newValue, forKey: Self.key) }
   }
 }

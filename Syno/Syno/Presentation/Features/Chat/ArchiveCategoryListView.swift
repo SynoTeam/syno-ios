@@ -161,7 +161,7 @@ struct ArchiveCategoryListView: View {
 
   @ViewBuilder private var textList: some View {
     if textNotes.isEmpty {
-      archiveEmptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "채팅창에 텍스트를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
+      archiveEmptyState(image: trimmedSearchText.isEmpty ? .emptyText : .emptyTextSearch, message: trimmedSearchText.isEmpty ? "채팅창에 텍스트를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
     } else {
       LazyVStack(alignment: .leading, spacing: 16) {
         ForEach(textNotes) { note in
@@ -206,7 +206,7 @@ struct ArchiveCategoryListView: View {
 
   @ViewBuilder private var voiceMemoGrid: some View {
     if voiceMemoNotes.isEmpty {
-      archiveEmptyState(image: .emptyArchive, message: trimmedSearchText.isEmpty ? "채팅창에 음성 메모를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
+      archiveEmptyState(image: trimmedSearchText.isEmpty ? .emptyVoice : .emptyVoiceSearch, message: trimmedSearchText.isEmpty ? "채팅창에 음성 메모를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
     } else {
       LazyVStack(alignment: .leading, spacing: 12) {
         ForEach(voiceMemoNotes) { note in
@@ -220,7 +220,7 @@ struct ArchiveCategoryListView: View {
   @ViewBuilder private var fileList: some View {
     if fileNotes.isEmpty {
       archiveEmptyState(
-        image: .emptyArchive,
+        image: trimmedSearchText.isEmpty ? .emptyFile : .emptyFileSearch,
         message: trimmedSearchText.isEmpty ? "채팅창에 파일을 전송하면\n확인 가능합니다." : "검색 결과가 없습니다"
       )
     } else {
@@ -261,7 +261,7 @@ struct ArchiveCategoryListView: View {
   private var photoGrid: some View {
     if photoSections.isEmpty {
       archiveEmptyState(
-        image: trimmedSearchText.isEmpty ? .emptyArchive : .emptyPhoto,
+        image: trimmedSearchText.isEmpty ? .emptyPhoto : .emptyPhotoSearch,
         message: trimmedSearchText.isEmpty ? "아직 주고받은 사진이 없습니다" : "검색 결과가 없습니다"
       )
     } else {
@@ -320,7 +320,7 @@ struct ArchiveCategoryListView: View {
   private var linkGrid: some View {
     if linkNotes.isEmpty {
       archiveEmptyState(
-        image: trimmedSearchText.isEmpty ? .emptyArchive : .emptyLink,
+        image: trimmedSearchText.isEmpty ? .emptyData : .emptyDataSearch,
         message: trimmedSearchText.isEmpty ? "아직 주고받은 링크가 없습니다" : "검색 결과가 없습니다"
       )
     } else {

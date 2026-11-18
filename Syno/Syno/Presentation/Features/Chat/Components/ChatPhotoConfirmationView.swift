@@ -10,7 +10,7 @@ struct PhotoConfirmationRequest: Identifiable {
 
 /// 카메라/앨범에서 고른 사진을 보내기 전에 미리 보여주고 확인/취소를 받는 시트입니다.
 /// 다른 바텀시트들과 같은 ``AddContactSheetHeader``(X/체크)를 재사용합니다.
-/// 여러 장이면 옆으로 넘겨 보며, 확인하면 모두 순서대로 전송합니다.
+/// 여러 장이면 옆으로 넘겨 보며 사진 아래에 장수 칩을 보여주고, 확인하면 모두 순서대로 전송합니다.
 struct ChatPhotoConfirmationView: View {
   @Environment(\.dismiss) private var dismiss
 
@@ -24,13 +24,24 @@ struct ChatPhotoConfirmationView: View {
   var body: some View {
     VStack(spacing: 0) {
       AddContactSheetHeader(
-        title: images.count > 1 ? "사진 업로드 (\(images.count))" : "사진 업로드",
+        title: "사진 업로드",
         onCancel: { dismiss() },
         onApply: send
       )
 
       photoContent
         .frame(maxHeight: .infinity)
+
+      if let countText = ChatPhotoLayout.countChipText(for: images.count) {
+        Text(countText)
+          .typeStyle(.subheadlineEmphasized)
+          .foregroundStyle(.gray600)
+          .padding(.horizontal, 16)
+          .padding(.vertical, 8)
+          .background(.gray200)
+          .clipShape(Capsule())
+          .padding(.bottom, 24)
+      }
     }
     .padding(.top, 16)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -43,10 +54,10 @@ struct ChatPhotoConfirmationView: View {
       TabView {
         ForEach(images.indices, id: \.self) { index in
           photo(images[index])
-            .padding(.bottom, 32)
         }
       }
-      .tabViewStyle(.page(indexDisplayMode: .always))
+      // 장수는 아래 칩으로 보여주므로 페이지 점은 숨긴다 (#138).
+      .tabViewStyle(.page(indexDisplayMode: .never))
     } else if let image = images.first {
       photo(image)
     }

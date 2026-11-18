@@ -16,9 +16,6 @@ struct ChatPhotoAttachmentModifier: ViewModifier {
   @State private var pendingCameraImage: UIImage?
   @State private var pendingPhotoConfirmation: PhotoConfirmationRequest?
 
-  /// 한 번에 고를 수 있는 앨범 사진 최대 개수입니다.
-  private static let maxPhotoSelectionCount = 10
-
   func body(content: Content) -> some View {
     content
       .onChange(of: selectedPhotoItems) { _, items in
@@ -33,7 +30,7 @@ struct ChatPhotoAttachmentModifier: ViewModifier {
       .photosPicker(
         isPresented: $isShowingPhotosPicker,
         selection: $selectedPhotoItems,
-        maxSelectionCount: Self.maxPhotoSelectionCount,
+        maxSelectionCount: ChatPhotoLayout.maxSelectionCount,
         matching: .images
       )
       .sheet(isPresented: $isShowingCamera, onDismiss: presentPendingCameraImage) {

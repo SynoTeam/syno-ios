@@ -114,14 +114,25 @@ struct ContactsView: View {
             showsGroupHeaders: true
           )
 
-          if viewModel.regularContacts.isEmpty {
+          // 즐겨찾기만 있는 경우에는 목록과 겹치지 않게 목록 아래에 둔다.
+          if viewModel.regularContacts.isEmpty && !viewModel.favoriteContacts.isEmpty {
             emptyState
+              .padding(.top, 116)
           }
         }
         .padding(.top, 8)
       }
       .padding(.horizontal, 16)
       .padding(.bottom, 20)
+    }
+    // 연락처가 하나도 없으면 빈 화면을 화면 가운데에 둔다.
+    .overlay {
+      if viewModel.regularContacts.isEmpty && viewModel.favoriteContacts.isEmpty {
+        emptyState
+          .emptyStatePosition()
+          // 목록 위에 겹쳐 보여주므로 터치는 아래 화면으로 넘긴다.
+          .allowsHitTesting(false)
+      }
     }
     .background(Color.gray50)
     // 상세·삭제·내 프로필 화면의 탭바 숨김을 화면마다 붙이지 않고 여기서 한 번에 제어한다.
@@ -238,12 +249,11 @@ struct ContactsView: View {
         .frame(width: 120, height: 120)
       
       Text("환영합니다!\n연락처를 추가해보세요.")
-        .typeStyle(.headline)
+        .typeStyle(.headlineRegular)
         .foregroundStyle(.gray500)
         .multilineTextAlignment(.center)
     }
     .frame(maxWidth: .infinity)
-    .padding(.top, 116)
   }
   
   private func importDeviceContacts(_ cnContacts: [CNContact]) {

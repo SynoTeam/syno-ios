@@ -126,10 +126,12 @@ struct ChatMessageBubble: View {
       let imageData = note.imageData,
       let uiImage = UIImage(data: imageData)
     {
+      // 정사각형으로 자르지 않고 원본 비율에 가깝게 보여준다 (#138).
+      let size = ChatPhotoLayout.singlePhotoSize(for: uiImage.size)
       Image(uiImage: uiImage)
         .resizable()
         .aspectRatio(contentMode: .fill)
-        .frame(width: 220, height: 220)
+        .frame(width: size.width, height: size.height)
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .onTapGesture {

@@ -40,15 +40,20 @@ struct NotesView: View {
         VStack(alignment: .leading, spacing: 24) {
           filterChips
 
-          if viewModel.isEmpty {
-            emptyState
-          } else {
+          if !viewModel.isEmpty {
             notesList
           }
         }
       }
       .padding(.horizontal, 16)
       .padding(.bottom, 120)
+    }
+    // 빈 화면은 헤더·필터 칩과 상관없이 화면 가운데에 둔다.
+    .overlay {
+      if viewModel.isEmpty {
+        emptyState
+          .emptyStatePosition()
+      }
     }
     .background(Color.gray50)
     .toast(item: $toast)

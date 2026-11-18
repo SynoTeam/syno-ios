@@ -16,22 +16,23 @@ struct SearchEmptyStateView: View {
         .frame(width: 96, height: 96)
 
       Text(message)
-        .typeStyle(.headline)
+        .typeStyle(.headlineRegular)
         .foregroundStyle(.gray500)
         .multilineTextAlignment(.center)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .padding(.horizontal, 24)
+    .emptyStatePosition()
   }
 
   private var imageName: ImageResource {
     switch category {
-    case .all: .emptySearch
-    case .text: .emptyText
-    case .photo: .emptyPhoto
-    case .link: .emptyLink
-    case .voice: .emptyArchive
-    case .file: .emptyArchive
+    case .all: .emptyDataSearch
+    case .text: .emptyTextSearch
+    case .photo: .emptyPhotoSearch
+    case .link: .emptyDataSearch
+    case .voice: .emptyVoiceSearch
+    case .file: .emptyFileSearch
     }
   }
 

@@ -34,14 +34,29 @@ extension Font {
   }
 
   enum SFPro {
+    case medium
     case semibold
 
     func uiFont(size: CGFloat) -> UIFont {
-      .systemFont(ofSize: size, weight: .semibold)
+      .systemFont(ofSize: size, weight: uiWeight)
     }
 
     func swiftUIFont(size: CGFloat) -> Font {
-      .system(size: size, weight: .semibold)
+      .system(size: size, weight: weight)
+    }
+
+    private var uiWeight: UIFont.Weight {
+      switch self {
+      case .medium: .medium
+      case .semibold: .semibold
+      }
+    }
+
+    private var weight: Font.Weight {
+      switch self {
+      case .medium: .medium
+      case .semibold: .semibold
+      }
     }
   }
 }
@@ -122,6 +137,15 @@ extension TypeStyle {
   static let headline = TypeStyle(
     font: Font.SFPro.semibold.swiftUIFont(size: 17),
     uiFont: Font.SFPro.semibold.uiFont(size: 17),
+    size: 17,
+    lineHeight: 22 / 17,
+    letterSpacing: -0.43 / 17
+  )
+
+  /// Figma의 Headline/Regular입니다(SF Pro Medium 17). 빈 화면 안내 문구에 씁니다.
+  static let headlineRegular = TypeStyle(
+    font: Font.SFPro.medium.swiftUIFont(size: 17),
+    uiFont: Font.SFPro.medium.uiFont(size: 17),
     size: 17,
     lineHeight: 22 / 17,
     letterSpacing: -0.43 / 17

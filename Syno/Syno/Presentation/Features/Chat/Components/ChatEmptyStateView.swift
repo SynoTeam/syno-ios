@@ -17,11 +17,14 @@ struct ChatEmptyStateView: View {
         .frame(width: 120, height: 120)
 
       Text("아직 남긴 기록이 없습니다.\n아래 입력창에서 메모를 남겨보세요.")
-        .typeStyle(.headline)
+        .typeStyle(.headlineRegular)
         .foregroundStyle(.gray500)
         .multilineTextAlignment(.center)
     }
-    .frame(maxWidth: .infinity, minHeight: 420)
+    .frame(maxWidth: .infinity)
     .padding(.horizontal, 24)
+    // 메시지 스크롤 영역 높이를 채워 세로 가운데에 둔다.
+    .containerRelativeFrame(.vertical, alignment: .center)
+    .emptyStatePosition()
   }
 }

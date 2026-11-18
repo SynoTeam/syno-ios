@@ -71,7 +71,7 @@ struct ArchiveView: View {
           .padding(16)
         } else {
           archiveEmptyState(
-            image: .emptyArchive,
+            image: trimmedSearchText.isEmpty ? .emptyData : .emptyDataSearch,
             message: trimmedSearchText.isEmpty ? "아직 저장된 항목이 없습니다" : "검색 결과가 없습니다"
           )
         }
@@ -342,17 +342,21 @@ enum ArchiveFormatters {
   }
 }
 
+/// 아카이브의 빈 화면입니다. 다른 빈 화면들과 같이 그림과 문구를 가운데 정렬하고,
+/// 스크롤 영역 높이를 채워 화면 세로 가운데에 둡니다.
 func archiveEmptyState(image: ImageResource, message: String) -> some View {
-  VStack(spacing: 16) {
+  VStack(alignment: .center, spacing: 16) {
     Image(image)
       .resizable()
       .aspectRatio(contentMode: .fit)
       .frame(width: 88, height: 88)
 
     Text(message)
-      .typeStyle(.subheadline)
-      .foregroundStyle(.gray400)
+      .typeStyle(.headlineRegular)
+      .foregroundStyle(.gray500)
+      .multilineTextAlignment(.center)
   }
-  .frame(maxWidth: .infinity)
-  .padding(.top, 80)
+  .frame(maxWidth: .infinity, alignment: .center)
+  .containerRelativeFrame(.vertical, alignment: .center)
+  .emptyStatePosition()
 }

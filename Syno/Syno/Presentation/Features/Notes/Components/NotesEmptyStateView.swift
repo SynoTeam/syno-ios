@@ -19,15 +19,19 @@ struct NotesEmptyStateView: View {
 
   var body: some View {
     VStack(spacing: 28) {
-      Image(.emptyList)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(width: 120, height: 120)
+      // 목록 위에 겹쳐 보여주므로, 그림과 문구는 터치를 아래 화면(필터 칩 등)으로 넘긴다. 버튼만 터치를 받는다.
+      Group {
+        Image(.emptyList)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+          .frame(width: 120, height: 120)
 
-      Text(message)
-        .typeStyle(.headline)
-        .foregroundStyle(.gray500)
-        .multilineTextAlignment(.center)
+        Text(message)
+          .typeStyle(.headlineRegular)
+          .foregroundStyle(.gray500)
+          .multilineTextAlignment(.center)
+      }
+      .allowsHitTesting(false)
 
       if state == .noContacts, let onAddContact {
         Button("연락처 추가하기", action: onAddContact)
@@ -40,7 +44,6 @@ struct NotesEmptyStateView: View {
       }
     }
     .frame(maxWidth: .infinity)
-    .padding(.top, 116)
   }
 
   private var message: String {

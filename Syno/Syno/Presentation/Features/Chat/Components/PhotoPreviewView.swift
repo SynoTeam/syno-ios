@@ -13,6 +13,8 @@ struct PhotoPreviewView: View {
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var deniedPermission: PermissionKind?
   @State private var toast: Toast?
+  /// 저장이 끝나기 전에 다시 저장해 같은 사진이 두 번 들어가지 않도록 저장 중에는 저장 버튼을 막습니다.
+  @State private var isSaving = false
 
   init(viewModel: ChatViewModel, noteID: Note.ID) {
     self.viewModel = viewModel
@@ -120,89 +122,101 @@ struct PhotoPreviewView: View {
   }
 
   private var actionBar: some View {
-    HStack(spacing: 0) {
-      Spacer()
-
-      Button(action: { Task { await saveToPhotos() } }) {
-        iconLabel(.download)
-      }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
-      .disabled(selectedImage == nil)
-      .accessibilityLabel("사진 저장")
-
-      Spacer()
+    PreviewActionBar {
+      saveButton
 
       shareButton
 
-      Spacer()
-
       Button(action: copyToPasteboard) {
-        iconLabel(.copy)
+        PreviewActionIcon(.copy)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
+      .buttonStyle(.plain)
       .disabled(selectedImage == nil)
       .accessibilityLabel("복사하기")
 
-      Spacer()
-
       Button(action: requestDeleteConfirmation) {
-        iconLabel(.trash)
+        PreviewActionIcon(.trash)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
+      .buttonStyle(.plain)
       .accessibilityLabel("삭제")
+    }
+  }
 
-      Spacer()
+  /// 혼자 보낸 사진은 바로 저장하고, 묶음 사진은 한 장 저장과 전체 저장 중에 고르게 합니다.
+  @ViewBuilder private var saveButton: some View {
+    if selectedGroupPhotos.isEmpty {
+      Button {
+        Task { await save(selectedPhotoNotes, scope: .single) }
+      } label: {
+        PreviewActionIcon(.download)
+      }
+      .buttonStyle(.plain)
+      .disabled(selectedImage == nil || isSaving)
+      .accessibilityLabel("사진 저장")
+    } else {
+      Menu {
+        Button("선택 사진만") {
+          Task { await save(selectedPhotoNotes, scope: .selected) }
+        }
+        Button("전체 사진") {
+          Task { await save(selectedGroupPhotos, scope: .all) }
+        }
+      } label: {
+        PreviewActionIcon(.download)
+      }
+      // 바가 화면 아래에 있어 메뉴가 위로 열려도 적은 순서대로(선택 사진만 → 전체 사진) 보이게 한다.
+      .menuOrder(.fixed)
+      .disabled(isSaving)
+      .buttonStyle(.plain)
+      .accessibilityLabel("사진 저장")
     }
-    .padding(8)
-    .frame(maxWidth: .infinity)
-    .background {
-      RoundedRectangle(cornerRadius: 999)
-        .fill(.gray100)
-    }
-    .padding(.horizontal, 36)
+  }
+
+  /// 지금 보고 있는 사진 한 장입니다.
+  private var selectedPhotoNotes: [Note] {
+    photos.filter { $0.id == selectedID }
   }
 
   @ViewBuilder private var shareButton: some View {
     if let image = selectedImage {
       ShareLink(item: Image(uiImage: image), preview: SharePreview("사진", image: Image(uiImage: image))) {
-        iconLabel(.share)
+        PreviewActionIcon(.share)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
+      .buttonStyle(.plain)
       .accessibilityLabel("공유")
     } else {
-      iconLabel(.share)
+      PreviewActionIcon(.share)
         .opacity(0.4)
     }
   }
 
-  private func iconLabel(_ icon: ImageResource) -> some View {
-    Image(icon)
-      .resizable()
-      .renderingMode(.template)
-      .foregroundStyle(.gray600)
-      .frame(width: 24, height: 24)
-      .frame(width: 32, height: 32)
-  }
-
-  private func saveToPhotos() async {
-    guard let image = selectedImage else {
+  /// 사진들을 보낸 순서대로 사진 앱에 저장합니다. 한 장씩 저장해 실패한 장수를 알 수 있게 합니다.
+  private func save(_ notes: [Note], scope: PhotoSaveScope) async {
+    let images = notes.compactMap { $0.imageData.flatMap { UIImage(data: $0) } }
+    // 메인 액터에서 확인과 표시를 한 번에 하므로, 버튼을 빠르게 두 번 눌러도 저장은 한 번만 시작된다.
+    guard !images.isEmpty, !isSaving else {
       return
     }
+    isSaving = true
+    defer { isSaving = false }
 
     switch await PermissionChecker.requestPhotoSaveAccess() {
     case .granted:
-      do {
-        try await PHPhotoLibrary.shared().performChanges {
-          PHAssetChangeRequest.creationRequestForAsset(from: image)
+      var savedCount = 0
+      for image in images {
+        do {
+          try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+          }
+          savedCount += 1
+        } catch {
+          continue
         }
-        toast = Toast(message: "사진이 저장되었습니다", style: .success)
-      } catch {
-        toast = Toast(message: "사진을 저장하지 못했습니다", style: .failure)
       }
+      // 사진 데이터를 읽지 못한 노트도 저장하지 못한 것으로 센다.
+      let failedCount = notes.count - savedCount
+      let feedback = PhotoSaveFeedback.result(scope: scope, savedCount: savedCount, failedCount: failedCount)
+      toast = Toast(message: feedback.message, style: feedback.isSuccess ? .success : .failure)
     case .declinedInPrompt:
       break
     case .previouslyDenied:

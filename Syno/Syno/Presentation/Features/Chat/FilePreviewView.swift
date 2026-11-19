@@ -95,68 +95,43 @@ struct FilePreviewView: View {
   }
 
   private func actionRow(for note: Note) -> some View {
-    HStack {
+    PreviewActionBar {
       Button(action: { viewModel.retryFileDownload(for: note) }) {
-        iconLabel(.download)
+        PreviewActionIcon(.download)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
+      .buttonStyle(.plain)
       .disabled(note.fileData != nil || downloadState == .checking)
       .opacity(note.fileData != nil || downloadState == .checking ? 0.4 : 1)
       .accessibilityLabel("다운로드")
 
       if let fileURL {
         ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
-          iconLabel(.share)
+          PreviewActionIcon(.share)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.plain)
       } else {
         Button(action: {}) {
-          iconLabel(.share)
+          PreviewActionIcon(.share)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.plain)
         .disabled(true)
         .opacity(0.4)
       }
 
-      Spacer()
-
       Button(action: { copyFileToPasteboard(note) }) {
-        iconLabel(.copy)
+        PreviewActionIcon(.copy)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
+      .buttonStyle(.plain)
       .disabled(note.fileData == nil)
       .opacity(note.fileData == nil ? 0.4 : 1)
       .accessibilityLabel("복사하기")
 
-      Spacer()
-
       Button(action: { requestDeleteConfirmation(note) }) {
-        iconLabel(.trash)
+        PreviewActionIcon(.trash)
       }
-      .buttonStyle(.glass)
-      .buttonBorderShape(.circle)
+      .buttonStyle(.plain)
       .accessibilityLabel("삭제")
     }
-    .padding(8)
-    .frame(maxWidth: .infinity)
-    .background {
-      RoundedRectangle(cornerRadius: 999)
-        .fill(.gray100)
-    }
-    .padding(.horizontal, 60)
-  }
-
-  private func iconLabel(_ icon: ImageResource) -> some View {
-    Image(icon)
-      .resizable()
-      .renderingMode(.template)
-      .foregroundStyle(.gray600)
-      .frame(width: 24, height: 24)
-      .frame(width: 32, height: 32)
   }
 
   private func copyFileToPasteboard(_ note: Note) {

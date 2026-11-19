@@ -68,8 +68,9 @@ struct ChatPhotoConfirmationView: View {
     Image(uiImage: image)
       .resizable()
       .aspectRatio(contentMode: .fit)
-      .frame(maxHeight: 284)
+      // 사진 크기에 바로 모서리를 적용해, 바깥 프레임 크기와 상관없이 사진 모서리가 둥글게 잘리게 한다.
       .clipShape(RoundedRectangle(cornerRadius: 20))
+      .frame(maxHeight: 284)
       .padding(.horizontal, 32)
       .frame(maxHeight: .infinity)
   }

@@ -13,6 +13,8 @@ struct ArchiveCategoryListView: View {
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
   @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
+  /// 사진 목록에서 여러 장을 골라 삭제하는 선택 모드입니다. 채팅의 선택 모드와 같은 상태를 씁니다 (#142).
+  @State private var photoSelection = ChatSelectionState()
 
   private let photoColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
   private let linkColumns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
@@ -26,6 +28,8 @@ struct ArchiveCategoryListView: View {
   var body: some View {
     VStack(spacing: 0) {
       categoryPicker
+        // 선택 중에 다른 카테고리로 넘어가 선택이 꼬이지 않게 막는다.
+        .disabled(photoSelection.isActive)
 
       ScrollView {
         switch selectedCategory {
@@ -42,24 +46,21 @@ struct ArchiveCategoryListView: View {
         }
       }
     }
-    .background(Color.gray50)
-    .navigationTitle(selectedCategory.title)
-    .navigationBarTitleDisplayMode(.inline)
-    .synoBackButton()
-    .toolbar(.hidden, for: .tabBar)
-    .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
-        Button {
-          isSearching = true
-        } label: {
-          Image(.search)
-            .resizable()
-            .renderingMode(.template)
-            .frame(width: 20, height: 20)
-            .foregroundStyle(.gray950)
-        }
-        .accessibilityLabel("검색")
+    .safeAreaInset(edge: .bottom) {
+      if photoSelection.isActive {
+        ChatSelectionBar(selectedCount: photoSelection.count, onDelete: requestPhotoSelectionDeletion)
       }
+    }
+    // 시안: 아카이브 목록 화면은 흰 배경, 카드는 gray50 (#142).
+    .background(Color.white)
+    .navigationTitle(photoSelection.isActive ? "\(photoSelection.count)개 선택" : selectedCategory.title)
+    .navigationBarTitleDisplayMode(.inline)
+    .synoBackButton(isHidden: photoSelection.isActive)
+    .toolbar(.hidden, for: .tabBar)
+    .toolbar { toolbarContent }
+    // 지워졌거나 검색으로 화면에서 사라진 사진은 선택에서 뺀다. 보이지 않는 사진이 함께 삭제되지 않게 한다.
+    .onChange(of: visiblePhotoIDs) { _, ids in
+      photoSelection.retain(only: ids)
     }
     .searchable(text: $searchText, isPresented: $isSearching, prompt: "검색")
     .onChange(of: isSearching) { _, isSearching in
@@ -81,9 +82,10 @@ struct ArchiveCategoryListView: View {
           selectedCategory = category
         } label: {
           VStack(spacing: 8) {
+            // 선택된 탭은 볼드 violet600으로 강조한다 (#142).
             Text(category.title)
-              .typeStyle(.subheadline)
-              .foregroundStyle(selectedCategory == category ? .gray950 : .gray400)
+              .typeStyle(selectedCategory == category ? .subheadlineEmphasized : .subheadline)
+              .foregroundStyle(selectedCategory == category ? .violet600 : .gray400)
 
             Rectangle()
               .fill(selectedCategory == category ? Color.violet500 : Color.clear)
@@ -110,6 +112,11 @@ struct ArchiveCategoryListView: View {
       notes = notes.filter { viewModel.matches($0, searchText: trimmedSearchText) }
     }
     return notes.sorted { $0.createdAt < $1.createdAt }
+  }
+
+  /// 지금 사진 목록에 보이는 사진입니다(검색 결과 반영).
+  private var visiblePhotoIDs: Set<Note.ID> {
+    Set(photoSections.flatMap { $0.messages.map(\.id) })
   }
 
   private var photoSections: [ChatViewModel.MessageDaySection] {
@@ -170,7 +177,7 @@ struct ArchiveCategoryListView: View {
               Image(.logo)
                 .profileImage(data: note.profileImageData, size: 32)
 
-              Text(note.contactName)
+              Text(ArchiveFormatters.contactNameText(note.contactName))
                 .typeStyle(.subheadlineEmphasized)
                 .foregroundStyle(.gray950)
 
@@ -188,7 +195,7 @@ struct ArchiveCategoryListView: View {
               .truncationMode(.tail)
           }
           .padding(16)
-          .background(.white)
+          .background(.gray50)
           .clipShape(RoundedRectangle(cornerRadius: 16))
           .contextMenu {
             Button {
@@ -224,37 +231,117 @@ struct ArchiveCategoryListView: View {
         message: trimmedSearchText.isEmpty ? "채팅창에 파일을 전송하면\n확인 가능합니다." : "검색 결과가 없습니다"
       )
     } else {
-      LazyVStack(alignment: .leading, spacing: 12) {
+      // 시안: 폴더 아이콘·이름·용량·다운로드 버튼 한 줄과 구분선으로 된 목록 (#142)
+      LazyVStack(alignment: .leading, spacing: 0) {
         ForEach(fileNotes) { note in
-          // NavigationLink의 label 안에 다운로드 재시도 Button까지 같이 넣으면 탭 히트테스트가
-          // 꼬여서(어느 탭이 어느 컨트롤로 가는지 불명확해짐), FileCard는 순수 표시용으로만 두고
-          // 재시도 배지는 NavigationLink와 형제(ZStack의 별도 레이어)로 둡니다.
-          ZStack(alignment: .bottomTrailing) {
-            NavigationLink {
-              FilePreviewView(viewModel: viewModel, noteID: note.id)
-            } label: {
-              FileCard(note: note, downloadState: viewModel.fileDownloadStates[note.id])
-            }
-            .buttonStyle(.plain)
+          fileRow(note)
 
-            if note.fileData == nil {
-              downloadRetryBadge(for: note)
-                .padding(.trailing, 6)
-                .padding(.bottom, 6)
-            }
-          }
-          .contextMenu {
-            if let fileURL = viewModel.fileTransferURLs[note.id] {
-              ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
-                Label("공유하기", icon: .share)
-              }
-            }
-            Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", destructiveIcon: .trash) }
-          }
+          Rectangle()
+            .fill(.gray100)
+            .frame(height: 1)
         }
       }
-      .padding(16)
+      .padding(.horizontal, 16)
     }
+  }
+
+  /// 파일 한 줄입니다. 누르면 파일 미리보기로 가고, 오른쪽 버튼은 파일을 기기에 저장합니다.
+  /// 미리보기 링크 안에 버튼을 넣으면 어느 탭이 어디로 가는지 꼬이므로 둘을 나란히 둡니다.
+  private func fileRow(_ note: Note) -> some View {
+    HStack(alignment: .center, spacing: 12) {
+      NavigationLink {
+        FilePreviewView(viewModel: viewModel, noteID: note.id)
+      } label: {
+        HStack(alignment: .center, spacing: 16) {
+          // 아카이브 첫 화면의 파일 행과 같은 폴더 그림을, 흰 배경 위의 연한 둥근 사각형에 둔다.
+          Image(.messageFile)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 31)
+            .frame(width: 52, height: 52)
+            .background(.gray50, in: RoundedRectangle(cornerRadius: 16))
+
+          VStack(alignment: .leading, spacing: 2) {
+            Text(note.fileName ?? note.content)
+              .typeStyle(.bodyEmphasized)
+              .foregroundStyle(.gray950)
+              .lineLimit(1)
+              .truncationMode(.middle)
+            Text("Size \(Self.fileSizeText(note.fileSize))")
+              .typeStyle(.subheadline)
+              .foregroundStyle(.gray500)
+          }
+
+          Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .contextMenu {
+        if let fileURL = viewModel.fileTransferURLs[note.id] {
+          ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
+            Label("공유하기", icon: .share)
+          }
+        }
+        Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", destructiveIcon: .trash) }
+      }
+
+      fileSaveButton(for: note)
+    }
+    // Figma: 위아래 16, 좌우 0
+    .padding(.vertical, 16)
+  }
+
+  /// 시안처럼 숫자와 단위를 붙여 씁니다(예: 26.6MB).
+  private static func fileSizeText(_ bytes: Int?) -> String {
+    ByteCountFormatter.string(fromByteCount: Int64(bytes ?? 0), countStyle: .file)
+      .replacingOccurrences(of: " ", with: "")
+  }
+
+  /// 받은 파일은 공유 시트를 열어 '파일' 앱 등 기기에 저장하고, 아직 iCloud에서 못 받은 파일은 먼저 받습니다.
+  @ViewBuilder
+  private func fileSaveButton(for note: Note) -> some View {
+    if note.fileData == nil {
+      if viewModel.fileDownloadStates[note.id] == .checking {
+        ProgressView()
+          .controlSize(.small)
+          .tint(.gray500)
+          .frame(width: 36, height: 36)
+      } else {
+        Button {
+          viewModel.retryFileDownload(for: note)
+        } label: {
+          fileSaveIcon
+        }
+        .buttonStyle(CirclePressButtonStyle())
+        .accessibilityLabel("파일 받기")
+      }
+    } else if let fileURL = viewModel.fileTransferURLs[note.id] {
+      ShareLink(item: fileURL, preview: SharePreview(note.fileName ?? "파일")) {
+        fileSaveIcon
+      }
+      .buttonStyle(CirclePressButtonStyle())
+      .accessibilityLabel("기기에 저장")
+    } else {
+      // 저장용 임시 파일이 아직 없으면(준비 중이거나 준비에 실패) 눌렀을 때 이유를 알려 준다.
+      Button {
+        toast = Toast(message: "저장할 파일을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.", style: .failure)
+      } label: {
+        fileSaveIcon
+          .opacity(0.4)
+      }
+      .buttonStyle(CirclePressButtonStyle())
+      .accessibilityLabel("기기에 저장")
+    }
+  }
+
+  private var fileSaveIcon: some View {
+    Image(.download)
+      .resizable()
+      .renderingMode(.template)
+      .foregroundStyle(.gray600)
+      .frame(width: 24, height: 24)
+      .frame(width: 36, height: 36)
   }
 
   @ViewBuilder
@@ -274,39 +361,7 @@ struct ArchiveCategoryListView: View {
           LazyVGrid(columns: photoColumns, spacing: 4) {
             ForEach(section.messages) { note in
               if let imageData = note.imageData, let uiImage = UIImage(data: imageData) {
-                NavigationLink {
-                  PhotoPreviewView(viewModel: viewModel, noteID: note.id)
-                } label: {
-                  // 사진의 원래 비율이 칸 크기에 영향을 주지 않도록, 정사각형 칸을 먼저 만들고 사진은 그 위에 덮어 자른다.
-                  Color.clear
-                    .aspectRatio(1, contentMode: .fit)
-                    .overlay {
-                      Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .contentShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("사진 크게 보기")
-                .contextMenu {
-                  Button {
-                    UIPasteboard.general.image = uiImage
-                  } label: {
-                    Label("복사하기", icon: .copy)
-                  }
-
-                  ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
-                    Label("공유하기", icon: .share)
-                  }
-
-                  Button(role: .destructive) {
-                    requestDelete(note)
-                  } label: {
-                    Label("삭제하기", destructiveIcon: .trash)
-                  }
-                }
+                photoGridItem(note, image: uiImage)
               }
             }
           }
@@ -314,6 +369,119 @@ struct ArchiveCategoryListView: View {
       }
       .padding(16)
     }
+  }
+
+  @ToolbarContentBuilder
+  private var toolbarContent: some ToolbarContent {
+    if photoSelection.isActive {
+      ToolbarItem(placement: .topBarLeading) {
+        Button("취소") {
+          photoSelection.end()
+        }
+      }
+    } else {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          isSearching = true
+        } label: {
+          Image(.search)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
+            .foregroundStyle(.gray950)
+        }
+        .accessibilityLabel("검색")
+      }
+    }
+  }
+
+  /// 사진 목록의 한 칸입니다. 선택 모드에서는 누르면 선택이 바뀌고, 평소에는 미리보기로 이동합니다.
+  @ViewBuilder
+  private func photoGridItem(_ note: Note, image uiImage: UIImage) -> some View {
+    if photoSelection.isActive {
+      Button {
+        photoSelection.toggle([note.id])
+      } label: {
+        photoCell(uiImage)
+          .overlay(alignment: .topTrailing) {
+            ChatSelectionIndicator(isSelected: photoSelection.isSelected([note.id]))
+              .scaleEffect(0.8)
+              .padding(4)
+          }
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(photoSelection.isSelected([note.id]) ? "선택된 사진" : "사진 선택")
+    } else {
+      NavigationLink {
+        PhotoPreviewView(viewModel: viewModel, noteID: note.id)
+      } label: {
+        photoCell(uiImage)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("사진 크게 보기")
+      .contextMenu {
+        Button {
+          photoSelection.begin(with: [note.id])
+        } label: {
+          Label("선택하기", icon: .check)
+        }
+
+        Button {
+          UIPasteboard.general.image = uiImage
+        } label: {
+          Label("복사하기", icon: .copy)
+        }
+
+        ShareLink(item: Image(uiImage: uiImage), preview: SharePreview("사진", image: Image(uiImage: uiImage))) {
+          Label("공유하기", icon: .share)
+        }
+
+        Button(role: .destructive) {
+          requestDelete(note)
+        } label: {
+          Label("삭제하기", destructiveIcon: .trash)
+        }
+      }
+    }
+  }
+
+  /// 사진 한 칸의 모양입니다. 사진의 원래 비율이 칸 크기에 영향을 주지 않도록, 정사각형 칸을 먼저 만들고 사진은 그 위에 덮어 자른다.
+  private func photoCell(_ image: UIImage) -> some View {
+    Color.clear
+      .aspectRatio(1, contentMode: .fit)
+      .overlay {
+        Image(uiImage: image)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+      .contentShape(RoundedRectangle(cornerRadius: 8))
+  }
+
+  private func requestPhotoSelectionDeletion() {
+    let count = photoSelection.count
+    guard count > 0 else {
+      return
+    }
+    confirmationAlert = DestructiveConfirmationAlert(
+      title: count > 1 ? "\(count)장의 사진을\n삭제하시겠습니까?" : "이 사진을\n삭제하시겠습니까?",
+      message: "삭제한 사진은 복구할 수 없습니다.",
+      acknowledgementText: nil
+    ) {
+      deleteSelectedPhotos()
+    }
+  }
+
+  private func deleteSelectedPhotos() {
+    // 화면에 보이는 사진만 지운다. 선택 정리(onChange)보다 삭제가 먼저 실행되는 경우에도 안전하게 한 번 더 거른다.
+    let ids = photoSelection.selectedIDs.intersection(visiblePhotoIDs)
+    let deletedCount = ids.count
+    guard deletedCount > 0, viewModel.deleteMessages(ids: ids) else {
+      toast = Toast(message: "사진을 삭제하지 못했습니다", style: .failure)
+      return
+    }
+    photoSelection.end()
+    toast = Toast(message: "사진 \(deletedCount)장이 삭제되었습니다", style: .success, icon: .trash)
   }
 
   @ViewBuilder
@@ -327,7 +495,8 @@ struct ArchiveCategoryListView: View {
       LazyVGrid(columns: linkColumns, spacing: 12) {
         ForEach(linkNotes) { note in
           if let preview = viewModel.linkPreviews[note.id] {
-            LinkPreviewCard(preview: preview)
+            // 시안: 목록의 링크 카드는 높이 184로 모두 같게 (#142)
+            LinkPreviewCard(preview: preview, height: 184, background: .gray50)
               .contextMenu {
                 Button {
                   UIPasteboard.general.string = preview.siteURL.absoluteString
@@ -349,26 +518,6 @@ struct ArchiveCategoryListView: View {
         }
       }
       .padding(16)
-    }
-  }
-
-  @ViewBuilder
-  private func downloadRetryBadge(for note: Note) -> some View {
-    switch viewModel.fileDownloadStates[note.id] {
-    case .checking:
-      FileDownloadBadgeIcon { ProgressView().controlSize(.mini).tint(.gray500) }
-    case .failed, nil:
-      Button(action: { viewModel.retryFileDownload(for: note) }) {
-        FileDownloadBadgeIcon {
-          Image(.download)
-            .resizable()
-            .renderingMode(.template)
-            .foregroundStyle(.gray500)
-            .frame(width: 14, height: 14)
-        }
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("파일 다운로드")
     }
   }
 
@@ -406,5 +555,14 @@ struct ArchiveCategoryListView: View {
         }
       )
     }
+  }
+}
+
+/// 누르는 동안 아이콘 뒤에 회색 원이 생기는 버튼 모양입니다(시안의 파일 다운로드 버튼).
+private struct CirclePressButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .background(configuration.isPressed ? Color.gray100 : Color.clear, in: Circle())
+      .contentShape(Circle())
   }
 }

@@ -330,15 +330,22 @@ struct ChatMessageBubble: View {
 
 struct LinkPreviewCard: View {
   let preview: NoteLinkPreviewResult
+  /// 카드 전체 높이입니다. 주면 글 영역 높이를 고정하고 남는 높이를 이미지가 채워, 제목 길이나 글꼴과
+  /// 관계없이 모든 카드 높이가 같아집니다(아카이브). 없으면 이미지 영역이 120입니다(채팅 말풍선).
+  var height: CGFloat?
+  /// 카드 바탕색입니다. 흰 화면에 놓이는 아카이브에서는 gray50을 씁니다.
+  var background: Color = .white
+
+  /// 제목 두 줄과 주소 한 줄, 안쪽 여백이 들어가는 글 영역 높이입니다.
+  private static let textAreaHeight: CGFloat = 74
 
   var body: some View {
     Link(destination: preview.siteURL) {
       VStack(alignment: .leading, spacing: 0) {
-        // 카드 높이를 모두 같게 맞추려고 이미지 영역은 이미지가 없어도 항상 120을 차지한다.
         // 채우기(fill) 이미지는 원본 비율대로 커지려 해서 카드 폭을 밀어내므로,
         // 크기는 바탕 색이 정하고 이미지는 overlay로 얹어 바깥에서 준 폭을 넘지 않게 한다.
         Color.gray100
-          .frame(height: 120)
+          .frame(height: height.map { $0 - Self.textAreaHeight } ?? 120)
           .overlay {
             if let imageURL = preview.imageURL {
               AsyncImage(url: imageURL) { image in
@@ -371,8 +378,9 @@ struct LinkPreviewCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
+        .frame(height: height == nil ? nil : Self.textAreaHeight, alignment: .topLeading)
       }
-      .background(.white)
+      .background(background)
       .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     .buttonStyle(.plain)

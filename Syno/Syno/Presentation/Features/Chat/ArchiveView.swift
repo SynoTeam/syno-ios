@@ -21,15 +21,15 @@ struct ArchiveView: View {
       ScrollView {
         if hasAnyResults {
           VStack(spacing: 16) {
-            sectionCard(icon: .message, title: "텍스트", category: .text, isEmpty: textNotes.isEmpty) {
-              VStack(alignment: .leading, spacing: 16) {
+            sectionCard(icon: .messageFilled, title: "텍스트", category: .text, isEmpty: textNotes.isEmpty) {
+              VStack(alignment: .leading, spacing: 20) {
                 ForEach(textNotes.prefix(rowPreviewCount)) { note in
                   textRow(note)
                 }
               }
             }
 
-            sectionCard(icon: .image, title: "사진", category: .photos, isEmpty: photoNotes.isEmpty, showsDivider: false) {
+            sectionCard(icon: .image, title: "사진", category: .photos, isEmpty: photoNotes.isEmpty) {
               ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                   ForEach(photoNotes.prefix(mediaPreviewCount)) { note in
@@ -55,13 +55,14 @@ struct ArchiveView: View {
               }
             }
 
-            sectionCard(icon: .link, title: "링크", category: .links, isEmpty: linkNotes.isEmpty, showsDivider: false) {
+            sectionCard(icon: .link, title: "링크", category: .links, isEmpty: linkNotes.isEmpty) {
               ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                   ForEach(linkNotes.prefix(mediaPreviewCount)) { note in
                     if let preview = viewModel.linkPreviews[note.id] {
-                      LinkPreviewCard(preview: preview)
-                        .frame(width: 160)
+                      // 시안: 첫 화면 링크 카드는 144×124 (#142)
+                      LinkPreviewCard(preview: preview, height: 124, background: .gray50)
+                        .frame(width: 144)
                     }
                   }
                 }
@@ -116,28 +117,29 @@ struct ArchiveView: View {
     title: String,
     category: ArchiveCategory,
     isEmpty: Bool,
-    showsDivider: Bool = true,
     @ViewBuilder content: () -> Content
   ) -> some View {
     if !isEmpty {
       VStack(alignment: .leading, spacing: 16) {
+        // 시안: 연한 아이콘과 굵은 제목 (#142)
         HStack(spacing: 6) {
           Image(icon)
             .resizable()
             .renderingMode(.template)
-            .frame(width: 14, height: 14)
-            .foregroundStyle(.gray400)
+            .frame(width: 16, height: 16)
+            .foregroundStyle(.gray300)
 
           Text(title)
-            .typeStyle(.footnote)
-            .foregroundStyle(.gray400)
+            .typeStyle(.subheadlineEmphasized)
+            .foregroundStyle(.gray500)
         }
 
         content()
 
-        if showsDivider {
-          Divider()
-        }
+        // 모든 섹션에서 "더 보기" 위에 같은 구분선을 둔다 (#142).
+        Rectangle()
+          .fill(.gray100)
+          .frame(height: 1)
 
         Button {
           selectedCategory = category
@@ -147,11 +149,12 @@ struct ArchiveView: View {
           )
         } label: {
           Text("더 보기")
-            .typeStyle(.subheadline)
+            .typeStyle(.calloutEmphasized)
             .foregroundStyle(.gray500)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("archive.more.\(String(describing: category))")
       }
       .padding(16)
       .background(.white)
@@ -159,29 +162,11 @@ struct ArchiveView: View {
     }
   }
 
+  /// 노트 목록과 같은 행 내용을 쓰고, 이름은 14자에서 말줄임하며 검색어를 강조한다 (#142).
   private func textRow(_ note: Note) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 8) {
-        Image(.logo)
-          .profileImage(data: note.profileImageData, size: 32)
-
-        Text(note.contactName)
-          .typeStyle(.subheadlineEmphasized)
-          .foregroundStyle(.gray950)
-
-        Spacer()
-
-        Text(note.clockTimeText)
-          .typeStyle(.caption1)
-          .foregroundStyle(.gray400)
-      }
-
-      Text(note.content)
-        .typeStyle(.footnote)
-        .foregroundStyle(.gray600)
-        .lineLimit(1)
-        .truncationMode(.tail)
-    }
+    var displayNote = note
+    displayNote.contactName = ArchiveFormatters.contactNameText(note.contactName)
+    return NoteRowContent(note: displayNote, highlightQuery: trimmedSearchText.isEmpty ? nil : trimmedSearchText)
   }
 
   private func photoThumbnail(_ note: Note) -> some View {
@@ -194,9 +179,9 @@ struct ArchiveView: View {
         Color.gray100
       }
     }
-    .frame(width: 96, height: 84)
-    .clipped()
-    .clipShape(RoundedRectangle(cornerRadius: 8))
+    // 사진 비율과 관계없이 정사각형으로 가운데를 잘라 보여준다 (#142).
+    .frame(width: 100, height: 100)
+    .clipShape(RoundedRectangle(cornerRadius: 14.3))
   }
 
   private func voiceMemoRow(_ note: Note) -> some View {
@@ -324,6 +309,16 @@ enum ArchiveFormatters {
   static func dayText(for date: Date) -> String {
     let isCurrentYear = Calendar.current.isDate(date, equalTo: Date(), toGranularity: .year)
     return (isCurrentYear ? monthDayFormatter : yearMonthDayFormatter).string(from: date)
+  }
+
+  /// 텍스트 목록의 이름입니다. 14자를 넘으면 앞 14자 뒤에 "…"를 붙입니다 (#142).
+  /// 화면에 보이는 글자 단위로 세므로 이모지나 결합 문자가 중간에서 잘리지 않습니다.
+  static func contactNameText(_ name: String) -> String {
+    let limit = 14
+    guard name.count > limit else {
+      return name
+    }
+    return String(name.prefix(limit)) + "…"
   }
 
   static func durationText(_ duration: TimeInterval?) -> String {

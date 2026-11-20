@@ -8,7 +8,8 @@
 import SwiftUI
 import UIKit
 
-/// 노트 목록에서 연락처 이미지, 이름, 내용, 시간을 표시하는 row입니다.
+/// 노트 목록에서 연락처 이미지, 이름, 내용, 시간을 흰 카드로 표시하는 row입니다.
+/// 카드 안의 내용은 `NoteRowContent`이며, 아카이브처럼 이미 카드 안에 있는 곳은 내용만 씁니다.
 struct NoteRowView: View {
   let note: Note
   /// 검색 결과에서 일치하는 내용을 강조할 검색어입니다. 없으면 강조하지 않습니다.
@@ -16,6 +17,25 @@ struct NoteRowView: View {
   /// 행 오른쪽 안쪽 여백입니다. 검색 결과에서는 16을 사용합니다.
   var trailingPadding: CGFloat = 13
   /// 이름과 내용 사이 간격입니다. 검색 결과에서는 4를 사용합니다.
+  var textSpacing: CGFloat = 2
+
+  var body: some View {
+    NoteRowContent(note: note, highlightQuery: highlightQuery, textSpacing: textSpacing)
+      .padding(.leading, 13)
+      .padding(.trailing, trailingPadding)
+      .padding(.vertical, 13)
+      .frame(maxWidth: .infinity, minHeight: 70)
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 20))
+  }
+}
+
+/// 노트 한 줄의 내용입니다. 왼쪽에 연락처 이미지, 오른쪽에 이름·시간 줄과 내용 한 줄을 둡니다.
+struct NoteRowContent: View {
+  let note: Note
+  /// 일치하는 이름·내용을 강조할 검색어입니다. 없으면 강조하지 않습니다.
+  var highlightQuery: String?
+  /// 이름과 내용 사이 간격입니다.
   var textSpacing: CGFloat = 2
 
   var body: some View {
@@ -55,12 +75,6 @@ struct NoteRowView: View {
       }
       .padding(.top, 3)
     }
-    .padding(.leading, 13)
-    .padding(.trailing, trailingPadding)
-    .padding(.vertical, 13)
-    .frame(maxWidth: .infinity, minHeight: 70)
-    .background(.white)
-    .clipShape(RoundedRectangle(cornerRadius: 20))
   }
 
   private var profileImage: some View {

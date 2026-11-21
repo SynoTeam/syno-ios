@@ -194,19 +194,27 @@ enum FileTransferURL {
   /// 막지 않습니다. 같은 노트에 대해 이미 같은 크기의 파일이 디스크에 있으면 다시 쓰지 않습니다.
   static func prepare(for note: Note) async -> URL? {
     guard let data = note.fileData else { return nil }
-    let name = note.fileName ?? "file"
-    let noteID = note.id
+    return await prepare(data: data, name: note.fileName ?? "file", noteID: note.id)
+  }
+
+  /// 파일 대신 다른 데이터(음성 메모 등)를 같은 방식으로 임시 파일로 씁니다 (#144).
+  /// 노트마다 폴더를 따로 두어 파일 이름은 `name` 그대로 보입니다(공유·파일 앱 저장에서 사용자에게 보이는 이름).
+  /// 제목이 바뀌어 다른 이름으로 준비하면 그 노트의 예전 이름 파일은 지웁니다.
+  static func prepare(data: Data, name: String, noteID: Note.ID) async -> URL? {
+    let folder = folderURL(forNoteID: noteID)
     return await Task.detached(priority: .utility) {
-      let url = fileURL(forNoteID: noteID, name: name)
-      if let existingSize = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
+      let fileManager = FileManager.default
+      let url = folder.appendingPathComponent(name)
+      if let existingSize = try? fileManager.attributesOfItem(atPath: url.path)[.size] as? Int,
          existingSize == data.count {
         return url
       }
       do {
-        try FileManager.default.createDirectory(
-          at: directory,
-          withIntermediateDirectories: true
-        )
+        try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        let oldFiles = (try? fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        for oldFile in oldFiles where oldFile.lastPathComponent != name {
+          try? fileManager.removeItem(at: oldFile)
+        }
         try data.write(to: url, options: .atomic)
         return url
       } catch {
@@ -217,23 +225,37 @@ enum FileTransferURL {
 
   /// 노트가 삭제될 때 그 노트를 위해 만들어둔 임시 파일도 같이 정리합니다.
   static func removeTemporaryFile(for noteID: Note.ID) {
+    let folder = folderURL(forNoteID: noteID)
+    let root = directory
     Task.detached(priority: .utility) {
-      guard let files = try? FileManager.default.contentsOfDirectory(
-        at: directory,
-        includingPropertiesForKeys: nil
-      ) else { return }
-      let prefix = "\(noteID.uuidString)-"
-      for file in files where file.lastPathComponent.hasPrefix(prefix) {
-        try? FileManager.default.removeItem(at: file)
-      }
+      removeFiles(folder: folder, root: root, noteID: noteID)
     }
   }
+
+  /// 바로 지웁니다. 테스트에서 씁니다.
+  static func removeTemporaryFileNow(for noteID: Note.ID) {
+    removeFiles(folder: folderURL(forNoteID: noteID), root: directory, noteID: noteID)
+  }
+
+  private nonisolated static func removeFiles(folder: URL, root: URL, noteID: Note.ID) {
+    let fileManager = FileManager.default
+    try? fileManager.removeItem(at: folder)
+    // 예전 방식("노트ID-이름")으로 만든 파일도 정리합니다.
+    let prefix = "\(noteID.uuidString)-"
+    let files = (try? fileManager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+    for file in files where file.lastPathComponent.hasPrefix(prefix) {
+      try? fileManager.removeItem(at: file)
+    }
+  }
+
+  /// 복사(붙여넣기)용 파일을 두는 폴더입니다. 노트 폴더와 따로 두어 한 번에 한 파일만 남깁니다 (#144).
+  static let clipboardFolderID = UUID(uuidString: "00000000-0000-0000-0000-00000000C11B")!
 
   private static var directory: URL {
     FileManager.default.temporaryDirectory.appendingPathComponent("SynoFiles", isDirectory: true)
   }
 
-  private static func fileURL(forNoteID noteID: Note.ID, name: String) -> URL {
-    directory.appendingPathComponent("\(noteID.uuidString)-\(name)")
+  private static func folderURL(forNoteID noteID: Note.ID) -> URL {
+    directory.appendingPathComponent(noteID.uuidString, isDirectory: true)
   }
 }

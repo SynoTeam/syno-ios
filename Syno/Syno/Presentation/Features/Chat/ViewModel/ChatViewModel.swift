@@ -65,6 +65,9 @@ final class ChatViewModel {
   private(set) var fileDownloadStates: [Note.ID: FileDownloadState] = [:]
   private(set) var fileSendFailedIds: Set<Note.ID> = []
   private(set) var fileTransferURLs: [Note.ID: URL] = [:]
+  /// 이번 실행 중 파일 앱에 저장한 음성 메모입니다. 같은 메모를 또 저장하지 않게 저장 버튼을 막는 데 씁니다 (#144).
+  /// 저장한 파일은 사용자가 파일 앱에서 지울 수 있어 앱이 계속 확인할 수 없으므로, 앱을 다시 열면 다시 저장할 수 있습니다.
+  private(set) var savedVoiceMemoIDs: Set<Note.ID> = []
   @ObservationIgnored private var fileDownloadPollTasks: [Note.ID: Task<Void, Never>] = [:]
   /// 이 화면에서 미리보기를 이미 요청한 노트입니다. 실패한 노트는 다음에 채팅을 열 때 다시 시도합니다.
   @ObservationIgnored private var requestedLinkPreviewNoteIds: Set<Note.ID> = []
@@ -266,6 +269,7 @@ final class ChatViewModel {
       fileDownloadStates[id] = nil
       fileSendFailedIds.remove(id)
       fileTransferURLs[id] = nil
+      savedVoiceMemoIDs.remove(id)
       FileTransferURL.removeTemporaryFile(for: id)
     }
 
@@ -512,6 +516,44 @@ final class ChatViewModel {
         self?.fileTransferURLs[note.id] = url
       }
     }
+  }
+
+  func markVoiceMemosSaved(_ ids: Set<Note.ID>) {
+    savedVoiceMemoIDs.formUnion(ids)
+  }
+
+  /// 음성 메모 공유에 쓰는 항목입니다. 오디오 대신 변환 텍스트를 공유합니다 (#144).
+  /// 글은 공유할 앱을 고른 순간에 이어 붙이므로, 선택을 바꿀 때마다 긴 글을 다시 만들지 않습니다.
+  func voiceMemoShareItem(for notes: [Note]) -> VoiceMemoShareItem {
+    VoiceMemoShareItem(entries: notes.map { note in
+      let transcript: String?
+      if case let .transcribed(result) = voiceMemoStates[note.id] { transcript = result.text } else { transcript = nil }
+      return VoiceMemoShareEntry(title: note.content, transcript: transcript)
+    })
+  }
+
+  /// 음성 메모를 파일 앱 저장용 임시 파일로 씁니다. 저장하는 순간에 부르므로 전사로 바뀐 최신 제목이 파일 이름이 됩니다.
+  /// 하나라도 준비하지 못하면 nil입니다 (#144).
+  /// 파일을 만드는 동안 전사가 끝나 제목이 바뀌면, 바뀐 제목으로 한 번 더 만듭니다.
+  func voiceMemoTransferURLs(for ids: [Note.ID]) async -> [URL]? {
+    for _ in 0..<2 {
+      var urls: [URL] = []
+      for id in ids {
+        guard let name = voiceMemoFileName(for: id), let data = messages.first(where: { $0.id == id })?.voiceMemoData else {
+          return nil
+        }
+        guard let url = await FileTransferURL.prepare(data: data, name: name, noteID: id) else { return nil }
+        urls.append(url)
+      }
+      let isUpToDate = zip(ids, urls).allSatisfy { id, url in url.lastPathComponent == voiceMemoFileName(for: id) }
+      if isUpToDate { return urls }
+    }
+    return nil
+  }
+
+  private func voiceMemoFileName(for id: Note.ID) -> String? {
+    guard let note = messages.first(where: { $0.id == id }), let data = note.voiceMemoData else { return nil }
+    return VoiceMemoExport.fileName(title: note.content, audioData: data)
   }
 
   private func nextVoiceMemoNumber() -> Int {

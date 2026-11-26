@@ -46,6 +46,17 @@ struct FileTransferURLTests {
     #expect(!FileManager.default.fileExists(atPath: oldURL.path))
   }
 
+  @Test("덮어쓰기를 요청하면 이름과 크기가 같아도 새 내용으로 쓴다(복사용 폴더)")
+  func overwriteReplacesSameSizedFile() async throws {
+    let folderID = UUID()
+    defer { FileTransferURL.removeTemporaryFileNow(for: folderID) }
+
+    _ = await FileTransferURL.prepare(data: Data([1, 1]), name: "메모.m4a", noteID: folderID, overwrite: true)
+    let url = try #require(await FileTransferURL.prepare(data: Data([2, 2]), name: "메모.m4a", noteID: folderID, overwrite: true))
+
+    #expect(try Data(contentsOf: url) == Data([2, 2]))
+  }
+
   @Test("노트를 지우면 그 노트의 임시 파일도 지운다")
   func removeDeletesFiles() async throws {
     let noteID = UUID()

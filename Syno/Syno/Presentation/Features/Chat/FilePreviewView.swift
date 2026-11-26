@@ -200,12 +200,14 @@ enum FileTransferURL {
   /// 파일 대신 다른 데이터(음성 메모 등)를 같은 방식으로 임시 파일로 씁니다 (#144).
   /// 노트마다 폴더를 따로 두어 파일 이름은 `name` 그대로 보입니다(공유·파일 앱 저장에서 사용자에게 보이는 이름).
   /// 제목이 바뀌어 다른 이름으로 준비하면 그 노트의 예전 이름 파일은 지웁니다.
-  static func prepare(data: Data, name: String, noteID: Note.ID) async -> URL? {
+  /// `overwrite`가 true면 같은 이름·크기의 파일이 있어도 다시 씁니다(복사용 폴더처럼 내용이 바뀌는 경우).
+  static func prepare(data: Data, name: String, noteID: Note.ID, overwrite: Bool = false) async -> URL? {
     let folder = folderURL(forNoteID: noteID)
     return await Task.detached(priority: .utility) {
       let fileManager = FileManager.default
       let url = folder.appendingPathComponent(name)
-      if let existingSize = try? fileManager.attributesOfItem(atPath: url.path)[.size] as? Int,
+      if !overwrite,
+         let existingSize = try? fileManager.attributesOfItem(atPath: url.path)[.size] as? Int,
          existingSize == data.count {
         return url
       }

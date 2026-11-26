@@ -9,7 +9,26 @@ enum VoiceMemoExport {
     let base = trimmed.isEmpty ? "음성 메모" : trimmed
       .replacingOccurrences(of: "/", with: "-")
       .replacingOccurrences(of: ":", with: "-")
-    return "\(base).\(fileExtension(for: audioData))"
+    let ext = fileExtension(for: audioData)
+    return "\(truncated(base, maxUTF8Bytes: maxFileNameBytes - ext.utf8.count - 1)).\(ext)"
+  }
+
+  /// 파일 이름 길이 상한입니다. 파일 시스템 한도(255바이트)보다 여유를 둡니다.
+  /// 전사 첫 줄이 제목이 되면 아주 길 수 있어, 그대로 쓰면 파일을 만들지 못합니다.
+  private nonisolated static let maxFileNameBytes = 200
+
+  /// 화면에 보이는 글자 단위로 앞에서부터 담아 UTF-8 바이트 상한을 넘지 않게 자릅니다.
+  private nonisolated static func truncated(_ text: String, maxUTF8Bytes: Int) -> String {
+    guard text.utf8.count > maxUTF8Bytes else { return text }
+    var result = ""
+    var bytes = 0
+    for character in text {
+      let size = String(character).utf8.count
+      guard bytes + size <= maxUTF8Bytes else { break }
+      result.append(character)
+      bytes += size
+    }
+    return result
   }
 
   /// 데이터 머리 부분으로 판단한 오디오 확장자입니다. 복사할 때 형식을 알리는 데도 씁니다.

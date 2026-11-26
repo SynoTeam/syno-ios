@@ -8,6 +8,8 @@ protocol VoiceMemoAudioPlaying: AnyObject {
   var currentTime: TimeInterval { get }
   /// 끝까지 재생했을 때 불립니다.
   var onFinish: (() -> Void)? { get set }
+  /// 전화·다른 앱 오디오 등으로 재생이 중단됐을 때 불립니다. 위치는 유지됩니다.
+  var onInterruption: (() -> Void)? { get set }
   /// 재생을 시작합니다. 오디오 세션을 열지 못하는 등 시작하지 못하면 false입니다.
   func play() -> Bool
   func pause()
@@ -23,6 +25,9 @@ protocol VoiceMemoAudioPlaying: AnyObject {
 final class VoiceMemoPlaybackController {
   private(set) var playingNoteID: UUID?
   private(set) var isPlaying = false
+  /// 위치를 옮길 때마다 바뀝니다. 일시정지 중에는 화면이 주기적으로 다시 그리지 않으므로,
+  /// `elapsed(for:)`가 이 값을 읽어 위치 변경을 화면에 알립니다.
+  private var positionRevision = 0
 
   @ObservationIgnored private var currentNoteID: UUID?
   @ObservationIgnored private var player: (any VoiceMemoAudioPlaying)?
@@ -73,6 +78,7 @@ final class VoiceMemoPlaybackController {
       target = newPlayer
     }
     target.seek(to: max(time, 0))
+    positionRevision += 1
   }
 
   /// 앞의 재생을 멈추고 이 메모의 플레이어를 멈춘 상태로 준비합니다.
@@ -89,6 +95,11 @@ final class VoiceMemoPlaybackController {
       guard let self, let newPlayer, self.player === newPlayer else { return }
       self.reset()
     }
+    newPlayer.onInterruption = { [weak self, weak newPlayer] in
+      // 시스템이 플레이어를 멈췄으므로 위치는 그대로 두고 일시정지 상태로만 바꾼다.
+      guard let self, let newPlayer, self.player === newPlayer else { return }
+      self.isPlaying = false
+    }
     player = newPlayer
     currentNoteID = noteID
     playingNoteID = noteID
@@ -101,6 +112,7 @@ final class VoiceMemoPlaybackController {
 
   /// 경과 시간은 플레이어에서 바로 읽습니다. 화면은 재생 중에만 주기적으로 다시 그려 막대를 움직입니다.
   func elapsed(for noteID: UUID) -> TimeInterval {
+    _ = positionRevision
     guard currentNoteID == noteID, let player else { return 0 }
     return player.currentTime
   }
@@ -119,6 +131,7 @@ final class VoiceMemoPlaybackController {
 
   private func reset() {
     player?.onFinish = nil
+    player?.onInterruption = nil
     player = nil
     currentNoteID = nil
     playingNoteID = nil

@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Testing
 @testable import Syno
 
@@ -188,6 +189,54 @@ struct VoiceMemoPlaybackControllerTests {
     #expect(controller.elapsed(for: first) == 0)
   }
 
+  @Test("전화 등으로 오디오가 중단되면 일시정지 상태가 되고, 다시 누르면 같은 위치에서 이어서 재생한다")
+  func interruptionPauses() {
+    let factory = FakePlayerFactory()
+    let controller = VoiceMemoPlaybackController(makePlayer: factory.make)
+
+    controller.toggle(noteID: first, audioData: audio)
+    factory.players[0].currentTime = 6
+    factory.players[0].interrupt()
+
+    #expect(!controller.isPlaying(first))
+    #expect(controller.elapsed(for: first) == 6)
+
+    controller.toggle(noteID: first, audioData: audio)
+    #expect(controller.isPlaying(first))
+    #expect(factory.players.count == 1)
+    #expect(factory.players[0].playCount == 2)
+  }
+
+  @Test("앞 메모의 늦은 중단 알림은 지금 재생 중인 메모에 영향이 없다")
+  func staleInterruptionIsIgnored() {
+    let factory = FakePlayerFactory()
+    let controller = VoiceMemoPlaybackController(makePlayer: factory.make)
+
+    controller.toggle(noteID: first, audioData: audio)
+    controller.toggle(noteID: second, audioData: audio)
+    factory.players[0].interrupt()
+
+    #expect(controller.isPlaying(second))
+  }
+
+  @Test("일시정지 중에 위치를 옮겨도 화면이 바뀐 위치를 다시 읽는다")
+  func seekWhilePausedNotifiesObservers() {
+    let factory = FakePlayerFactory()
+    let controller = VoiceMemoPlaybackController(makePlayer: factory.make)
+    controller.seek(noteID: first, audioData: audio, to: 10)
+
+    var didChange = false
+    withObservationTracking {
+      _ = controller.elapsed(for: first)
+    } onChange: {
+      didChange = true
+    }
+    controller.seek(noteID: first, audioData: audio, to: 15)
+
+    #expect(didChange, "위치를 옮겨도 화면이 갱신되지 않으면 VoiceOver 조절이 예전 위치에서 계산됩니다")
+    #expect(controller.elapsed(for: first) == 15)
+  }
+
   @Test("재생하지 않는 메모의 경과 시간은 0이다")
   func elapsedForOtherNote() {
     let factory = FakePlayerFactory()
@@ -219,6 +268,7 @@ private final class FakePlayerFactory {
 private final class FakeAudioPlayer: VoiceMemoAudioPlaying {
   var currentTime: TimeInterval = 0
   var onFinish: (() -> Void)?
+  var onInterruption: (() -> Void)?
   private(set) var playCount = 0
   private(set) var stopCount = 0
   private let playSucceeds: Bool
@@ -241,6 +291,10 @@ private final class FakeAudioPlayer: VoiceMemoAudioPlaying {
   func stop() {
     stopCount += 1
     currentTime = 0
+  }
+
+  func interrupt() {
+    onInterruption?()
   }
 
   func finish() {

@@ -39,7 +39,7 @@ struct ArchiveVoiceMemoList: View {
         VoiceMemoTranscriptSheet(
           title: note.content,
           state: viewModel.voiceMemoStates[note.id],
-          onRetry: { Task { await viewModel.retryTranscription(for: note) } }
+          onRetry: { retry(note) }
         )
       }
     }
@@ -136,7 +136,7 @@ struct ArchiveVoiceMemoList: View {
     provider.suggestedName = (item.fileName as NSString).deletingPathExtension
     provider.registerFileRepresentation(forTypeIdentifier: type.identifier, fileOptions: [], visibility: .all) { completion in
       Task {
-        let url = await FileTransferURL.prepare(data: item.audioData, name: item.fileName, noteID: FileTransferURL.clipboardFolderID)
+        let url = await FileTransferURL.prepare(data: item.audioData, name: item.fileName, noteID: FileTransferURL.clipboardFolderID, overwrite: true)
         completion(url, false, url == nil ? CocoaError(.fileWriteUnknown) : nil)
       }
       return nil
@@ -192,6 +192,16 @@ struct ArchiveVoiceMemoList: View {
   private func showTranscript(_ note: Note) {
     transcriptNoteID = note.id
     if viewModel.voiceMemoStates[note.id] == nil {
+      Task { await viewModel.retryTranscription(for: note) }
+    }
+  }
+
+  /// 저장부터 실패한 메모는 다시 저장한 뒤 변환하고, 변환만 실패한 메모는 변환만 다시 한다.
+  /// 저장 실패 메모를 변환만 다시 하면 실패 표시는 사라지지만 메모는 여전히 저장되지 않는다.
+  private func retry(_ note: Note) {
+    if viewModel.voiceMemoStates[note.id] == .sendFailed {
+      Task { await viewModel.retrySend(for: note) }
+    } else {
       Task { await viewModel.retryTranscription(for: note) }
     }
   }
@@ -269,7 +279,8 @@ struct VoiceMemoTranscriptSheet: View {
       }
     case .transcriptFailed, .sendFailed:
       VStack(alignment: .leading, spacing: 12) {
-        Text("텍스트로 변환하지 못했습니다").foregroundStyle(.gray500)
+        Text(state == .sendFailed ? "음성 메모를 저장하지 못했습니다" : "텍스트로 변환하지 못했습니다")
+          .foregroundStyle(.gray500)
         Button("다시 시도", action: onRetry)
           .typeStyle(.calloutEmphasized)
           .foregroundStyle(.violet600)

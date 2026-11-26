@@ -66,6 +66,24 @@ struct VoiceMemoArchiveFormatTests {
     #expect(VoiceMemoExport.fileName(title: title, audioData: Data()) == expected)
   }
 
+  @Test("제목이 아주 길어도 파일 이름은 확장자를 포함해 200바이트 안으로 자른다", arguments: [
+    String(repeating: "a", count: 2_000),
+    String(repeating: "가", count: 300),
+    String(repeating: "👨‍👩‍👧", count: 100),
+  ])
+  func fileNameLengthLimited(title: String) {
+    let name = VoiceMemoExport.fileName(title: title, audioData: Data())
+    #expect(name.utf8.count <= 200)
+    #expect(name.hasSuffix(".m4a"))
+    #expect(title.hasPrefix(String(name.dropLast(4))), "글자 중간에서 잘리지 않고 앞부분이 그대로 남아야 합니다")
+  }
+
+  @Test("짧은 제목은 그대로 쓴다")
+  func shortFileNameUnchanged() {
+    let title = String(repeating: "가", count: 60)
+    #expect(VoiceMemoExport.fileName(title: title, audioData: Data()) == title + ".m4a")
+  }
+
   @Test("공유 글: 한 개는 변환 텍스트만, 여러 개는 제목과 변환 텍스트를 빈 줄로 나눠 잇는다", arguments: [
     // 한 개: 변환 텍스트 그대로
     ([VoiceMemoShareEntry(title: "회의", transcript: "다음 주 일정 확정")], "다음 주 일정 확정"),

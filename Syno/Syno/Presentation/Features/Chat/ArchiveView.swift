@@ -325,6 +325,19 @@ enum ArchiveFormatters {
     String(format: "%d:%02d", Int(duration ?? 0) / 60, Int(duration ?? 0) % 60)
   }
 
+  /// 음성 목록과 재생 카드의 시간입니다. 시안처럼 분:초를 두 자리씩 씁니다(예: 00:23) (#144).
+  static func playbackTimeText(_ seconds: TimeInterval?) -> String {
+    guard let seconds, seconds.isFinite, seconds > 0 else { return "00:00" }
+    let total = Int(seconds)
+    return String(format: "%02d:%02d", total / 60, total % 60)
+  }
+
+  /// 재생 카드 진행 막대의 채움 비율(0...1)입니다. 길이를 모르면 0입니다 (#144).
+  static func playbackProgress(elapsed: TimeInterval, duration: TimeInterval) -> Double {
+    guard duration > 0, elapsed.isFinite else { return 0 }
+    return min(max(elapsed / duration, 0), 1)
+  }
+
   private static let monthDayFormatter = makeFormatter("M월 d일 (E)")
   private static let yearMonthDayFormatter = makeFormatter("yyyy년 M월 d일 (E)")
 

@@ -13,8 +13,11 @@ struct ArchiveCategoryListView: View {
   @State private var confirmationAlert: DestructiveConfirmationAlert?
   @State private var toast: Toast?
   @State private var toastedFailedFileDownloadIds: Set<Note.ID> = []
-  /// 사진 목록에서 여러 장을 골라 삭제하는 선택 모드입니다. 채팅의 선택 모드와 같은 상태를 씁니다 (#142).
-  @State private var photoSelection = ChatSelectionState()
+  /// 사진·음성 목록에서 여러 개를 고르는 선택 모드입니다. 채팅의 선택 모드와 같은 상태를 씁니다 (#142, #144).
+  /// 선택 중에는 상단 탭을 막으므로 한 번에 한 카테고리에서만 고릅니다.
+  @State private var selection = ChatSelectionState()
+  /// 파일 앱 저장 위치 선택 화면에 넘길 음성 메모 파일입니다 (#144).
+  @State private var voiceExport: VoiceMemoExportRequest?
 
   private let photoColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
   private let linkColumns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
@@ -29,7 +32,7 @@ struct ArchiveCategoryListView: View {
     VStack(spacing: 0) {
       categoryPicker
         // 선택 중에 다른 카테고리로 넘어가 선택이 꼬이지 않게 막는다.
-        .disabled(photoSelection.isActive)
+        .disabled(selection.isActive)
 
       ScrollView {
         switch selectedCategory {
@@ -47,20 +50,21 @@ struct ArchiveCategoryListView: View {
       }
     }
     .safeAreaInset(edge: .bottom) {
-      if photoSelection.isActive {
-        ChatSelectionBar(selectedCount: photoSelection.count, onDelete: requestPhotoSelectionDeletion)
+      if selection.isActive {
+        selectionBar
       }
     }
     // 시안: 아카이브 목록 화면은 흰 배경, 카드는 gray50 (#142).
     .background(Color.white)
-    .navigationTitle(photoSelection.isActive ? "\(photoSelection.count)개 선택" : selectedCategory.title)
+    .navigationTitle(navigationTitle)
     .navigationBarTitleDisplayMode(.inline)
-    .synoBackButton(isHidden: photoSelection.isActive)
+    // 사진 선택은 "취소"가 뒤로 가기 자리를 쓰고, 음성 선택은 시안대로 뒤로 가기를 두고 오른쪽에 X를 둔다.
+    .synoBackButton(isHidden: selection.isActive && selectedCategory == .photos)
     .toolbar(.hidden, for: .tabBar)
     .toolbar { toolbarContent }
     // 지워졌거나 검색으로 화면에서 사라진 사진은 선택에서 뺀다. 보이지 않는 사진이 함께 삭제되지 않게 한다.
-    .onChange(of: visiblePhotoIDs) { _, ids in
-      photoSelection.retain(only: ids)
+    .onChange(of: visibleSelectableIDs) { _, ids in
+      selection.retain(only: ids)
     }
     .searchable(text: $searchText, isPresented: $isSearching, prompt: "검색")
     .onChange(of: isSearching) { _, isSearching in
@@ -73,6 +77,28 @@ struct ArchiveCategoryListView: View {
     .onChange(of: viewModel.fileDownloadStates) { _, newStates in
       handleFileDownloadStateChange(newStates)
     }
+    .sheet(isPresented: exportPickerBinding) {
+      if let voiceExport {
+        DocumentExportPicker(urls: voiceExport.urls) { didSave in
+          self.voiceExport = nil
+          if didSave {
+            viewModel.markVoiceMemosSaved(voiceExport.noteIDs)
+            toast = Toast(message: "파일에 저장되었습니다", style: .success)
+            if selection.isActive { selection.end() }
+          }
+        }
+        .ignoresSafeArea()
+      }
+    }
+  }
+
+  private var navigationTitle: String {
+    guard selection.isActive else { return selectedCategory.title }
+    return selection.count > 0 ? "\(selection.count)개 선택" : "선택하기"
+  }
+
+  private var exportPickerBinding: Binding<Bool> {
+    Binding(get: { voiceExport != nil }, set: { if !$0 { voiceExport = nil } })
   }
 
   private var categoryPicker: some View {
@@ -159,6 +185,15 @@ struct ArchiveCategoryListView: View {
     }.sorted { $0.createdAt < $1.createdAt }
   }
 
+  /// 선택 모드에서 고를 수 있는, 지금 화면에 보이는 항목입니다.
+  private var visibleSelectableIDs: Set<Note.ID> {
+    switch selectedCategory {
+    case .photos: visiblePhotoIDs
+    case .voiceMemos: Set(voiceMemoNotes.map(\.id))
+    default: []
+    }
+  }
+
   private var fileNotes: [Note] {
     viewModel.messages.filter { $0.fileName != nil }.filter { note in
       guard !trimmedSearchText.isEmpty else { return true }
@@ -215,13 +250,107 @@ struct ArchiveCategoryListView: View {
     if voiceMemoNotes.isEmpty {
       archiveEmptyState(image: trimmedSearchText.isEmpty ? .emptyVoice : .emptyVoiceSearch, message: trimmedSearchText.isEmpty ? "채팅창에 음성 메모를 전송하면\n확인 가능합니다." : "검색 결과가 없습니다")
     } else {
-      LazyVStack(alignment: .leading, spacing: 12) {
-        ForEach(voiceMemoNotes) { note in
-          VoiceMemoCard(note: note)
-            .contextMenu { Button(role: .destructive) { requestDelete(note) } label: { Label("삭제하기", destructiveIcon: .trash) } }
-        }
-      }.padding(16)
+      ArchiveVoiceMemoList(
+        viewModel: viewModel,
+        notes: voiceMemoNotes,
+        selection: $selection,
+        onExport: exportVoiceMemos,
+        onRequestDelete: requestDelete,
+        onToast: { toast = $0 }
+      )
     }
+  }
+
+  // MARK: - 선택 모드 (#142 사진, #144 음성)
+
+  @ViewBuilder private var selectionBar: some View {
+    if selectedCategory == .voiceMemos {
+      voiceSelectionBar
+    } else {
+      ChatSelectionBar(selectedCount: selection.count, onDelete: requestPhotoSelectionDeletion)
+    }
+  }
+
+  /// 시안: 파일에 저장, 공유, 삭제. 아무것도 고르지 않으면 흐리게 막는다.
+  private var voiceSelectionBar: some View {
+    let notes = selectedVoiceMemoNotes
+    let isEmpty = notes.isEmpty
+    // 고른 메모를 모두 이미 저장했으면 저장 버튼을 막는다.
+    let isAllSaved = !isEmpty && notes.allSatisfy { viewModel.savedVoiceMemoIDs.contains($0.id) }
+    return PreviewActionBar {
+      Button { exportVoiceMemos(notes) } label: { PreviewActionIcon(.download) }
+        .buttonStyle(.plain)
+        .accessibilityLabel("파일에 저장")
+        .disabled(isEmpty || isAllSaved)
+        .opacity(isAllSaved ? 0.4 : 1)
+
+      // 음성 공유는 변환 텍스트로 한다. 여러 개면 제목과 변환 텍스트를 이어 붙인다.
+      ShareLink(item: viewModel.voiceMemoShareItem(for: notes), preview: SharePreview("음성 메모 \(notes.count)개")) {
+        PreviewActionIcon(.share)
+      }
+        .buttonStyle(.plain)
+        .accessibilityLabel("공유하기")
+        .disabled(isEmpty)
+
+      Button { requestVoiceSelectionDeletion() } label: { PreviewActionIcon(.trash) }
+        .buttonStyle(.plain)
+        .accessibilityLabel("선택한 음성 메모 삭제")
+        .disabled(isEmpty)
+    }
+    .opacity(isEmpty ? 0.5 : 1)
+    .padding(.horizontal, 16)
+    .padding(.bottom, 8)
+  }
+
+  /// 화면에 보이는 것 중 고른 음성 메모입니다. 목록 순서를 유지합니다.
+  private var selectedVoiceMemoNotes: [Note] {
+    voiceMemoNotes.filter { selection.selectedIDs.contains($0.id) }
+  }
+
+  /// 파일 앱 저장 위치 선택 화면을 띄웁니다. 임시 파일을 만든 뒤 띄웁니다.
+  private func exportVoiceMemos(_ notes: [Note]) {
+    let requestedIDs = notes.map(\.id)
+    let wasSelecting = selection.isActive
+    guard !requestedIDs.isEmpty else { return }
+    Task {
+      let urls = await viewModel.voiceMemoTransferURLs(for: requestedIDs)
+      // 파일을 만드는 동안 다른 탭으로 옮겼거나, 검색·삭제·동기화로 목록에서 사라졌거나,
+      // 선택이 풀린 메모가 있으면 저장하지 않는다.
+      guard selectedCategory == .voiceMemos else { return }
+      let visibleIDs = Set(voiceMemoNotes.map(\.id))
+      let isStillValid = requestedIDs.allSatisfy { id in
+        visibleIDs.contains(id) && (!wasSelecting || selection.selectedIDs.contains(id))
+      }
+      guard isStillValid, selection.isActive == wasSelecting else { return }
+      guard let urls else {
+        toast = Toast(message: "저장할 음성 파일을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.", style: .failure)
+        return
+      }
+      voiceExport = VoiceMemoExportRequest(urls: urls, noteIDs: Set(requestedIDs))
+    }
+  }
+
+  private func requestVoiceSelectionDeletion() {
+    let count = selectedVoiceMemoNotes.count
+    guard count > 0 else { return }
+    confirmationAlert = DestructiveConfirmationAlert(
+      title: count > 1 ? "\(count)개의 음성 메모를\n삭제하시겠습니까?" : "이 음성 메모를\n삭제하시겠습니까?",
+      message: "삭제한 음성 메모는 복구할 수 없습니다.",
+      acknowledgementText: nil
+    ) {
+      deleteSelectedVoiceMemos()
+    }
+  }
+
+  private func deleteSelectedVoiceMemos() {
+    // 화면에 보이는 메모만 지운다(사진 선택 삭제와 같은 이유).
+    let ids = Set(selectedVoiceMemoNotes.map(\.id))
+    guard !ids.isEmpty, viewModel.deleteMessages(ids: ids) else {
+      toast = Toast(message: "음성 메모를 삭제하지 못했습니다", style: .failure)
+      return
+    }
+    selection.end()
+    toast = Toast(message: "음성 메모 \(ids.count)개가 삭제되었습니다", style: .success, icon: .trash)
   }
 
   @ViewBuilder private var fileList: some View {
@@ -373,10 +502,23 @@ struct ArchiveCategoryListView: View {
 
   @ToolbarContentBuilder
   private var toolbarContent: some ToolbarContent {
-    if photoSelection.isActive {
+    if selection.isActive, selectedCategory == .voiceMemos {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          selection.end()
+        } label: {
+          Image(.close)
+            .resizable()
+            .renderingMode(.template)
+            .frame(width: 20, height: 20)
+            .foregroundStyle(.gray950)
+        }
+        .accessibilityLabel("선택 끝내기")
+      }
+    } else if selection.isActive {
       ToolbarItem(placement: .topBarLeading) {
         Button("취소") {
-          photoSelection.end()
+          selection.end()
         }
       }
     } else {
@@ -398,19 +540,19 @@ struct ArchiveCategoryListView: View {
   /// 사진 목록의 한 칸입니다. 선택 모드에서는 누르면 선택이 바뀌고, 평소에는 미리보기로 이동합니다.
   @ViewBuilder
   private func photoGridItem(_ note: Note, image uiImage: UIImage) -> some View {
-    if photoSelection.isActive {
+    if selection.isActive {
       Button {
-        photoSelection.toggle([note.id])
+        selection.toggle([note.id])
       } label: {
         photoCell(uiImage)
           .overlay(alignment: .topTrailing) {
-            ChatSelectionIndicator(isSelected: photoSelection.isSelected([note.id]))
+            ChatSelectionIndicator(isSelected: selection.isSelected([note.id]))
               .scaleEffect(0.8)
               .padding(4)
           }
       }
       .buttonStyle(.plain)
-      .accessibilityLabel(photoSelection.isSelected([note.id]) ? "선택된 사진" : "사진 선택")
+      .accessibilityLabel(selection.isSelected([note.id]) ? "선택된 사진" : "사진 선택")
     } else {
       NavigationLink {
         PhotoPreviewView(viewModel: viewModel, noteID: note.id)
@@ -421,9 +563,9 @@ struct ArchiveCategoryListView: View {
       .accessibilityLabel("사진 크게 보기")
       .contextMenu {
         Button {
-          photoSelection.begin(with: [note.id])
+          selection.begin(with: [note.id])
         } label: {
-          Label("선택하기", icon: .check)
+          Label("선택하기", icon: .checkCircleFilled)
         }
 
         Button {
@@ -459,7 +601,7 @@ struct ArchiveCategoryListView: View {
   }
 
   private func requestPhotoSelectionDeletion() {
-    let count = photoSelection.count
+    let count = selection.count
     guard count > 0 else {
       return
     }
@@ -474,13 +616,13 @@ struct ArchiveCategoryListView: View {
 
   private func deleteSelectedPhotos() {
     // 화면에 보이는 사진만 지운다. 선택 정리(onChange)보다 삭제가 먼저 실행되는 경우에도 안전하게 한 번 더 거른다.
-    let ids = photoSelection.selectedIDs.intersection(visiblePhotoIDs)
+    let ids = selection.selectedIDs.intersection(visiblePhotoIDs)
     let deletedCount = ids.count
     guard deletedCount > 0, viewModel.deleteMessages(ids: ids) else {
       toast = Toast(message: "사진을 삭제하지 못했습니다", style: .failure)
       return
     }
-    photoSelection.end()
+    selection.end()
     toast = Toast(message: "사진 \(deletedCount)장이 삭제되었습니다", style: .success, icon: .trash)
   }
 
@@ -558,8 +700,14 @@ struct ArchiveCategoryListView: View {
   }
 }
 
-/// 누르는 동안 아이콘 뒤에 회색 원이 생기는 버튼 모양입니다(시안의 파일 다운로드 버튼).
-private struct CirclePressButtonStyle: ButtonStyle {
+/// 파일 앱에 저장할 음성 메모 파일과, 저장에 성공하면 "저장함"으로 표시할 메모입니다.
+private struct VoiceMemoExportRequest {
+  let urls: [URL]
+  let noteIDs: Set<Note.ID>
+}
+
+/// 누르는 동안 아이콘 뒤에 회색 원이 생기는 버튼 모양입니다(시안의 파일 다운로드, 음성 카드 버튼).
+struct CirclePressButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .background(configuration.isPressed ? Color.gray100 : Color.clear, in: Circle())

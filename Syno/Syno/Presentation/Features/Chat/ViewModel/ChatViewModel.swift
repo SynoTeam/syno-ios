@@ -634,10 +634,7 @@ final class ChatViewModel {
   }
 
   private func firstURL(in text: String) -> URL? {
-    let range = NSRange(text.startIndex..., in: text)
-    return (try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue))?
-      .firstMatch(in: text, range: range)?
-      .url
+    LinkPreviewURL.previewURL(in: text)
   }
 
   private func persistPendingMessage(id: PendingMessage.ID) {
